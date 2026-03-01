@@ -1,0 +1,79 @@
+{
+  "name": "projectnotes",
+  "displayName": "ProjectNotes",
+  "description": "Per-project notes that sync to the cloud",
+  "version": "0.0.1",
+  "publisher": "projectnotes",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "projectnotes",
+          "title": "ProjectNotes",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "projectnotes": [
+        {
+          "type": "webview",
+          "id": "projectnotes.notesView",
+          "name": "Notes"
+        }
+      ]
+    },
+    "commands": [
+      { "command": "projectnotes.openNotes", "title": "ProjectNotes: Open Notes" },
+      { "command": "projectnotes.logout", "title": "ProjectNotes: Logout" },
+      { "command": "projectnotes.saveNote", "title": "ProjectNotes: Save Note" }
+    ],
+    "keybindings": [
+      {
+        "command": "projectnotes.saveNote",
+        "key": "ctrl+s",
+        "mac": "cmd+s",
+        "when": "focusedView == projectnotes.notesView"
+      }
+    ],
+    "configuration": {
+      "title": "ProjectNotes",
+      "properties": {
+        "projectnotes.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:3001",
+          "description": "ProjectNotes API URL"
+        },
+        "projectnotes.autoShow": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically show notes when opening a project"
+        },
+        "projectnotes.panelMode": {
+          "type": "string",
+          "enum": ["sidebar", "overlay"],
+          "default": "sidebar",
+          "description": "How to display the notes panel"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "dev": "npm run build -- --watch"
+  },
+  "dependencies": {
+    "axios": "^1.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.3.3"
+  }
+}
