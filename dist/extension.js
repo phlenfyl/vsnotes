@@ -15491,11 +15491,39 @@ function settingsHtml(autoShow, noteBgColor) {
     document.getElementById('lo').addEventListener('click',()=>vscode.postMessage({type:'logout'}));
   </script></body></html>`;
 }
+function noFolderHtml() {
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:24px 16px;margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+    .icon{font-size:36px;margin-bottom:14px;opacity:0.4}
+    h3{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--vscode-foreground)}
+    p{font-size:12px;color:var(--vscode-descriptionForeground);line-height:1.6;margin:0 0 20px}
+    button{padding:7px 16px;background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:none;border-radius:4px;cursor:pointer;font-size:12px;font-family:var(--vscode-font-family)}
+    button:hover{background:var(--vscode-button-hoverBackground)}
+  </style></head><body>
+  <div class="icon">\u{1F4C2}</div>
+  <h3>No folder open</h3>
+  <p>Open a project folder to start writing notes for it. Each folder gets its own set of notes.</p>
+  <button id="openBtn">Open Folder</button>
+  <script>
+    const vscode=acquireVsCodeApi();
+    document.getElementById('openBtn').addEventListener('click',()=>vscode.postMessage({type:'openFolder'}));
+  </script>
+  </body></html>`;
+}
 function notesListHtml(projectName, notes, offline) {
   const items = notes.map((n) => {
     const date = new Date(n.updatedAt).toLocaleDateString(void 0, { month: "short", day: "numeric" });
     const safeTitle = n.title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const rawPreview = n.editorMode === "markdown" ? (n.content || "").replace(/[#*_`\[\]]/g, "").replace(/\n/g, " ") : (n.content || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+    const rawPreview = n.editorMode === "markdown" ? (n.content || "").replace(/[#*_`\[\]]/g, "").replace(/\n/g, " ") : (() => {
+      try {
+        const d = JSON.parse(n.content || "");
+        return (d.ops || []).map((op) => typeof op.insert === "string" ? op.insert : "").join("").replace(/\n/g, " ");
+      } catch {
+        return (n.content || "").replace(/<[^>]+>/g, " ");
+      }
+    })();
     const preview = rawPreview.trim().slice(0, 60).replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const tagBadges = n.tags.slice(0, 3).map((t) => `<span class="tag">${t.replace(/</g, "&lt;")}</span>`).join("");
     return `<div class="note-row" data-id="${n.id}">
@@ -15882,7 +15910,7 @@ async function activate(context) {
         const projectName = folderPath?.split(/[\\/]/).filter(Boolean).pop() ?? "No project";
         currentNoteId = null;
         if (!folderPath) {
-          webviewView.webview.html = notesListHtml("No folder open", []);
+          webviewView.webview.html = noFolderHtml();
           return;
         }
         try {
@@ -15917,9 +15945,13 @@ async function activate(context) {
           case "showList":
             await showNotesList();
             break;
+          case "openFolder":
+            vscode.commands.executeCommand("vscode.openFolder");
+            break;
           case "newNote": {
             const folderPath = getFolderPath();
             if (!folderPath) {
+              vscode.window.showWarningMessage("Open a folder first \u2014 ProjectNotes needs a project folder to save notes to.");
               break;
             }
             const projectName = folderPath.split(/[\\/]/).filter(Boolean).pop() ?? "Project";
