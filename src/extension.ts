@@ -64,7 +64,26 @@ async function apiDelete(s: vscode.SecretStorage, path: string) {
 
 interface NoteItem {
   id: string; title: string; content: string;
-  updatedAt: string; pinned: boolean; tags: string[]; editorMode: string;
+  updatedAt: string; pinned: boolean; tags: string[]; editorMode: string; priority: string;
+}
+
+const PRIORITY_ORDER: Record<string, number> = {
+  emergency: 5, urgent: 4, important: 3, medium: 2, low: 1, none: 0,
+};
+const PRIORITY_BADGE: Record<string, string> = {
+  emergency: '🚨', urgent: '🔴', important: '🟠', medium: '🟡', low: '🟢',
+};
+const PRIORITY_LABEL: Record<string, string> = {
+  emergency: 'Emergency', urgent: 'Urgent', important: 'Important', medium: 'Medium', low: 'Low', none: 'None',
+};
+function topPriorityNote(notes: NoteItem[]): NoteItem | null {
+  if (!notes.length) { return null; }
+  return [...notes].sort((a, b) => {
+    const pa = PRIORITY_ORDER[a.priority ?? 'none'] ?? 0;
+    const pb = PRIORITY_ORDER[b.priority ?? 'none'] ?? 0;
+    if (pb !== pa) { return pb - pa; }
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  })[0];
 }
 
 // ── Color palette ─────────────────────────────────────────────────────────────
@@ -184,9 +203,13 @@ function notesListHtml(projectName: string, notes: NoteItem[], offline?: boolean
     const preview = rawPreview.trim().slice(0, 60).replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const tagBadges = n.tags.slice(0, 3).map(t =>
       `<span class="tag">${t.replace(/</g, '&lt;')}</span>`).join('');
+    const priorityBadge = n.priority && n.priority !== 'none'
+      ? `<span class="priority-badge p-${n.priority}" title="${PRIORITY_LABEL[n.priority]}">${PRIORITY_BADGE[n.priority]}</span>`
+      : '';
     return `<div class="note-row" data-id="${n.id}">
       <div class="note-main">
         <div class="note-header">
+          ${priorityBadge}
           ${n.pinned ? '<span class="pin">📌</span>' : ''}
           <span class="note-title">${safeTitle}</span>
           <span class="note-date">${date}</span>
@@ -309,6 +332,7 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     .mode-toggle{display:flex;gap:2px;flex-shrink:0}
     .mode-btn{background:none;border:1px solid var(--vscode-panel-border);color:var(--vscode-descriptionForeground);font-size:10px;padding:2px 6px;border-radius:3px;cursor:pointer}
     .mode-btn.active{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border-color:transparent}
+    .priority-select{background:var(--vscode-input-background);border:1px solid var(--vscode-panel-border);color:var(--vscode-foreground);font-size:10px;padding:2px 4px;border-radius:3px;cursor:pointer;font-family:var(--vscode-font-family);flex-shrink:0}
 
     /* Word count */
     .word-count{padding:3px 8px;font-size:10px;color:var(--vscode-descriptionForeground);flex-shrink:0;border-bottom:1px solid var(--vscode-panel-border);background:var(--vscode-sideBar-background)}
@@ -351,6 +375,14 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
   <!-- Meta bar -->
   <div class="meta-bar">
     <button class="pin-btn${note.pinned ? ' active' : ''}" id="pinBtn" title="${note.pinned ? 'Unpin' : 'Pin note'}">📌</button>
+    <select class="priority-select" id="prioritySelect" title="Priority">
+      <option value="none"${(note.priority||'none')==='none'?' selected':''}>— Priority</option>
+      <option value="low"${note.priority==='low'?' selected':''}>🟢 Low</option>
+      <option value="medium"${note.priority==='medium'?' selected':''}>🟡 Medium</option>
+      <option value="important"${note.priority==='important'?' selected':''}>🟠 Important</option>
+      <option value="urgent"${note.priority==='urgent'?' selected':''}>🔴 Urgent</option>
+      <option value="emergency"${note.priority==='emergency'?' selected':''}>🚨 Emergency</option>
+    </select>
     <input class="tags-input" id="tagsInput" value="${note.tags.join(', ')}" placeholder="Tags: idea, bug, todo…"/>
     <div class="mode-toggle">
       <button class="mode-btn${!isMarkdown ? ' active' : ''}" id="modeWysiwyg">WYSIWYG</button>
@@ -504,6 +536,7 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
         editorMode: mode,
         pinned: pinned,
         tags: getTags(),
+        priority: document.getElementById('prioritySelect').value,
       });
     }
 
@@ -527,6 +560,7 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
         editorMode: mode,
         pinned: pinned,
         tags: getTags(),
+        priority: document.getElementById('prioritySelect').value,
         thenShowList: true,
       });
     });
@@ -570,6 +604,18 @@ export async function activate(context: vscode.ExtensionContext) {
         const { accessToken } = await getTokens(secrets);
         if (!accessToken && !(await refreshAccessToken(secrets))) {
           webviewView.webview.html = loginHtml(); return;
+        }
+        // On startup: open the highest-priority note directly (or most recent if none prioritised)
+        const folderPath = getFolderPath();
+        if (folderPath) {
+          try {
+            const res = await apiGet(secrets, '/notes', { folderPath });
+            const notes: NoteItem[] = res.data.data;
+            const top = topPriorityNote(notes);
+            if (top) {
+              await openNote(top.id); return;
+            }
+          } catch { /* fall through to list */ }
         }
         await showNotesList();
       }
@@ -642,6 +688,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 editorMode: msg.editorMode,
                 pinned: msg.pinned,
                 tags: msg.tags,
+                priority: msg.priority,
               });
               if (msg.thenShowList) {
                 await showNotesList();

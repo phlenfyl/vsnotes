@@ -15418,6 +15418,42 @@ async function apiPatch(s, path, body) {
 async function apiDelete(s, path) {
   return makeRequest(s, (t) => axios_default.delete(`${base()}${path}`, { headers: hdr(t) }));
 }
+var PRIORITY_ORDER = {
+  emergency: 5,
+  urgent: 4,
+  important: 3,
+  medium: 2,
+  low: 1,
+  none: 0
+};
+var PRIORITY_BADGE = {
+  emergency: "\u{1F6A8}",
+  urgent: "\u{1F534}",
+  important: "\u{1F7E0}",
+  medium: "\u{1F7E1}",
+  low: "\u{1F7E2}"
+};
+var PRIORITY_LABEL = {
+  emergency: "Emergency",
+  urgent: "Urgent",
+  important: "Important",
+  medium: "Medium",
+  low: "Low",
+  none: "None"
+};
+function topPriorityNote(notes) {
+  if (!notes.length) {
+    return null;
+  }
+  return [...notes].sort((a, b) => {
+    const pa = PRIORITY_ORDER[a.priority ?? "none"] ?? 0;
+    const pb = PRIORITY_ORDER[b.priority ?? "none"] ?? 0;
+    if (pb !== pa) {
+      return pb - pa;
+    }
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  })[0];
+}
 var BG_COLORS = [
   { label: "Dark", bg: "#1e1e1e", text: "#d4d4d4" },
   { label: "Deep night", bg: "#0d1117", text: "#c9d1d9" },
@@ -15526,9 +15562,11 @@ function notesListHtml(projectName, notes, offline) {
     })();
     const preview = rawPreview.trim().slice(0, 60).replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const tagBadges = n.tags.slice(0, 3).map((t) => `<span class="tag">${t.replace(/</g, "&lt;")}</span>`).join("");
+    const priorityBadge = n.priority && n.priority !== "none" ? `<span class="priority-badge p-${n.priority}" title="${PRIORITY_LABEL[n.priority]}">${PRIORITY_BADGE[n.priority]}</span>` : "";
     return `<div class="note-row" data-id="${n.id}">
       <div class="note-main">
         <div class="note-header">
+          ${priorityBadge}
           ${n.pinned ? '<span class="pin">\u{1F4CC}</span>' : ""}
           <span class="note-title">${safeTitle}</span>
           <span class="note-date">${date}</span>
@@ -15646,6 +15684,7 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     .mode-toggle{display:flex;gap:2px;flex-shrink:0}
     .mode-btn{background:none;border:1px solid var(--vscode-panel-border);color:var(--vscode-descriptionForeground);font-size:10px;padding:2px 6px;border-radius:3px;cursor:pointer}
     .mode-btn.active{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border-color:transparent}
+    .priority-select{background:var(--vscode-input-background);border:1px solid var(--vscode-panel-border);color:var(--vscode-foreground);font-size:10px;padding:2px 4px;border-radius:3px;cursor:pointer;font-family:var(--vscode-font-family);flex-shrink:0}
 
     /* Word count */
     .word-count{padding:3px 8px;font-size:10px;color:var(--vscode-descriptionForeground);flex-shrink:0;border-bottom:1px solid var(--vscode-panel-border);background:var(--vscode-sideBar-background)}
@@ -15688,6 +15727,14 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
   <!-- Meta bar -->
   <div class="meta-bar">
     <button class="pin-btn${note.pinned ? " active" : ""}" id="pinBtn" title="${note.pinned ? "Unpin" : "Pin note"}">\u{1F4CC}</button>
+    <select class="priority-select" id="prioritySelect" title="Priority">
+      <option value="none"${(note.priority || "none") === "none" ? " selected" : ""}>\u2014 Priority</option>
+      <option value="low"${note.priority === "low" ? " selected" : ""}>\u{1F7E2} Low</option>
+      <option value="medium"${note.priority === "medium" ? " selected" : ""}>\u{1F7E1} Medium</option>
+      <option value="important"${note.priority === "important" ? " selected" : ""}>\u{1F7E0} Important</option>
+      <option value="urgent"${note.priority === "urgent" ? " selected" : ""}>\u{1F534} Urgent</option>
+      <option value="emergency"${note.priority === "emergency" ? " selected" : ""}>\u{1F6A8} Emergency</option>
+    </select>
     <input class="tags-input" id="tagsInput" value="${note.tags.join(", ")}" placeholder="Tags: idea, bug, todo\u2026"/>
     <div class="mode-toggle">
       <button class="mode-btn${!isMarkdown ? " active" : ""}" id="modeWysiwyg">WYSIWYG</button>
@@ -15841,6 +15888,7 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
         editorMode: mode,
         pinned: pinned,
         tags: getTags(),
+        priority: document.getElementById('prioritySelect').value,
       });
     }
 
@@ -15864,6 +15912,7 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
         editorMode: mode,
         pinned: pinned,
         tags: getTags(),
+        priority: document.getElementById('prioritySelect').value,
         thenShowList: true,
       });
     });
@@ -15902,6 +15951,19 @@ async function activate(context) {
         if (!accessToken && !await refreshAccessToken(secrets)) {
           webviewView.webview.html = loginHtml();
           return;
+        }
+        const folderPath = getFolderPath();
+        if (folderPath) {
+          try {
+            const res = await apiGet(secrets, "/notes", { folderPath });
+            const notes = res.data.data;
+            const top = topPriorityNote(notes);
+            if (top) {
+              await openNote(top.id);
+              return;
+            }
+          } catch {
+          }
         }
         await showNotesList();
       }
@@ -15985,7 +16047,8 @@ async function activate(context) {
                 content: msg.content,
                 editorMode: msg.editorMode,
                 pinned: msg.pinned,
-                tags: msg.tags
+                tags: msg.tags,
+                priority: msg.priority
               });
               if (msg.thenShowList) {
                 await showNotesList();
