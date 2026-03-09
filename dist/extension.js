@@ -15350,45 +15350,43 @@ var {
 // src/extension.ts
 var import_crypto2 = require("crypto");
 function getApiUrl() {
-  return vscode.workspace.getConfiguration("projectnotes").get("apiUrl", "http://localhost:3001");
+  return vscode.workspace.getConfiguration("projectnotes").get("apiUrl", "https://vsnotes-backend.onrender.com");
 }
 function getFolderPath() {
   const folders = vscode.workspace.workspaceFolders;
   return folders && folders.length > 0 ? folders[0].uri.fsPath : null;
 }
-async function getTokens(secrets) {
-  const access = await secrets.get("accessToken");
-  const refresh = await secrets.get("refreshToken");
-  return { accessToken: access || null, refreshToken: refresh || null };
+async function getTokens(s) {
+  return { accessToken: await s.get("accessToken") || null, refreshToken: await s.get("refreshToken") || null };
 }
-async function setTokens(secrets, access, refresh) {
-  await secrets.store("accessToken", access);
-  await secrets.store("refreshToken", refresh);
+async function setTokens(s, a, r) {
+  await s.store("accessToken", a);
+  await s.store("refreshToken", r);
 }
-async function clearTokens(secrets) {
-  await secrets.delete("accessToken");
-  await secrets.delete("refreshToken");
-  await secrets.delete("user");
+async function clearTokens(s) {
+  await s.delete("accessToken");
+  await s.delete("refreshToken");
+  await s.delete("user");
 }
-async function refreshAccessToken(secrets) {
-  const { refreshToken } = await getTokens(secrets);
+async function refreshAccessToken(s) {
+  const { refreshToken } = await getTokens(s);
   if (!refreshToken) {
     return null;
   }
   try {
     const { data } = await axios_default.post(`${getApiUrl()}/auth/refresh`, { refreshToken });
     if (data.success) {
-      await setTokens(secrets, data.data.accessToken, data.data.refreshToken);
+      await setTokens(s, data.data.accessToken, data.data.refreshToken);
       return data.data.accessToken;
     }
   } catch {
   }
   return null;
 }
-async function makeRequest(secrets, fn) {
-  let { accessToken } = await getTokens(secrets);
+async function makeRequest(s, fn) {
+  let { accessToken } = await getTokens(s);
   if (!accessToken) {
-    accessToken = await refreshAccessToken(secrets);
+    accessToken = await refreshAccessToken(s);
   }
   if (!accessToken) {
     throw new Error("NOT_AUTHENTICATED");
@@ -15397,7 +15395,7 @@ async function makeRequest(secrets, fn) {
     return await fn(accessToken);
   } catch (e) {
     if (e?.response?.status === 401) {
-      accessToken = await refreshAccessToken(secrets);
+      accessToken = await refreshAccessToken(s);
       if (!accessToken) {
         throw new Error("NOT_AUTHENTICATED");
       }
@@ -15438,20 +15436,25 @@ function loginHtml() {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
   <style>
     body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:20px;margin:0}
-    h2{margin-bottom:8px;font-size:16px}p{font-size:13px;color:var(--vscode-descriptionForeground);margin-bottom:20px;line-height:1.5}
+    h2{margin-bottom:8px;font-size:16px}
+    p{font-size:13px;color:var(--vscode-descriptionForeground);margin-bottom:20px;line-height:1.5}
     button{width:100%;padding:8px 16px;background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:none;border-radius:4px;cursor:pointer;font-size:13px}
-    button:hover{background:var(--vscode-button-hoverBackground)}.logo{font-size:32px;margin-bottom:12px}
+    button:hover{background:var(--vscode-button-hoverBackground)}
+    .logo{font-size:32px;margin-bottom:12px}
   </style></head><body>
-  <div class="logo">\u{1F4DD}</div><h2>ProjectNotes</h2>
+  <div class="logo">\u{1F4DD}</div>
+  <h2>ProjectNotes</h2>
   <p>Sign in to keep per-project notes that sync across all your machines.</p>
   <button id="b">Sign in / Sign up</button>
-  <script>const vscode=acquireVsCodeApi();document.getElementById('b').addEventListener('click',()=>vscode.postMessage({type:'startLogin'}));</script>
-  </body></html>`;
+  <script>
+    const vscode=acquireVsCodeApi();
+    document.getElementById('b').addEventListener('click',()=>vscode.postMessage({type:'startLogin'}));
+  </script></body></html>`;
 }
 function settingsHtml(autoShow, noteBgColor) {
   const swatches = BG_COLORS.map((c) => `
-    <div class="swatch ${c.bg === noteBgColor ? "active" : ""}" data-bg="${c.bg}" data-text="${c.text}"
-      style="background:${c.bg};border:2px solid ${c.bg === noteBgColor ? "#6c8ef5" : "transparent"}" title="${c.label}">
+    <div class="swatch${c.bg === noteBgColor ? " active" : ""}" data-bg="${c.bg}" data-text="${c.text}"
+      style="background:${c.bg};border-color:${c.bg === noteBgColor ? "#6c8ef5" : "transparent"}" title="${c.label}">
       ${c.bg === noteBgColor ? '<span class="check">\u2713</span>' : ""}
     </div>`).join("");
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
@@ -15459,21 +15462,19 @@ function settingsHtml(autoShow, noteBgColor) {
     *{box-sizing:border-box}
     body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:16px;margin:0}
     h2{font-size:14px;margin-bottom:16px}
-    .section-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--vscode-descriptionForeground);margin:16px 0 8px}
+    .label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--vscode-descriptionForeground);margin:16px 0 8px}
     .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-    label{font-size:13px}
     .back{background:none;border:none;color:var(--vscode-textLink-foreground);cursor:pointer;font-size:12px;padding:0;margin-bottom:14px}
     .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-    .swatch{width:100%;aspect-ratio:1;border-radius:6px;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;transition:transform 0.1s}
+    .swatch{width:100%;aspect-ratio:1;border-radius:6px;cursor:pointer;border:2px solid transparent;position:relative;display:flex;align-items:center;justify-content:center;transition:transform 0.1s}
     .swatch:hover{transform:scale(1.08)}
-    .swatch.active{border-color:#6c8ef5 !important}
     .check{font-size:14px;color:#6c8ef5;font-weight:bold;text-shadow:0 0 4px rgba(0,0,0,0.5)}
     .logout{margin-top:20px;width:100%;padding:7px;background:var(--vscode-inputValidation-errorBackground);color:var(--vscode-errorForeground);border:1px solid var(--vscode-inputValidation-errorBorder);border-radius:4px;cursor:pointer;font-size:12px}
   </style></head><body>
   <button class="back" id="bk">\u2190 Back</button>
   <h2>Settings</h2>
   <div class="row"><label>Auto-show on project open</label><input type="checkbox" id="as" ${autoShow ? "checked" : ""}/></div>
-  <div class="section-label">Note background colour</div>
+  <div class="label">Note background colour</div>
   <div class="swatches">${swatches}</div>
   <button class="logout" id="lo">Log out</button>
   <script>
@@ -15494,11 +15495,18 @@ function notesListHtml(projectName, notes, offline) {
   const items = notes.map((n) => {
     const date = new Date(n.updatedAt).toLocaleDateString(void 0, { month: "short", day: "numeric" });
     const safeTitle = n.title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const preview = (n.content || "").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, " ").slice(0, 55);
+    const rawPreview = n.editorMode === "markdown" ? (n.content || "").replace(/[#*_`\[\]]/g, "").replace(/\n/g, " ") : (n.content || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+    const preview = rawPreview.trim().slice(0, 60).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const tagBadges = n.tags.slice(0, 3).map((t) => `<span class="tag">${t.replace(/</g, "&lt;")}</span>`).join("");
     return `<div class="note-row" data-id="${n.id}">
       <div class="note-main">
-        <div class="note-header"><span class="note-title">${safeTitle}</span><span class="note-date">${date}</span></div>
+        <div class="note-header">
+          ${n.pinned ? '<span class="pin">\u{1F4CC}</span>' : ""}
+          <span class="note-title">${safeTitle}</span>
+          <span class="note-date">${date}</span>
+        </div>
         <div class="note-preview">${preview || '<span class="dim">Empty note</span>'}</div>
+        ${tagBadges ? `<div class="tags">${tagBadges}</div>` : ""}
       </div>
       <button class="del-btn" data-id="${n.id}" title="Delete">\u2715</button>
     </div>`;
@@ -15508,19 +15516,26 @@ function notesListHtml(projectName, notes, offline) {
     *{box-sizing:border-box}
     body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:0;margin:0;height:100vh;display:flex;flex-direction:column;overflow:hidden}
     .toolbar{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0}
-    .project-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px}
+    .project-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px}
     .toolbar-right{display:flex;align-items:center;gap:2px}
     .icon-btn{background:none;border:none;cursor:pointer;color:var(--vscode-foreground);opacity:0.65;font-size:15px;padding:3px 6px;border-radius:3px;line-height:1}
     .icon-btn:hover{opacity:1;background:var(--vscode-toolbar-hoverBackground)}
+    .search-bar{padding:5px 10px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0}
+    .search-bar input{width:100%;background:var(--vscode-input-background);border:1px solid var(--vscode-input-border);color:var(--vscode-input-foreground);border-radius:3px;padding:4px 8px;font-size:12px;outline:none;font-family:var(--vscode-font-family)}
+    .search-bar input:focus{border-color:var(--vscode-focusBorder)}
     .offline-banner{padding:6px 10px;background:var(--vscode-inputValidation-warningBackground);font-size:11px;flex-shrink:0}
     .notes-list{flex:1;overflow-y:auto;padding:4px 0}
     .note-row{display:flex;align-items:center;padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--vscode-panel-border);gap:6px}
     .note-row:hover{background:var(--vscode-list-hoverBackground)}
+    .note-row.hidden{display:none}
     .note-main{flex:1;min-width:0}
-    .note-header{display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:2px}
-    .note-title{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .note-header{display:flex;align-items:baseline;gap:4px;margin-bottom:2px}
+    .pin{font-size:10px;flex-shrink:0}
+    .note-title{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
     .note-date{font-size:10px;color:var(--vscode-descriptionForeground);white-space:nowrap;flex-shrink:0}
     .note-preview{font-size:11px;color:var(--vscode-descriptionForeground);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tags{display:flex;gap:3px;margin-top:3px;flex-wrap:wrap}
+    .tag{font-size:10px;padding:1px 5px;border-radius:3px;background:var(--vscode-badge-background);color:var(--vscode-badge-foreground)}
     .dim{opacity:0.4;font-style:italic}
     .del-btn{background:none;border:none;cursor:pointer;color:var(--vscode-errorForeground);opacity:0;font-size:11px;padding:2px 4px;border-radius:2px;flex-shrink:0}
     .note-row:hover .del-btn{opacity:0.5}.del-btn:hover{opacity:1 !important;background:var(--vscode-inputValidation-errorBackground)}
@@ -15529,12 +15544,15 @@ function notesListHtml(projectName, notes, offline) {
   <div class="toolbar">
     <span class="project-name" title="${projectName}">${projectName}</span>
     <div class="toolbar-right">
-      <button class="icon-btn" id="newBtn" title="New note">+</button>
+      <button class="icon-btn" id="newBtn" title="New note (Cmd/Ctrl+N)">+</button>
       <button class="icon-btn" id="settingsBtn" title="Settings">\u2699</button>
     </div>
   </div>
+  <div class="search-bar">
+    <input id="search" placeholder="Search notes\u2026" autocomplete="off"/>
+  </div>
   ${offline ? `<div class="offline-banner">\u26A0 Offline \u2014 changes won't save</div>` : ""}
-  <div class="notes-list">
+  <div class="notes-list" id="list">
     ${items}
     ${notes.length === 0 ? '<div class="empty">No notes yet.<br/>Press <strong>+</strong> to create one.</div>' : ""}
   </div>
@@ -15543,55 +15561,292 @@ function notesListHtml(projectName, notes, offline) {
     document.getElementById('newBtn').addEventListener('click',()=>vscode.postMessage({type:'newNote'}));
     document.getElementById('settingsBtn').addEventListener('click',()=>vscode.postMessage({type:'openSettings'}));
     document.querySelectorAll('.note-row').forEach(row=>{
-      row.addEventListener('click',e=>{if(e.target.classList.contains('del-btn'))return;vscode.postMessage({type:'openNote',id:row.dataset.id});});
+      row.addEventListener('click',e=>{
+        if(e.target.classList.contains('del-btn'))return;
+        vscode.postMessage({type:'openNote',id:row.dataset.id});
+      });
     });
     document.querySelectorAll('.del-btn').forEach(btn=>{
-      btn.addEventListener('click',e=>{e.stopPropagation();vscode.postMessage({type:'deleteNote',id:btn.dataset.id});});
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        vscode.postMessage({type:'deleteNote',id:btn.dataset.id});
+      });
+    });
+    // Search filter
+    document.getElementById('search').addEventListener('input',e=>{
+      const q=e.target.value.toLowerCase().trim();
+      document.querySelectorAll('.note-row').forEach(row=>{
+        const title=row.querySelector('.note-title')?.textContent?.toLowerCase()||'';
+        const preview=row.querySelector('.note-preview')?.textContent?.toLowerCase()||'';
+        row.classList.toggle('hidden',q!==''&&!title.includes(q)&&!preview.includes(q));
+      });
+    });
+    // Keyboard shortcut Cmd/Ctrl+N
+    document.addEventListener('keydown',e=>{
+      if((e.metaKey||e.ctrlKey)&&e.key==='n'){e.preventDefault();vscode.postMessage({type:'newNote'});}
     });
   </script></body></html>`;
 }
-function noteEditorHtml(note, projectName, bgColor, textColor, saved) {
-  const safeContent = (note.content || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+function noteEditorHtml(note, projectName, bgColor, textColor) {
   const safeTitle = (note.title || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const tagsJson = JSON.stringify(note.tags || []);
+  const isMarkdown = note.editorMode === "markdown";
+  const safeContent = (note.content || "").replace(/`/g, "\\`").replace(/\\/g, "\\\\");
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+  <!-- Quill WYSIWYG -->
+  <link rel="stylesheet" href="https://cdn.quilljs.com/1.3.7/quill.snow.css"/>
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <!-- Marked for Markdown preview -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     *{box-sizing:border-box}
     body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:0;margin:0;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-    .toolbar{display:flex;align-items:center;padding:6px 10px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0;gap:6px}
-    .back-btn{background:none;border:none;cursor:pointer;color:var(--vscode-textLink-foreground);font-size:12px;padding:0;white-space:nowrap;flex-shrink:0}
+
+    /* Toolbar */
+    .toolbar{display:flex;align-items:center;padding:5px 8px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0;gap:5px}
+    .back-btn{background:none;border:none;cursor:pointer;color:var(--vscode-textLink-foreground);font-size:11px;padding:0;white-space:nowrap;flex-shrink:0}
     .title-input{flex:1;background:transparent;border:none;color:var(--vscode-foreground);font-size:12px;font-weight:600;outline:none;min-width:0;font-family:var(--vscode-font-family)}
     .title-input::placeholder{color:var(--vscode-input-placeholderForeground)}
-    .status{font-size:11px;color:#4caf50;white-space:nowrap;flex-shrink:0;transition:opacity 0.3s}
-    textarea{flex:1;width:100%;padding:12px;background:${bgColor};color:${textColor};border:none;resize:none;font-family:var(--vscode-editor-font-family,monospace);font-size:var(--vscode-editor-font-size,13px);line-height:1.7;outline:none}
-    textarea::placeholder{color:${textColor};opacity:0.35}
+    .status{font-size:10px;color:#4caf50;white-space:nowrap;flex-shrink:0;min-width:40px;text-align:right}
+
+    /* Meta bar: tags + pin + mode toggle */
+    .meta-bar{display:flex;align-items:center;gap:6px;padding:4px 8px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0;flex-wrap:wrap}
+    .pin-btn{background:none;border:none;cursor:pointer;font-size:13px;padding:0;opacity:0.5;line-height:1}
+    .pin-btn.active{opacity:1}
+    .tags-input{flex:1;background:transparent;border:none;color:var(--vscode-descriptionForeground);font-size:11px;outline:none;font-family:var(--vscode-font-family);min-width:80px}
+    .tags-input::placeholder{color:var(--vscode-input-placeholderForeground);font-style:italic}
+    .mode-toggle{display:flex;gap:2px;flex-shrink:0}
+    .mode-btn{background:none;border:1px solid var(--vscode-panel-border);color:var(--vscode-descriptionForeground);font-size:10px;padding:2px 6px;border-radius:3px;cursor:pointer}
+    .mode-btn.active{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border-color:transparent}
+
+    /* Word count */
+    .word-count{padding:3px 8px;font-size:10px;color:var(--vscode-descriptionForeground);flex-shrink:0;border-bottom:1px solid var(--vscode-panel-border);background:var(--vscode-sideBar-background)}
+
+    /* Editor area */
+    .editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;background:${bgColor};color:${textColor}}
+
+    /* WYSIWYG Quill overrides */
+    .ql-toolbar{background:#fff1;border:none!important;border-bottom:1px solid rgba(128,128,128,0.2)!important;flex-shrink:0;padding:4px!important}
+    .ql-toolbar .ql-stroke{stroke:${textColor}!important}
+    .ql-toolbar .ql-fill{fill:${textColor}!important}
+    .ql-toolbar .ql-picker-label{color:${textColor}!important}
+    .ql-toolbar button:hover .ql-stroke,.ql-toolbar button.ql-active .ql-stroke{stroke:#6c8ef5!important}
+    .ql-container{flex:1;font-size:13px;border:none!important;overflow:auto}
+    .ql-editor{color:${textColor};min-height:200px;line-height:1.7;padding:12px}
+    .ql-editor.ql-blank::before{color:${textColor};opacity:0.35;font-style:italic}
+
+    /* Markdown area */
+    .md-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;background:${bgColor}}
+    .md-panes{flex:1;display:flex;overflow:hidden}
+    textarea.md-edit{flex:1;background:${bgColor};color:${textColor};border:none;resize:none;font-family:var(--vscode-editor-font-family,monospace);font-size:13px;line-height:1.7;padding:12px;outline:none}
+    textarea.md-edit::placeholder{color:${textColor};opacity:0.35}
+    .md-preview{flex:1;overflow-y:auto;padding:12px;color:${textColor};font-size:13px;line-height:1.7;border-left:1px solid rgba(128,128,128,0.2)}
+    .md-preview h1,.md-preview h2,.md-preview h3{margin-top:0.8em;margin-bottom:0.3em}
+    .md-preview code{background:rgba(128,128,128,0.15);padding:1px 4px;border-radius:3px;font-size:12px}
+    .md-preview pre{background:rgba(128,128,128,0.15);padding:8px;border-radius:4px;overflow-x:auto}
+    .md-preview a{color:#6c8ef5}
+    .md-tabs{display:flex;border-bottom:1px solid rgba(128,128,128,0.2);background:${bgColor};flex-shrink:0}
+    .md-tab{flex:1;text-align:center;padding:5px;font-size:11px;cursor:pointer;color:${textColor};opacity:0.5;border:none;background:none}
+    .md-tab.active{opacity:1;border-bottom:2px solid #6c8ef5}
   </style></head><body>
+
+  <!-- Toolbar -->
   <div class="toolbar">
     <button class="back-btn" id="backBtn">\u2190 ${projectName}</button>
     <input class="title-input" id="titleInput" value="${safeTitle}" placeholder="Note title\u2026"/>
-    <span class="status" id="status" style="opacity:${saved ? 1 : 0}">\u2713 Saved</span>
+    <span class="status" id="status"></span>
   </div>
-  <textarea id="noteArea" placeholder="Start writing\u2026">${safeContent}</textarea>
+
+  <!-- Meta bar -->
+  <div class="meta-bar">
+    <button class="pin-btn${note.pinned ? " active" : ""}" id="pinBtn" title="${note.pinned ? "Unpin" : "Pin note"}">\u{1F4CC}</button>
+    <input class="tags-input" id="tagsInput" value="${note.tags.join(", ")}" placeholder="Tags: idea, bug, todo\u2026"/>
+    <div class="mode-toggle">
+      <button class="mode-btn${!isMarkdown ? " active" : ""}" id="modeWysiwyg">WYSIWYG</button>
+      <button class="mode-btn${isMarkdown ? " active" : ""}" id="modeMd">Markdown</button>
+    </div>
+  </div>
+
+  <!-- Word count -->
+  <div class="word-count" id="wordCount">0 words \xB7 0 chars</div>
+
+  <!-- WYSIWYG editor -->
+  <div class="editor-wrap" id="wysiwygWrap" style="display:${isMarkdown ? "none" : "flex"}">
+    <div id="quillEditor"></div>
+  </div>
+
+  <!-- Markdown editor -->
+  <div class="md-wrap" id="mdWrap" style="display:${isMarkdown ? "flex" : "none"};flex-direction:column">
+    <div class="md-tabs">
+      <button class="md-tab active" id="tabEdit">Edit</button>
+      <button class="md-tab" id="tabPreview">Preview</button>
+    </div>
+    <div class="md-panes">
+      <textarea class="md-edit" id="mdEdit" placeholder="Write Markdown\u2026"></textarea>
+      <div class="md-preview" id="mdPreview" style="display:none"></div>
+    </div>
+  </div>
+
   <script>
-    const vscode=acquireVsCodeApi();
-    const noteId="${note.id}";
-    let saveTimer=null;
-    function scheduleSave(){
-      clearTimeout(saveTimer);
-      saveTimer=setTimeout(doSave,800);
-    }
-    function doSave(){
-      vscode.postMessage({type:'saveNote',id:noteId,title:document.getElementById('titleInput').value,content:document.getElementById('noteArea').value});
-    }
-    document.getElementById('titleInput').addEventListener('input',scheduleSave);
-    document.getElementById('noteArea').addEventListener('input',scheduleSave);
-    document.addEventListener('keydown',e=>{
-      if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();clearTimeout(saveTimer);doSave();}
+    const vscode = acquireVsCodeApi();
+    const noteId = "${note.id}";
+    let mode = "${note.editorMode || "wysiwyg"}";
+    let pinned = ${note.pinned};
+    let saveTimer = null;
+
+    // \u2500\u2500 Quill init \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    const quill = new Quill('#quillEditor', {
+      theme: 'snow',
+      placeholder: 'Start writing\u2026',
+      modules: {
+        toolbar: [
+          ['bold','italic','underline','strike'],
+          ['blockquote','code-block'],
+          [{'list':'ordered'},{'list':'bullet'}],
+          [{'header':[1,2,3,false]}],
+          ['link'],
+          ['clean']
+        ]
+      }
     });
-    const titleEl=document.getElementById('titleInput');
-    if(titleEl.value==='Untitled'){titleEl.focus();titleEl.select();}
-    document.getElementById('backBtn').addEventListener('click',()=>{
+
+    // Load initial content
+    const rawContent = \`${safeContent}\`;
+    if (mode === 'wysiwyg') {
+      try { quill.setContents(JSON.parse(rawContent)); } catch { quill.setText(rawContent); }
+    } else {
+      document.getElementById('mdEdit').value = rawContent;
+      updateMdPreview();
+    }
+
+    // \u2500\u2500 Word count \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    function updateWordCount(text) {
+      const words = text.trim() ? text.trim().split(/s+/).length : 0;
+      const chars = text.length;
+      document.getElementById('wordCount').textContent = words + ' words \xB7 ' + chars + ' chars';
+    }
+
+    quill.on('text-change', () => {
+      updateWordCount(quill.getText());
+      scheduleSave();
+    });
+    document.getElementById('mdEdit').addEventListener('input', e => {
+      updateWordCount(e.target.value);
+      updateMdPreview();
+      scheduleSave();
+    });
+
+    // init word count
+    updateWordCount(mode === 'wysiwyg' ? quill.getText() : document.getElementById('mdEdit').value);
+
+    // \u2500\u2500 Markdown preview \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    function updateMdPreview() {
+      const src = document.getElementById('mdEdit').value;
+      document.getElementById('mdPreview').innerHTML = marked.parse(src);
+    }
+    document.getElementById('tabEdit').addEventListener('click', () => {
+      document.getElementById('tabEdit').classList.add('active');
+      document.getElementById('tabPreview').classList.remove('active');
+      document.getElementById('mdEdit').style.display = '';
+      document.getElementById('mdPreview').style.display = 'none';
+    });
+    document.getElementById('tabPreview').addEventListener('click', () => {
+      document.getElementById('tabPreview').classList.add('active');
+      document.getElementById('tabEdit').classList.remove('active');
+      document.getElementById('mdEdit').style.display = 'none';
+      document.getElementById('mdPreview').style.display = '';
+      updateMdPreview();
+    });
+
+    // \u2500\u2500 Mode toggle \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    function switchMode(newMode) {
+      if (newMode === mode) return;
+      mode = newMode;
+      document.getElementById('modeWysiwyg').classList.toggle('active', mode === 'wysiwyg');
+      document.getElementById('modeMd').classList.toggle('active', mode === 'markdown');
+      document.getElementById('wysiwygWrap').style.display = mode === 'wysiwyg' ? 'flex' : 'none';
+      document.getElementById('mdWrap').style.display = mode === 'markdown' ? 'flex' : 'none';
+      // Convert content between modes (best effort)
+      if (mode === 'markdown') {
+        const text = quill.getText();
+        document.getElementById('mdEdit').value = text;
+        updateMdPreview();
+      } else {
+        const md = document.getElementById('mdEdit').value;
+        quill.setText(md);
+      }
+      scheduleSave();
+    }
+    document.getElementById('modeWysiwyg').addEventListener('click', () => switchMode('wysiwyg'));
+    document.getElementById('modeMd').addEventListener('click', () => switchMode('markdown'));
+
+    // \u2500\u2500 Pin \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    document.getElementById('pinBtn').addEventListener('click', () => {
+      pinned = !pinned;
+      document.getElementById('pinBtn').classList.toggle('active', pinned);
+      document.getElementById('pinBtn').title = pinned ? 'Unpin' : 'Pin note';
+      scheduleSave();
+    });
+
+    // \u2500\u2500 Tags \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    document.getElementById('tagsInput').addEventListener('input', scheduleSave);
+
+    // \u2500\u2500 Save \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    function getContent() {
+      if (mode === 'wysiwyg') return JSON.stringify(quill.getContents());
+      return document.getElementById('mdEdit').value;
+    }
+    function getTags() {
+      return document.getElementById('tagsInput').value
+        .split(',').map(t => t.trim()).filter(Boolean);
+    }
+    function scheduleSave() {
       clearTimeout(saveTimer);
-      vscode.postMessage({type:'saveNote',id:noteId,title:titleEl.value,content:document.getElementById('noteArea').value,thenShowList:true});
+      saveTimer = setTimeout(doSave, 900);
+    }
+    function doSave() {
+      vscode.postMessage({
+        type: 'saveNote',
+        id: noteId,
+        title: document.getElementById('titleInput').value,
+        content: getContent(),
+        editorMode: mode,
+        pinned: pinned,
+        tags: getTags(),
+      });
+    }
+
+    document.getElementById('titleInput').addEventListener('input', scheduleSave);
+    document.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); clearTimeout(saveTimer); doSave(); }
+    });
+
+    // Auto-select Untitled
+    const titleEl = document.getElementById('titleInput');
+    if (titleEl.value === 'Untitled') { titleEl.focus(); titleEl.select(); }
+
+    // \u2500\u2500 Back \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    document.getElementById('backBtn').addEventListener('click', () => {
+      clearTimeout(saveTimer);
+      vscode.postMessage({
+        type: 'saveNote',
+        id: noteId,
+        title: titleEl.value,
+        content: getContent(),
+        editorMode: mode,
+        pinned: pinned,
+        tags: getTags(),
+        thenShowList: true,
+      });
+    });
+
+    // \u2500\u2500 Listen for saved confirmation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    window.addEventListener('message', e => {
+      if (e.data.type === 'saved') {
+        const s = document.getElementById('status');
+        s.textContent = '\u2713 Saved';
+        setTimeout(() => { s.textContent = ''; }, 2000);
+      }
     });
   </script></body></html>`;
 }
@@ -15609,7 +15864,11 @@ async function activate(context) {
   const provider = {
     resolveWebviewView(webviewView) {
       panel = webviewView;
-      webviewView.webview.options = { enableScripts: true };
+      webviewView.webview.options = {
+        enableScripts: true,
+        // Allow Quill and marked CDN
+        localResourceRoots: []
+      };
       async function render() {
         const { accessToken } = await getTokens(secrets);
         if (!accessToken && !await refreshAccessToken(secrets)) {
@@ -15664,17 +15923,21 @@ async function activate(context) {
               break;
             }
             const projectName = folderPath.split(/[\\/]/).filter(Boolean).pop() ?? "Project";
-            const title = await vscode.window.showInputBox({ prompt: "Note name", placeHolder: "e.g. Ideas, TODO, Meeting Notes\u2026", value: "" });
+            const title = await vscode.window.showInputBox({
+              prompt: "Note name",
+              placeHolder: "e.g. Ideas, TODO, Meeting Notes\u2026",
+              value: ""
+            });
             if (title === void 0) {
               break;
             }
             try {
-              const res = await apiPost(secrets, "/notes", { folderPath, title: title || "Untitled", content: "" });
+              const res = await apiPost(secrets, "/notes", { folderPath, title: title || "Untitled", content: "", editorMode: "wysiwyg" });
               currentNoteId = res.data.data.id;
               const { bg, text } = getNoteColors();
               webviewView.webview.html = noteEditorHtml(res.data.data, projectName, bg, text);
             } catch {
-              vscode.window.showErrorMessage("Failed to create note. Is the server running?");
+              vscode.window.showErrorMessage("Failed to create note.");
             }
             break;
           }
@@ -15685,24 +15948,32 @@ async function activate(context) {
             const folderPath = getFolderPath();
             const projectName = folderPath?.split(/[\\/]/).filter(Boolean).pop() ?? "Project";
             try {
-              const res = await apiPatch(secrets, `/notes/${msg.id}`, { title: msg.title, content: msg.content });
+              await apiPatch(secrets, `/notes/${msg.id}`, {
+                title: msg.title,
+                content: msg.content,
+                editorMode: msg.editorMode,
+                pinned: msg.pinned,
+                tags: msg.tags
+              });
               if (msg.thenShowList) {
                 await showNotesList();
               } else if (currentNoteId === msg.id) {
-                const { bg, text } = getNoteColors();
-                webviewView.webview.html = noteEditorHtml(res.data.data, projectName, bg, text, true);
-                setTimeout(() => {
-                  if (currentNoteId === msg.id) {
-                    webviewView.webview.html = noteEditorHtml(res.data.data, projectName, bg, text, false);
-                  }
-                }, 2e3);
+                webviewView.webview.postMessage({ type: "saved" });
               }
-            } catch {
+            } catch (e) {
+              const err = e;
+              if (err.message === "NOT_AUTHENTICATED") {
+                webviewView.webview.html = loginHtml();
+              }
             }
             break;
           }
           case "deleteNote": {
-            const ok = await vscode.window.showWarningMessage("Delete this note? This cannot be undone.", { modal: true }, "Delete");
+            const ok = await vscode.window.showWarningMessage(
+              "Delete this note? This cannot be undone.",
+              { modal: true },
+              "Delete"
+            );
             if (ok === "Delete") {
               try {
                 await apiDelete(secrets, `/notes/${msg.id}`);
@@ -15740,7 +16011,9 @@ async function activate(context) {
       render();
     }
   };
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider("projectnotes.notesView", provider));
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("projectnotes.notesView", provider)
+  );
   context.subscriptions.push(
     vscode.commands.registerCommand("projectnotes.openNotes", () => vscode.commands.executeCommand("projectnotes.notesView.focus")),
     vscode.commands.registerCommand("projectnotes.logout", async () => {
@@ -15786,7 +16059,7 @@ async function startLoginFlow(secrets, onSuccess) {
     }
     vscode.window.showErrorMessage("Login timed out. Please try again.");
   } catch {
-    vscode.window.showErrorMessage("Could not connect to ProjectNotes API. Is the server running?");
+    vscode.window.showErrorMessage("Could not connect to ProjectNotes API.");
   }
 }
 function deactivate() {
