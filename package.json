@@ -1,9 +1,9 @@
 {
   "name": "projectnotes",
   "displayName": "ProjectNotes",
-  "description": "Per-project notes that sync to the cloud",
+  "description": "Write notes for each VS Code project. Syncs to the cloud across all your machines.",
   "version": "0.0.1",
-  "publisher": "projectnotes",
+  "publisher": "YOUR_PUBLISHER_NAME",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Other"],
   "activationEvents": ["onStartupFinished"],
@@ -14,7 +14,7 @@
         {
           "id": "projectnotes",
           "title": "ProjectNotes",
-          "icon": "media/icon.svg"
+          "icon": "media/icon.png"
         }
       ]
     },
@@ -29,23 +29,15 @@
     },
     "commands": [
       { "command": "projectnotes.openNotes", "title": "ProjectNotes: Open Notes" },
-      { "command": "projectnotes.logout", "title": "ProjectNotes: Logout" },
-      { "command": "projectnotes.saveNote", "title": "ProjectNotes: Save Note" }
+      { "command": "projectnotes.logout", "title": "ProjectNotes: Logout" }
     ],
-    "keybindings": [
-      {
-        "command": "projectnotes.saveNote",
-        "key": "ctrl+s",
-        "mac": "cmd+s",
-        "when": "focusedView == projectnotes.notesView"
-      }
-    ],
+
     "configuration": {
       "title": "ProjectNotes",
       "properties": {
         "projectnotes.apiUrl": {
           "type": "string",
-          "default": "http://localhost:3001",
+          "default": "https://vsnotes-backend.onrender.com",
           "description": "ProjectNotes API URL"
         },
         "projectnotes.autoShow": {
@@ -53,11 +45,15 @@
           "default": true,
           "description": "Automatically show notes when opening a project"
         },
-        "projectnotes.panelMode": {
+        "projectnotes.noteBgColor": {
           "type": "string",
-          "enum": ["sidebar", "overlay"],
-          "default": "sidebar",
-          "description": "How to display the notes panel"
+          "default": "#1e1e1e",
+          "description": "Background colour for the note editor"
+        },
+        "projectnotes.noteTextColor": {
+          "type": "string",
+          "default": "#d4d4d4",
+          "description": "Text colour for the note editor"
         }
       }
     }
@@ -66,6 +62,10 @@
     "vscode:prepublish": "npm run build",
     "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
     "dev": "npm run build -- --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/projectnotes-extension"
   },
   "dependencies": {
     "axios": "^1.6.7"
