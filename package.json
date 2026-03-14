@@ -1,8 +1,9 @@
 {
-  "name": "projectnotes",
-  "displayName": "ProjectNotes",
+  "name": "notenest",
+  "displayName": "NoteNest",
   "description": "Write notes for each VS Code project. Syncs to the cloud across all your machines.",
   "version": "0.0.1",
+  "icon": "media/icon-marketplace.png",
   "publisher": "YOUR_PUBLISHER_NAME",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Other"],
@@ -12,45 +13,45 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "projectnotes",
-          "title": "ProjectNotes",
-          "icon": "media/icon.svg"
+          "id": "notenest",
+          "title": "NoteNest",
+          "icon": "media/icon.png"
         }
       ]
     },
     "views": {
-      "projectnotes": [
+      "notenest": [
         {
           "type": "webview",
-          "id": "projectnotes.notesView",
+          "id": "notenest.notesView",
           "name": "Notes"
         }
       ]
     },
     "commands": [
-      { "command": "projectnotes.openNotes", "title": "ProjectNotes: Open Notes" },
-      { "command": "projectnotes.logout", "title": "ProjectNotes: Logout" }
+      { "command": "notenest.openNotes", "title": "NoteNest: Open Notes" },
+      { "command": "notenest.logout", "title": "NoteNest: Logout" }
     ],
 
     "configuration": {
-      "title": "ProjectNotes",
+      "title": "NoteNest",
       "properties": {
-        "projectnotes.apiUrl": {
+        "notenest.apiUrl": {
           "type": "string",
           "default": "https://vsnotes-backend.onrender.com",
-          "description": "ProjectNotes API URL"
+          "description": "NoteNest API URL"
         },
-        "projectnotes.autoShow": {
+        "notenest.autoShow": {
           "type": "boolean",
           "default": true,
           "description": "Automatically show notes when opening a project"
         },
-        "projectnotes.noteBgColor": {
+        "notenest.noteBgColor": {
           "type": "string",
           "default": "#1e1e1e",
           "description": "Background colour for the note editor"
         },
-        "projectnotes.noteTextColor": {
+        "notenest.noteTextColor": {
           "type": "string",
           "default": "#d4d4d4",
           "description": "Text colour for the note editor"
@@ -65,7 +66,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/projectnotes-extension"
+    "url": "https://github.com/YOUR_USERNAME/notenest-extension"
   },
   "dependencies": {
     "axios": "^1.6.7"

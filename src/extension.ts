@@ -5,7 +5,7 @@ import { randomBytes } from 'crypto';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getApiUrl(): string {
-  return vscode.workspace.getConfiguration('projectnotes').get('apiUrl', 'https://vsnotes-backend.onrender.com');
+  return vscode.workspace.getConfiguration('notenest').get('apiUrl', 'https://vsnotes-backend.onrender.com');
 }
 function getFolderPath(): string | null {
   const folders = vscode.workspace.workspaceFolders;
@@ -105,18 +105,15 @@ const BG_COLORS = [
 
 // ── HTML: Login ───────────────────────────────────────────────────────────────
 
-function loginHtml(): string {
+function loginHtml(iconUri: string): string {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
   <style>
-    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:20px;margin:0}
-    h2{margin-bottom:8px;font-size:16px}
-    p{font-size:13px;color:var(--vscode-descriptionForeground);margin-bottom:20px;line-height:1.5}
+    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:24px 20px;margin:0;display:flex;flex-direction:column;align-items:center;text-align:center;box-sizing:border-box}
+    p{font-size:13px;color:var(--vscode-descriptionForeground);margin-bottom:20px;line-height:1.5;max-width:220px}
     button{width:100%;padding:8px 16px;background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:none;border-radius:4px;cursor:pointer;font-size:13px}
     button:hover{background:var(--vscode-button-hoverBackground)}
-    .logo{font-size:32px;margin-bottom:12px}
   </style></head><body>
-  <div class="logo">📝</div>
-  <h2>ProjectNotes</h2>
+  <img src="${iconUri}" width="120" height="120" style="margin-bottom:16px"/>
   <p>Sign in to keep per-project notes that sync across all your machines.</p>
   <button id="b">Sign in / Sign up</button>
   <script>
@@ -582,9 +579,10 @@ export async function activate(context: vscode.ExtensionContext) {
   const secrets = context.secrets;
   let panel: vscode.WebviewView | undefined;
   let currentNoteId: string | null = null;
+  let iconUri = '';
 
   function getNoteColors(): { bg: string; text: string } {
-    const config = vscode.workspace.getConfiguration('projectnotes');
+    const config = vscode.workspace.getConfiguration('notenest');
     return {
       bg: config.get('noteBgColor', '#1e1e1e'),
       text: config.get('noteTextColor', '#d4d4d4'),
@@ -596,14 +594,14 @@ export async function activate(context: vscode.ExtensionContext) {
       panel = webviewView;
       webviewView.webview.options = {
         enableScripts: true,
-        // Allow Quill and marked CDN
-        localResourceRoots: [],
+        localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')],
       };
+      iconUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png')).toString();
 
       async function render() {
         const { accessToken } = await getTokens(secrets);
         if (!accessToken && !(await refreshAccessToken(secrets))) {
-          webviewView.webview.html = loginHtml(); return;
+          webviewView.webview.html = loginHtml(iconUri); return;
         }
         // On startup: open the highest-priority note directly (or most recent if none prioritised)
         const folderPath = getFolderPath();
@@ -630,7 +628,7 @@ export async function activate(context: vscode.ExtensionContext) {
           webviewView.webview.html = notesListHtml(projectName, res.data.data);
         } catch (e: unknown) {
           const err = e as { message?: string };
-          if (err.message === 'NOT_AUTHENTICATED') { webviewView.webview.html = loginHtml(); }
+          if (err.message === 'NOT_AUTHENTICATED') { webviewView.webview.html = loginHtml(iconUri); }
           else { webviewView.webview.html = notesListHtml(projectName, [], true); }
         }
       }
@@ -659,7 +657,7 @@ export async function activate(context: vscode.ExtensionContext) {
           case 'newNote': {
             const folderPath = getFolderPath();
             if (!folderPath) {
-              vscode.window.showWarningMessage('Open a folder first — ProjectNotes needs a project folder to save notes to.');
+              vscode.window.showWarningMessage('Open a folder first — NoteNest needs a project folder to save notes to.');
               break;
             }
             const projectName = folderPath.split(/[\\/]/).filter(Boolean).pop() ?? 'Project';
@@ -698,7 +696,7 @@ export async function activate(context: vscode.ExtensionContext) {
               }
             } catch (e: unknown) {
               const err = e as { message?: string };
-              if (err.message === 'NOT_AUTHENTICATED') { webviewView.webview.html = loginHtml(); }
+              if (err.message === 'NOT_AUTHENTICATED') { webviewView.webview.html = loginHtml(iconUri); }
               // else offline — ignore
             }
             break;
@@ -715,7 +713,7 @@ export async function activate(context: vscode.ExtensionContext) {
           }
 
           case 'openSettings': {
-            const config = vscode.workspace.getConfiguration('projectnotes');
+            const config = vscode.workspace.getConfiguration('notenest');
             webviewView.webview.html = settingsHtml(
               config.get('autoShow', true),
               config.get('noteBgColor', '#1e1e1e')
@@ -724,7 +722,7 @@ export async function activate(context: vscode.ExtensionContext) {
           }
 
           case 'setSetting': {
-            const config = vscode.workspace.getConfiguration('projectnotes');
+            const config = vscode.workspace.getConfiguration('notenest');
             if (msg.key === 'autoShow') { await config.update('autoShow', msg.value, vscode.ConfigurationTarget.Global); }
             if (msg.key === 'noteBgColor') {
               await config.update('noteBgColor', msg.value, vscode.ConfigurationTarget.Global);
@@ -735,7 +733,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
           case 'logout':
             await clearTokens(secrets);
-            webviewView.webview.html = loginHtml();
+            webviewView.webview.html = loginHtml(iconUri);
             break;
         }
       });
@@ -745,14 +743,14 @@ export async function activate(context: vscode.ExtensionContext) {
   };
 
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('projectnotes.notesView', provider)
+    vscode.window.registerWebviewViewProvider('notenest.notesView', provider)
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand('projectnotes.openNotes', () =>
-      vscode.commands.executeCommand('projectnotes.notesView.focus')),
-    vscode.commands.registerCommand('projectnotes.logout', async () => {
+    vscode.commands.registerCommand('notenest.openNotes', () =>
+      vscode.commands.executeCommand('notenest.notesView.focus')),
+    vscode.commands.registerCommand('notenest.logout', async () => {
       await clearTokens(secrets);
-      if (panel) { panel.webview.html = loginHtml(); }
+      if (panel) { panel.webview.html = loginHtml(iconUri); }
     }),
   );
   context.subscriptions.push(
@@ -788,7 +786,7 @@ async function startLoginFlow(secrets: vscode.SecretStorage, onSuccess: () => vo
       } catch { /* keep polling */ }
     }
     vscode.window.showErrorMessage('Login timed out. Please try again.');
-  } catch { vscode.window.showErrorMessage('Could not connect to ProjectNotes API.'); }
+  } catch { vscode.window.showErrorMessage('Could not connect to NoteNest API.'); }
 }
 
 export function deactivate() {}

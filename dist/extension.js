@@ -15477,7 +15477,7 @@ var {
 // src/extension.ts
 var import_crypto2 = require("crypto");
 function getApiUrl() {
-  return vscode.workspace.getConfiguration("projectnotes").get("apiUrl", "https://vsnotes-backend.onrender.com");
+  return vscode.workspace.getConfiguration("notenest").get("apiUrl", "https://vsnotes-backend.onrender.com");
 }
 function getFolderPath() {
   const folders = vscode.workspace.workspaceFolders;
@@ -15595,18 +15595,15 @@ var BG_COLORS = [
   { label: "Mint", bg: "#f0faf4", text: "#1a3d2b" },
   { label: "Lavender", bg: "#f3f0ff", text: "#2d1f6e" }
 ];
-function loginHtml() {
+function loginHtml(iconUri) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
   <style>
-    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:20px;margin:0}
-    h2{margin-bottom:8px;font-size:16px}
-    p{font-size:13px;color:var(--vscode-descriptionForeground);margin-bottom:20px;line-height:1.5}
+    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:24px 20px;margin:0;display:flex;flex-direction:column;align-items:center;text-align:center;box-sizing:border-box}
+    p{font-size:13px;color:var(--vscode-descriptionForeground);margin-bottom:20px;line-height:1.5;max-width:220px}
     button{width:100%;padding:8px 16px;background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:none;border-radius:4px;cursor:pointer;font-size:13px}
     button:hover{background:var(--vscode-button-hoverBackground)}
-    .logo{font-size:32px;margin-bottom:12px}
   </style></head><body>
-  <div class="logo">\u{1F4DD}</div>
-  <h2>ProjectNotes</h2>
+  <img src="${iconUri}" width="120" height="120" style="margin-bottom:16px"/>
   <p>Sign in to keep per-project notes that sync across all your machines.</p>
   <button id="b">Sign in / Sign up</button>
   <script>
@@ -16058,8 +16055,9 @@ async function activate(context) {
   const secrets = context.secrets;
   let panel;
   let currentNoteId = null;
+  let iconUri = "";
   function getNoteColors() {
-    const config = vscode.workspace.getConfiguration("projectnotes");
+    const config = vscode.workspace.getConfiguration("notenest");
     return {
       bg: config.get("noteBgColor", "#1e1e1e"),
       text: config.get("noteTextColor", "#d4d4d4")
@@ -16070,13 +16068,13 @@ async function activate(context) {
       panel = webviewView;
       webviewView.webview.options = {
         enableScripts: true,
-        // Allow Quill and marked CDN
-        localResourceRoots: []
+        localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "media")]
       };
+      iconUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, "media", "icon.png")).toString();
       async function render() {
         const { accessToken } = await getTokens(secrets);
         if (!accessToken && !await refreshAccessToken(secrets)) {
-          webviewView.webview.html = loginHtml();
+          webviewView.webview.html = loginHtml(iconUri);
           return;
         }
         const folderPath = getFolderPath();
@@ -16108,7 +16106,7 @@ async function activate(context) {
         } catch (e) {
           const err = e;
           if (err.message === "NOT_AUTHENTICATED") {
-            webviewView.webview.html = loginHtml();
+            webviewView.webview.html = loginHtml(iconUri);
           } else {
             webviewView.webview.html = notesListHtml(projectName, [], true);
           }
@@ -16140,7 +16138,7 @@ async function activate(context) {
           case "newNote": {
             const folderPath = getFolderPath();
             if (!folderPath) {
-              vscode.window.showWarningMessage("Open a folder first \u2014 ProjectNotes needs a project folder to save notes to.");
+              vscode.window.showWarningMessage("Open a folder first \u2014 NoteNest needs a project folder to save notes to.");
               break;
             }
             const projectName = folderPath.split(/[\\/]/).filter(Boolean).pop() ?? "Project";
@@ -16185,7 +16183,7 @@ async function activate(context) {
             } catch (e) {
               const err = e;
               if (err.message === "NOT_AUTHENTICATED") {
-                webviewView.webview.html = loginHtml();
+                webviewView.webview.html = loginHtml(iconUri);
               }
             }
             break;
@@ -16206,7 +16204,7 @@ async function activate(context) {
             break;
           }
           case "openSettings": {
-            const config = vscode.workspace.getConfiguration("projectnotes");
+            const config = vscode.workspace.getConfiguration("notenest");
             webviewView.webview.html = settingsHtml(
               config.get("autoShow", true),
               config.get("noteBgColor", "#1e1e1e")
@@ -16214,7 +16212,7 @@ async function activate(context) {
             break;
           }
           case "setSetting": {
-            const config = vscode.workspace.getConfiguration("projectnotes");
+            const config = vscode.workspace.getConfiguration("notenest");
             if (msg.key === "autoShow") {
               await config.update("autoShow", msg.value, vscode.ConfigurationTarget.Global);
             }
@@ -16226,7 +16224,7 @@ async function activate(context) {
           }
           case "logout":
             await clearTokens(secrets);
-            webviewView.webview.html = loginHtml();
+            webviewView.webview.html = loginHtml(iconUri);
             break;
         }
       });
@@ -16234,14 +16232,14 @@ async function activate(context) {
     }
   };
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider("projectnotes.notesView", provider)
+    vscode.window.registerWebviewViewProvider("notenest.notesView", provider)
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand("projectnotes.openNotes", () => vscode.commands.executeCommand("projectnotes.notesView.focus")),
-    vscode.commands.registerCommand("projectnotes.logout", async () => {
+    vscode.commands.registerCommand("notenest.openNotes", () => vscode.commands.executeCommand("notenest.notesView.focus")),
+    vscode.commands.registerCommand("notenest.logout", async () => {
       await clearTokens(secrets);
       if (panel) {
-        panel.webview.html = loginHtml();
+        panel.webview.html = loginHtml(iconUri);
       }
     })
   );
@@ -16281,7 +16279,7 @@ async function startLoginFlow(secrets, onSuccess) {
     }
     vscode.window.showErrorMessage("Login timed out. Please try again.");
   } catch {
-    vscode.window.showErrorMessage("Could not connect to ProjectNotes API.");
+    vscode.window.showErrorMessage("Could not connect to NoteNest API.");
   }
 }
 function deactivate() {
