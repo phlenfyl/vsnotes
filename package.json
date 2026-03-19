@@ -30,8 +30,18 @@
     },
     "commands": [
       { "command": "notenest.openNotes", "title": "NoteNest: Open Notes" },
-      { "command": "notenest.logout", "title": "NoteNest: Logout" }
+      { "command": "notenest.logout", "title": "NoteNest: Logout" },
+      { "command": "notenest.annotateSelection", "title": "NoteNest: Annotate Selection" }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "notenest.annotateSelection",
+          "when": "editorHasSelection",
+          "group": "notenest@1"
+        }
+      ]
+    },
 
     "configuration": {
       "title": "NoteNest",
