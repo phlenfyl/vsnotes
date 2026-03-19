@@ -31,7 +31,8 @@
     "commands": [
       { "command": "notenest.openNotes", "title": "NoteNest: Open Notes" },
       { "command": "notenest.logout", "title": "NoteNest: Logout" },
-      { "command": "notenest.annotateSelection", "title": "NoteNest: Annotate Selection" }
+      { "command": "notenest.annotateSelection", "title": "NoteNest: Annotate Selection" },
+      { "command": "notenest.openNoteById", "title": "NoteNest: Open Note" }
     ],
     "menus": {
       "editor/context": [
@@ -42,6 +43,14 @@
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "notenest.annotateSelection",
+        "key": "ctrl+shift+n",
+        "mac": "cmd+shift+n",
+        "when": "editorHasSelection"
+      }
+    ],
 
     "configuration": {
       "title": "NoteNest",

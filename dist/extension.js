@@ -15688,7 +15688,7 @@ function notesListHtml(projectName, notes, offline) {
     const tagBadges = n.tags.slice(0, 3).map((t) => `<span class="tag">${t.replace(/</g, "&lt;")}</span>`).join("");
     const priorityBadge = n.priority && n.priority !== "none" ? `<span class="priority-badge p-${n.priority}" title="${PRIORITY_LABEL[n.priority]}">${PRIORITY_BADGE[n.priority]}</span>` : "";
     const statusBadge = n.status === "done" ? '<span class="status-badge done">\u2713 done</span>' : n.status === "passed" ? '<span class="status-badge passed">\u2713 passed</span>' : "";
-    const fileBadge = n.filePath ? `<span class="file-badge" data-id="${n.id}" data-file="${n.filePath}" data-line="${n.lineStart ?? 1}" title="Jump to ${n.filePath}:${n.lineStart}">\u{1F4CE} ${n.filePath.split("/").pop()}:${n.lineStart}</span>` : "";
+    const fileBadge = n.filePath ? `<span class="file-badge" data-id="${n.id}" data-file="${n.filePath}" data-line="${n.lineStart ?? 1}" data-line-start="${n.lineStart ?? 1}" data-line-end="${n.lineEnd ?? n.lineStart ?? 1}" title="Jump to ${n.filePath}:${n.lineStart}\u2013${n.lineEnd}">\u{1F4CE} ${n.filePath.split("/").pop()}:${n.lineStart}\u2013${n.lineEnd}</span>` : "";
     return `<div class="note-row" data-id="${n.id}">
       <div class="note-main">
         <div class="note-header">
@@ -15781,11 +15781,17 @@ function notesListHtml(projectName, notes, offline) {
         row.classList.toggle('hidden',q!==''&&!title.includes(q)&&!preview.includes(q));
       });
     });
-    // File badge click \u2014 jump to file location
+    // File badge click \u2014 jump to file location and highlight the annotated range
     document.querySelectorAll('.file-badge').forEach(badge=>{
       badge.addEventListener('click',e=>{
         e.stopPropagation();
-        vscode.postMessage({type:'jumpToFile',file:badge.dataset.file,line:parseInt(badge.dataset.line||'1')});
+        vscode.postMessage({
+          type:'jumpToFile',
+          file:badge.dataset.file,
+          line:parseInt(badge.dataset.lineStart||badge.dataset.line||'1'),
+          lineStart:parseInt(badge.dataset.lineStart||'1'),
+          lineEnd:parseInt(badge.dataset.lineEnd||badge.dataset.lineStart||'1'),
+        });
       });
     });
     // Keyboard shortcut Cmd/Ctrl+N
@@ -16061,11 +16067,17 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
       scheduleSave();
     });
 
-    // Annotation banner click \u2014 jump to file
+    // Annotation banner click \u2014 jump to file and highlight the exact range
     const annotBanner = document.getElementById('annotationBanner');
     if (annotBanner) {
       annotBanner.addEventListener('click', () => {
-        vscode.postMessage({type:'jumpToFile',file:'${note.filePath || ""}',line:${note.lineStart || 1}});
+        vscode.postMessage({
+          type: 'jumpToFile',
+          file: '${note.filePath || ""}',
+          line: ${note.lineStart || 1},
+          lineStart: ${note.lineStart || 1},
+          lineEnd: ${note.lineEnd || note.lineStart || 1},
+        });
       });
     }
 
@@ -16090,12 +16102,16 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
       });
     });
 
-    // \u2500\u2500 Listen for saved confirmation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    // \u2500\u2500 Listen for messages from extension host \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     window.addEventListener('message', e => {
       if (e.data.type === 'saved') {
         const s = document.getElementById('status');
         s.textContent = '\u2713 Saved';
         setTimeout(() => { s.textContent = ''; }, 2000);
+      }
+      // Opened from hover popup \u2014 navigate directly to this note
+      if (e.data.type === 'openNoteFromHost') {
+        vscode.postMessage({ type: 'openNote', id: e.data.id });
       }
     });
   </script></body></html>`;
@@ -16212,6 +16228,9 @@ async function activate(context) {
           case "openNote":
             await openNote(msg.id);
             break;
+          case "openNoteFromHost":
+            await openNote(msg.id);
+            break;
           case "jumpToFile": {
             const folderPath = getFolderPath();
             if (!folderPath || !msg.file)
@@ -16220,8 +16239,10 @@ async function activate(context) {
             try {
               const doc = await vscode.workspace.openTextDocument(fileUri);
               const editor = await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.One });
-              const line = Math.max(0, (msg.line || 1) - 1);
-              const range = new vscode.Range(line, 0, line, 0);
+              const startLine = Math.max(0, (msg.lineStart || msg.line || 1) - 1);
+              const endLine = Math.max(0, (msg.lineEnd || msg.lineStart || msg.line || 1) - 1);
+              const endLineText = doc.lineAt(Math.min(endLine, doc.lineCount - 1));
+              const range = new vscode.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length);
               editor.selection = new vscode.Selection(range.start, range.end);
               editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
             } catch {
@@ -16302,12 +16323,19 @@ async function activate(context) {
     vscode.window.registerWebviewViewProvider("notenest.notesView", provider)
   );
   const annotationDecoration = vscode.window.createTextEditorDecorationType({
-    gutterIconPath: vscode.Uri.joinPath(context.extensionUri, "media", "icon.png"),
-    gutterIconSize: "60%",
+    // Subtle blue-left-border highlight, like a git blame marker
+    borderWidth: "0 0 0 3px",
+    borderStyle: "solid",
+    borderColor: "rgba(108,142,245,0.7)",
+    backgroundColor: "rgba(108,142,245,0.06)",
+    isWholeLine: true,
     overviewRulerColor: "rgba(108,142,245,0.6)",
-    overviewRulerLane: vscode.OverviewRulerLane.Right
+    overviewRulerLane: vscode.OverviewRulerLane.Right,
+    gutterIconPath: vscode.Uri.joinPath(context.extensionUri, "media", "icon.png"),
+    gutterIconSize: "60%"
   });
-  async function refreshGutterDecorations(editor) {
+  const annotationCache = /* @__PURE__ */ new Map();
+  async function refreshAnnotations(editor) {
     const folderPath = getFolderPath();
     if (!folderPath) {
       return;
@@ -16317,78 +16345,269 @@ async function activate(context) {
       const res = await apiGet(secrets, "/notes", { folderPath });
       const notes = res.data.data;
       const annotated = notes.filter((n) => n.filePath === relPath && n.lineStart != null);
-      const ranges = annotated.map((n) => {
-        const line = Math.max(0, (n.lineStart ?? 1) - 1);
-        return new vscode.Range(line, 0, line, 0);
+      annotationCache.set(relPath, annotated);
+      const decorations = annotated.map((n) => {
+        const startLine = Math.max(0, (n.lineStart ?? 1) - 1);
+        const endLine = Math.max(0, (n.lineEnd ?? n.lineStart ?? 1) - 1);
+        const endLineText = editor.document.lineAt(Math.min(endLine, editor.document.lineCount - 1));
+        return { range: new vscode.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length) };
       });
-      editor.setDecorations(annotationDecoration, ranges);
+      editor.setDecorations(annotationDecoration, decorations);
     } catch {
     }
   }
   context.subscriptions.push(
+    vscode.languages.registerHoverProvider(
+      { scheme: "file" },
+      {
+        provideHover(document2, position) {
+          const folderPath = getFolderPath();
+          if (!folderPath) {
+            return;
+          }
+          const relPath = document2.uri.fsPath.replace(folderPath + "/", "").replace(folderPath + "\\", "");
+          const notes = annotationCache.get(relPath) ?? [];
+          const hovered = notes.find((n) => {
+            const startLine2 = Math.max(0, (n.lineStart ?? 1) - 1);
+            const endLine2 = Math.max(0, (n.lineEnd ?? n.lineStart ?? 1) - 1);
+            return position.line >= startLine2 && position.line <= endLine2;
+          });
+          if (!hovered) {
+            return;
+          }
+          let preview = "";
+          if (hovered.editorMode === "wysiwyg") {
+            try {
+              preview = JSON.parse(hovered.content)?.ops?.map((op) => typeof op.insert === "string" ? op.insert : "").join("");
+            } catch {
+              preview = hovered.content;
+            }
+          } else {
+            preview = hovered.content.replace(/[#*_`]/g, "");
+          }
+          preview = preview.replace(/\n/g, " ").trim().slice(0, 150);
+          const priorityLabel = hovered.priority !== "none" ? ` \u2022 ${hovered.priority}` : "";
+          const statusLabel = hovered.status === "done" ? " \u2713 Done" : hovered.status === "passed" ? " \u2713 Passed" : " \u25CF Open";
+          const md = new vscode.MarkdownString("", true);
+          md.isTrusted = true;
+          md.supportHtml = true;
+          md.appendMarkdown(`**\u{1F4CE} ${hovered.title}**`);
+          md.appendMarkdown(`
+
+_${statusLabel}${priorityLabel}_`);
+          if (preview) {
+            md.appendMarkdown(`
+
+${preview}`);
+          }
+          const openCmd = vscode.Uri.parse(
+            `command:notenest.openNoteById?${encodeURIComponent(JSON.stringify({ id: hovered.id }))}`
+          );
+          md.appendMarkdown(`
+
+[Open note \u2192](${openCmd})`);
+          const startLine = Math.max(0, (hovered.lineStart ?? 1) - 1);
+          const endLine = Math.max(0, (hovered.lineEnd ?? hovered.lineStart ?? 1) - 1);
+          const endLineText = document2.lineAt(Math.min(endLine, document2.lineCount - 1));
+          return new vscode.Hover(md, new vscode.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length));
+        }
+      }
+    )
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("notenest.openNoteById", async ({ id }) => {
+      await vscode.commands.executeCommand("notenest.notesView.focus");
+      const folderPath = getFolderPath();
+      const projectName = folderPath?.split(/[\\/]/).filter(Boolean).pop() ?? "Project";
+      try {
+        const res = await apiGet(secrets, `/notes/${id}`);
+        const { bg, text } = getNoteColors();
+        if (panel) {
+          currentNoteId = id;
+          panel.webview.html = noteEditorHtml(res.data.data, projectName, bg, text);
+        }
+      } catch {
+        vscode.window.showErrorMessage("Could not open note.");
+      }
+    })
+  );
+  context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor) {
-        refreshGutterDecorations(editor);
+        refreshAnnotations(editor);
       }
     })
   );
   if (vscode.window.activeTextEditor) {
-    refreshGutterDecorations(vscode.window.activeTextEditor);
+    refreshAnnotations(vscode.window.activeTextEditor);
   }
   context.subscriptions.push(
-    vscode.commands.registerTextEditorCommand("notenest.annotateSelection", async (editor) => {
-      const folderPath = getFolderPath();
-      if (!folderPath) {
-        vscode.window.showWarningMessage("Open a folder first to use NoteNest annotations.");
+    vscode.workspace.onDidSaveTextDocument((doc) => {
+      const editor = vscode.window.visibleTextEditors.find((e) => e.document === doc);
+      if (editor) {
+        refreshAnnotations(editor);
+      }
+    })
+  );
+  async function refreshGutterDecorations(editor) {
+    await refreshAnnotations(editor);
+  }
+  const selectionDecoration = vscode.window.createTextEditorDecorationType({
+    after: {
+      contentText: "  NoteNest \u2318\u21E7N to annotate",
+      color: new vscode.ThemeColor("editorCodeLens.foreground"),
+      margin: "0 0 0 12px",
+      fontStyle: "italic",
+      fontWeight: "400"
+    },
+    rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed
+  });
+  const annotateStatusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    1e3
+  );
+  annotateStatusBarItem.text = "\u{1F4CE} Annotate selection";
+  annotateStatusBarItem.tooltip = "Add a NoteNest note to the selected code \u2014 or press \u2318\u21E7N";
+  annotateStatusBarItem.command = "notenest.annotateSelectionFromStatusBar";
+  annotateStatusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+  context.subscriptions.push(annotateStatusBarItem);
+  let savedEditorUri = null;
+  let savedSelection = null;
+  let selectionDecorationTimer = null;
+  context.subscriptions.push(
+    vscode.window.onDidChangeTextEditorSelection((e) => {
+      if (selectionDecorationTimer) {
+        clearTimeout(selectionDecorationTimer);
+      }
+      const editor = e.textEditor;
+      const selection = editor.selection;
+      if (selection.isEmpty) {
+        editor.setDecorations(selectionDecoration, []);
+        annotateStatusBarItem.hide();
         return;
       }
-      const selection = editor.selection;
+      selectionDecorationTimer = setTimeout(() => {
+        if (editor.selection.isEmpty) {
+          editor.setDecorations(selectionDecoration, []);
+          annotateStatusBarItem.hide();
+          savedSelection = null;
+          savedEditorUri = null;
+          return;
+        }
+        savedSelection = new vscode.Selection(editor.selection.start, editor.selection.end);
+        savedEditorUri = editor.document.uri;
+        const endPos = editor.selection.end;
+        const endLine = editor.document.lineAt(endPos.line);
+        const decorationRange = new vscode.Range(
+          endPos.line,
+          endLine.range.end.character,
+          endPos.line,
+          endLine.range.end.character
+        );
+        editor.setDecorations(selectionDecoration, [{ range: decorationRange }]);
+        annotateStatusBarItem.show();
+      }, 150);
+    })
+  );
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      { scheme: "file" },
+      {
+        provideCodeActions(document2, range) {
+          if (range.isEmpty) {
+            return [];
+          }
+          const action = new vscode.CodeAction(
+            "\u{1F4CE} NoteNest: Annotate this selection",
+            vscode.CodeActionKind.Empty
+          );
+          action.command = {
+            command: "notenest.annotateSelection",
+            title: "\u{1F4CE} NoteNest: Annotate this selection"
+          };
+          return [action];
+        }
+      },
+      { providedCodeActionKinds: [vscode.CodeActionKind.Empty] }
+    )
+  );
+  async function runAnnotate(docUri, selection) {
+    const folderPath = getFolderPath();
+    if (!folderPath) {
+      vscode.window.showWarningMessage("Open a folder first to use NoteNest annotations.");
+      return;
+    }
+    const doc = await vscode.workspace.openTextDocument(docUri);
+    const codeSnippet = doc.getText(selection);
+    const relPath = docUri.fsPath.replace(folderPath + "/", "").replace(folderPath + "\\", "");
+    const lineStart = selection.start.line + 1;
+    const lineEnd = selection.end.line + 1;
+    const title = await vscode.window.showInputBox({
+      prompt: `Annotate ${relPath}:${lineStart}\u2013${lineEnd}`,
+      placeHolder: "Note title\u2026"
+    });
+    if (title === void 0) {
+      return;
+    }
+    const content = await vscode.window.showInputBox({
+      prompt: "Note content (optional)",
+      placeHolder: "What do you want to remember about this code?"
+    });
+    if (content === void 0) {
+      return;
+    }
+    try {
+      const { accessToken } = await getTokens(secrets);
+      if (!accessToken) {
+        vscode.window.showErrorMessage("Sign in to NoteNest first.");
+        return;
+      }
+      await apiPost(secrets, "/notes", {
+        folderPath,
+        title: title || "Untitled annotation",
+        content: content || "",
+        editorMode: "markdown",
+        filePath: relPath,
+        lineStart,
+        lineEnd,
+        codeSnippet: codeSnippet.slice(0, 500)
+      });
+      vscode.window.showInformationMessage(`\u{1F4CE} Annotation saved for ${relPath}:${lineStart}`);
+      const activeEditor = vscode.window.activeTextEditor;
+      if (activeEditor) {
+        refreshGutterDecorations(activeEditor);
+      }
+      if (panel) {
+        await vscode.commands.executeCommand("notenest.notesView.focus");
+      }
+      savedSelection = null;
+      savedEditorUri = null;
+    } catch {
+      vscode.window.showErrorMessage("Failed to save annotation.");
+    }
+  }
+  context.subscriptions.push(
+    vscode.commands.registerCommand("notenest.annotateSelectionFromStatusBar", async () => {
+      if (!savedSelection || !savedEditorUri) {
+        vscode.window.showWarningMessage("Select some code first, then click Annotate.");
+        return;
+      }
+      await runAnnotate(savedEditorUri, savedSelection);
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerTextEditorCommand("notenest.annotateSelection", async (editor) => {
+      let selection = editor.selection;
+      let docUri = editor.document.uri;
+      if (selection.isEmpty && savedSelection && savedEditorUri) {
+        selection = savedSelection;
+        docUri = savedEditorUri;
+      }
       if (selection.isEmpty) {
         vscode.window.showWarningMessage("Select some code first, then run Annotate with NoteNest.");
         return;
       }
-      const codeSnippet = editor.document.getText(selection);
-      const relPath = editor.document.uri.fsPath.replace(folderPath + "/", "").replace(folderPath + "\\", "");
-      const lineStart = selection.start.line + 1;
-      const lineEnd = selection.end.line + 1;
-      const title = await vscode.window.showInputBox({
-        prompt: `Annotate ${relPath}:${lineStart}\u2013${lineEnd}`,
-        placeHolder: "Note title\u2026"
-      });
-      if (title === void 0) {
-        return;
-      }
-      const content = await vscode.window.showInputBox({
-        prompt: "Note content (optional)",
-        placeHolder: "What do you want to remember about this code?"
-      });
-      if (content === void 0) {
-        return;
-      }
-      try {
-        const { accessToken } = await getTokens(secrets);
-        if (!accessToken) {
-          vscode.window.showErrorMessage("Sign in to NoteNest first.");
-          return;
-        }
-        await apiPost(secrets, "/notes", {
-          folderPath,
-          title: title || "Untitled annotation",
-          content: content || "",
-          editorMode: "markdown",
-          filePath: relPath,
-          lineStart,
-          lineEnd,
-          codeSnippet: codeSnippet.slice(0, 500)
-        });
-        vscode.window.showInformationMessage(`\u{1F4CE} Annotation saved for ${relPath}:${lineStart}`);
-        refreshGutterDecorations(editor);
-        if (panel) {
-          await vscode.commands.executeCommand("notenest.notesView.focus");
-        }
-      } catch {
-        vscode.window.showErrorMessage("Failed to save annotation.");
-      }
+      await runAnnotate(docUri, selection);
     })
   );
   async function installGitHook(folderPath) {
@@ -16406,13 +16625,29 @@ async function activate(context) {
       "#!/bin/sh",
       "# NoteNest pre-commit check \u2014 auto-installed by NoteNest VS Code extension",
       "# Safe to remove if you uninstall NoteNest. Does nothing if config not found.",
-      'NOTENEST_CONFIG=".notenest/config.json"',
-      'if [ ! -f "$NOTENEST_CONFIG" ]; then exit 0; fi',
-      `TOKEN=$(node -e "try{const c=require('./.notenest/config.json');process.stdout.write(c.token||'');}catch(e){}" 2>/dev/null)`,
+      "# Tokens are stored in ~/.notenest/tokens.json (never in this project).",
+      'NOTENEST_PROJECT_CONFIG=".notenest/config.json"',
+      'NOTENEST_HOME_CONFIG="$HOME/.notenest/tokens.json"',
+      "# Skip if either config is missing",
+      'if [ ! -f "$NOTENEST_PROJECT_CONFIG" ] || [ ! -f "$NOTENEST_HOME_CONFIG" ]; then exit 0; fi',
       "FOLDER=$(pwd)",
-      `API=$(node -e "try{const c=require('./.notenest/config.json');process.stdout.write(c.apiUrl||'https://vsnotes-backend.onrender.com');}catch(e){process.stdout.write('https://vsnotes-backend.onrender.com')}" 2>/dev/null)`,
+      "# Read API url and refresh token from home config (no tokens in project)",
+      `API=$(node -e "try{const c=require(process.env.HOME+'/.notenest/tokens.json');process.stdout.write(c.apiUrl||'https://vsnotes-backend.onrender.com');}catch(e){process.stdout.write('https://vsnotes-backend.onrender.com')}" 2>/dev/null)`,
+      `REFRESH_TOKEN=$(node -e "try{const c=require(process.env.HOME+'/.notenest/tokens.json');process.stdout.write(c.refreshToken||'');}catch(e){}" 2>/dev/null)`,
+      'if [ -z "$REFRESH_TOKEN" ]; then exit 0; fi',
+      "# Get a fresh access token using the refresh token",
+      'TOKEN=$(REFRESH_TOKEN="$REFRESH_TOKEN" API="$API" node -e "',
+      "const https=require('https');",
+      "const body=JSON.stringify({refreshToken:process.env.REFRESH_TOKEN});",
+      "const url=new URL(process.env.API+'/auth/refresh');",
+      "const opts={hostname:url.hostname,port:url.port||443,path:url.pathname,method:'POST',headers:{'Content-Type':'application/json','Content-Length':''+Buffer.byteLength(body)}};",
+      "const req=https.request(opts,res=>{let d='';res.on('data',c=>d+=c);res.on('end',()=>{try{const r=JSON.parse(d);process.stdout.write(r.data&&r.data.accessToken?r.data.accessToken:'');}catch(e){}});});",
+      "req.on('error',()=>{});req.write(body);req.end();",
+      '" 2>/dev/null)',
       'if [ -z "$TOKEN" ]; then exit 0; fi',
-      `RESULT=$(curl -sf -H "Authorization: Bearer $TOKEN" "$API/notes/blocking?folderPath=$(node -e "process.stdout.write(encodeURIComponent('$FOLDER'))" 2>/dev/null)" 2>/dev/null)`,
+      "# Check for blocking notes",
+      `ENCODED_FOLDER=$(node -e "process.stdout.write(encodeURIComponent('$FOLDER'))" 2>/dev/null)`,
+      'RESULT=$(curl -sf -H "Authorization: Bearer $TOKEN" "$API/notes/blocking?folderPath=$ENCODED_FOLDER" 2>/dev/null)',
       "if [ $? -ne 0 ]; then exit 0; fi",
       `BLOCKED=$(node -e "try{const r=JSON.parse(process.argv[1]);if(r.blocked){console.log('BLOCKED');r.data.forEach(n=>console.log('  \u2022 '+n.title+(n.priority!=='none'?' ['+n.priority+']':'')));}}catch(e){}" "$RESULT" 2>/dev/null)`,
       'if echo "$BLOCKED" | grep -q "BLOCKED"; then',
@@ -16420,7 +16655,7 @@ async function activate(context) {
       '  echo "\u274C NoteNest: Open notes are blocking this commit:"',
       '  echo "$BLOCKED" | grep -v "BLOCKED"',
       '  echo ""',
-      '  echo "Mark them as done in VS Code (NoteNest sidebar) then try again."',
+      '  echo "Mark them as done in VS Code (NoteNest sidebar \u2192 change status to Done) then try again."',
       '  echo ""',
       "  exit 1",
       "fi",
@@ -16429,9 +16664,11 @@ async function activate(context) {
     if (fs.existsSync(hookPath)) {
       const existing = fs.readFileSync(hookPath, "utf8");
       if (existing.includes("NoteNest pre-commit check")) {
-        return;
+        const withoutOld = existing.replace(/\n*# NoteNest pre-commit check[\s\S]*?exit 0\s*$/, "").trimEnd();
+        fs.writeFileSync(hookPath, withoutOld ? withoutOld + "\n\n" + hookScript : hookScript);
+      } else {
+        fs.writeFileSync(hookPath, existing.trimEnd() + "\n\n" + hookScript);
       }
-      fs.writeFileSync(hookPath, existing.trimEnd() + "\n\n" + hookScript);
     } else {
       fs.writeFileSync(hookPath, hookScript);
     }
@@ -16440,28 +16677,34 @@ async function activate(context) {
   async function writeNoteNestConfig(folderPath) {
     const fs = require("fs");
     const pathMod = require("path");
-    const { accessToken } = await getTokens(secrets);
+    const os = require("os");
+    const { accessToken, refreshToken } = await getTokens(secrets);
     if (!accessToken) {
       return;
     }
-    const configDir = pathMod.join(folderPath, ".notenest");
-    const configPath = pathMod.join(configDir, "config.json");
-    const gitignorePath = pathMod.join(folderPath, ".gitignore");
-    if (!fs.existsSync(configDir)) {
-      fs.mkdirSync(configDir, { recursive: true });
+    const homeConfigDir = pathMod.join(os.homedir(), ".notenest");
+    const homeConfigPath = pathMod.join(homeConfigDir, "tokens.json");
+    if (!fs.existsSync(homeConfigDir)) {
+      fs.mkdirSync(homeConfigDir, { recursive: true });
     }
-    fs.writeFileSync(configPath, JSON.stringify({
+    fs.writeFileSync(homeConfigPath, JSON.stringify({
       apiUrl: getApiUrl(),
-      token: accessToken,
-      folderPath
-    }, null, 2));
+      refreshToken: refreshToken || ""
+    }, null, 2), { mode: 384 });
+    const projectConfigDir = pathMod.join(folderPath, ".notenest");
+    const projectConfigPath = pathMod.join(projectConfigDir, "config.json");
+    if (!fs.existsSync(projectConfigDir)) {
+      fs.mkdirSync(projectConfigDir, { recursive: true });
+    }
+    fs.writeFileSync(projectConfigPath, JSON.stringify({ folderPath }, null, 2));
+    const gitignorePath = pathMod.join(folderPath, ".gitignore");
     if (fs.existsSync(gitignorePath)) {
       const gi = fs.readFileSync(gitignorePath, "utf8");
       if (!gi.includes(".notenest")) {
-        fs.appendFileSync(gitignorePath, "\n# NoteNest local config (contains auth token)\n.notenest/\n");
+        fs.appendFileSync(gitignorePath, "\n# NoteNest (local only, not for version control)\n.notenest/\n");
       }
     } else {
-      fs.writeFileSync(gitignorePath, "# NoteNest local config (contains auth token)\n.notenest/\n");
+      fs.writeFileSync(gitignorePath, "# NoteNest (local only, not for version control)\n.notenest/\n");
     }
   }
   const currentFolder = getFolderPath();
