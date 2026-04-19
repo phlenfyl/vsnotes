@@ -16253,6 +16253,89 @@ async function activate(context) {
       text: config.get("noteTextColor", "#d4d4d4")
     };
   }
+  let memCache = null;
+  function cacheKey() {
+    const fp = getFolderPath();
+    return fp ? `notesCache:${fp}` : "notesCache:__none__";
+  }
+  function loadCache() {
+    if (memCache) {
+      return memCache;
+    }
+    const raw = context.globalState.get(cacheKey());
+    if (raw) {
+      memCache = raw;
+    }
+    return memCache;
+  }
+  async function saveCache(notes) {
+    const entry = { notes, cachedAt: (/* @__PURE__ */ new Date()).toISOString() };
+    memCache = entry;
+    await context.globalState.update(cacheKey(), entry);
+  }
+  function updateNoteInCache(updated) {
+    if (!memCache) {
+      return;
+    }
+    const idx = memCache.notes.findIndex((n) => n.id === updated.id);
+    if (idx !== -1) {
+      memCache.notes[idx] = updated;
+    }
+    context.globalState.update(cacheKey(), memCache);
+  }
+  function patchNoteInCache(id, patch) {
+    if (!memCache) {
+      return;
+    }
+    const idx = memCache.notes.findIndex((n) => n.id === id);
+    if (idx !== -1) {
+      memCache.notes[idx] = { ...memCache.notes[idx], ...patch, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+    }
+    context.globalState.update(cacheKey(), memCache);
+  }
+  const QUEUE_KEY = "offlineQueue";
+  function getQueue() {
+    return context.globalState.get(QUEUE_KEY) ?? [];
+  }
+  async function enqueueOfflinePatch(item) {
+    const q = getQueue().filter((i) => i.id !== item.id);
+    q.push(item);
+    await context.globalState.update(QUEUE_KEY, q);
+    patchNoteInCache(item.id, { ...item.patch });
+  }
+  async function flushOfflineQueue() {
+    const q = getQueue();
+    if (!q.length) {
+      return;
+    }
+    const remaining = [];
+    for (const item of q) {
+      try {
+        const res = await apiGet(secrets, `/notes/${item.id}`);
+        const serverNote = res.data.data;
+        const serverUpdated = new Date(serverNote.updatedAt).getTime();
+        const localEdited = new Date(item.localUpdatedAt).getTime();
+        const cachedAt = memCache ? new Date(memCache.cachedAt).getTime() : 0;
+        if (serverUpdated > cachedAt && serverUpdated > localEdited) {
+          const choice = await vscode.window.showWarningMessage(
+            `"${serverNote.title}" was edited on another machine while you were offline. Which version do you want to keep?`,
+            { modal: true },
+            "Keep my offline version",
+            "Keep server version"
+          );
+          if (choice === "Keep server version") {
+            updateNoteInCache(serverNote);
+            continue;
+          }
+        }
+        await apiPatch(secrets, `/notes/${item.id}`, item.patch);
+        updateNoteInCache({ ...serverNote, ...item.patch, updatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+      } catch {
+        remaining.push(item);
+      }
+    }
+    await context.globalState.update(QUEUE_KEY, remaining);
+  }
   const provider = {
     resolveWebviewView(webviewView) {
       panel = webviewView;
@@ -16267,11 +16350,22 @@ async function activate(context) {
           webviewView.webview.html = loginHtml(iconUri);
           return;
         }
+        flushOfflineQueue().catch(() => {
+        });
         const folderPath = getFolderPath();
         if (folderPath) {
+          const cached = loadCache();
+          if (cached && cached.notes.length) {
+            const top = topPriorityNote(cached.notes);
+            if (top) {
+              await openNote(top.id);
+              return;
+            }
+          }
           try {
             const res = await apiGet(secrets, "/notes", { folderPath });
             const notes = res.data.data;
+            await saveCache(notes);
             const top = topPriorityNote(notes);
             if (top) {
               await openNote(top.id);
@@ -16284,34 +16378,58 @@ async function activate(context) {
       }
       async function showNotesList() {
         const folderPath = getFolderPath();
-        const projectName = folderPath?.split(/[\\/]/).filter(Boolean).pop() ?? "No project";
+        const projectName = folderPath?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
         currentNoteId = null;
         if (!folderPath) {
           webviewView.webview.html = noFolderHtml();
           return;
         }
+        const cached = loadCache();
+        if (cached) {
+          webviewView.webview.html = notesListHtml(projectName, cached.notes, false);
+        }
         try {
           const res = await apiGet(secrets, "/notes", { folderPath });
-          webviewView.webview.html = notesListHtml(projectName, res.data.data);
+          await saveCache(res.data.data);
+          if (currentNoteId === null) {
+            webviewView.webview.html = notesListHtml(projectName, res.data.data, false);
+          }
         } catch (e) {
           const err = e;
           if (err.message === "NOT_AUTHENTICATED") {
             webviewView.webview.html = loginHtml(iconUri);
-          } else {
+          } else if (!cached) {
             webviewView.webview.html = notesListHtml(projectName, [], true);
+          } else if (currentNoteId === null) {
+            webviewView.webview.html = notesListHtml(projectName, cached.notes, true);
           }
         }
       }
       async function openNote(id) {
         const folderPath = getFolderPath();
-        const projectName = folderPath?.split(/[\\/]/).filter(Boolean).pop() ?? "No project";
+        const projectName = folderPath?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
         currentNoteId = id;
+        const { bg, text } = getNoteColors();
+        const cached = loadCache();
+        const cachedNote = cached?.notes.find((n) => n.id === id);
+        if (cachedNote) {
+          webviewView.webview.html = noteEditorHtml(cachedNote, projectName, bg, text);
+        }
         try {
           const res = await apiGet(secrets, `/notes/${id}`);
-          const { bg, text } = getNoteColors();
-          webviewView.webview.html = noteEditorHtml(res.data.data, projectName, bg, text);
+          const freshNote = res.data.data;
+          updateNoteInCache(freshNote);
+          if (currentNoteId === id) {
+            const cachedContent = cachedNote?.content ?? "";
+            const freshContent = freshNote.content ?? "";
+            if (freshContent !== cachedContent) {
+              webviewView.webview.html = noteEditorHtml(freshNote, projectName, bg, text);
+            }
+          }
         } catch {
-          await showNotesList();
+          if (!cachedNote) {
+            await showNotesList();
+          }
         }
       }
       webviewView.webview.onDidReceiveMessage(async (msg) => {
@@ -16331,7 +16449,7 @@ async function activate(context) {
               vscode.window.showWarningMessage("Open a folder first \u2014 NoteNest needs a project folder to save notes to.");
               break;
             }
-            const projectName = folderPath.split(/[\\/]/).filter(Boolean).pop() ?? "Project";
+            const projectName = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "Project";
             const title = await vscode.window.showInputBox({
               prompt: "Note name",
               placeHolder: "e.g. Ideas, TODO, Meeting Notes\u2026",
@@ -16342,6 +16460,13 @@ async function activate(context) {
             }
             try {
               const res = await apiPost(secrets, "/notes", { folderPath, title: title || "Untitled", content: "", editorMode: "wysiwyg" });
+              const newNote = res.data.data;
+              if (memCache) {
+                memCache.notes.unshift(newNote);
+                context.globalState.update(cacheKey(), memCache);
+              } else {
+                await saveCache([newNote]);
+              }
               currentNoteId = res.data.data.id;
               const { bg, text } = getNoteColors();
               webviewView.webview.html = noteEditorHtml(res.data.data, projectName, bg, text);
@@ -16375,17 +16500,19 @@ async function activate(context) {
             break;
           }
           case "saveNote": {
-            const folderPath = getFolderPath();
-            const projectName = folderPath?.split(/[\\/]/).filter(Boolean).pop() ?? "Project";
+            const patch = {
+              title: msg.title,
+              content: msg.content,
+              editorMode: msg.editorMode,
+              pinned: msg.pinned,
+              tags: msg.tags,
+              priority: msg.priority,
+              status: msg.status
+            };
+            patchNoteInCache(msg.id, patch);
             try {
-              await apiPatch(secrets, `/notes/${msg.id}`, {
-                title: msg.title,
-                content: msg.content,
-                editorMode: msg.editorMode,
-                pinned: msg.pinned,
-                tags: msg.tags,
-                priority: msg.priority,
-                status: msg.status
+              await apiPatch(secrets, `/notes/${msg.id}`, patch);
+              flushOfflineQueue().catch(() => {
               });
               if (msg.thenShowList) {
                 await showNotesList();
@@ -16396,6 +16523,11 @@ async function activate(context) {
               const err = e;
               if (err.message === "NOT_AUTHENTICATED") {
                 webviewView.webview.html = loginHtml(iconUri);
+              } else {
+                await enqueueOfflinePatch({ id: msg.id, patch, localUpdatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+                if (currentNoteId === msg.id) {
+                  webviewView.webview.postMessage({ type: "saved" });
+                }
               }
             }
             break;
@@ -16407,6 +16539,10 @@ async function activate(context) {
               "Delete"
             );
             if (ok === "Delete") {
+              if (memCache) {
+                memCache.notes = memCache.notes.filter((n) => n.id !== msg.id);
+                context.globalState.update(cacheKey(), memCache);
+              }
               try {
                 await apiDelete(secrets, `/notes/${msg.id}`);
               } catch {
@@ -16542,16 +16678,25 @@ ${preview}`);
     vscode.commands.registerCommand("notenest.openNoteById", async ({ id }) => {
       await vscode.commands.executeCommand("notenest.notesView.focus");
       const folderPath = getFolderPath();
-      const projectName = folderPath?.split(/[\\/]/).filter(Boolean).pop() ?? "Project";
+      const projectName = folderPath?.split(/[\/\\]/).filter(Boolean).pop() ?? "Project";
+      const { bg, text } = getNoteColors();
+      const cached = loadCache();
+      const cachedNote = cached?.notes.find((n) => n.id === id);
+      if (cachedNote && panel) {
+        currentNoteId = id;
+        panel.webview.html = noteEditorHtml(cachedNote, projectName, bg, text);
+      }
       try {
         const res = await apiGet(secrets, `/notes/${id}`);
-        const { bg, text } = getNoteColors();
-        if (panel) {
-          currentNoteId = id;
-          panel.webview.html = noteEditorHtml(res.data.data, projectName, bg, text);
+        const freshNote = res.data.data;
+        updateNoteInCache(freshNote);
+        if (panel && currentNoteId === id && freshNote.content !== (cachedNote?.content ?? "")) {
+          panel.webview.html = noteEditorHtml(freshNote, projectName, bg, text);
         }
       } catch {
-        vscode.window.showErrorMessage("Could not open note.");
+        if (!cachedNote) {
+          vscode.window.showErrorMessage("Could not open note.");
+        }
       }
     })
   );
@@ -16686,7 +16831,7 @@ ${preview}`);
         vscode.window.showErrorMessage("Sign in to NoteNest first.");
         return;
       }
-      await apiPost(secrets, "/notes", {
+      const res = await apiPost(secrets, "/notes", {
         folderPath,
         title: title || "Untitled annotation",
         content: content || "",
@@ -16696,6 +16841,13 @@ ${preview}`);
         lineEnd,
         codeSnippet: codeSnippet.slice(0, 500)
       });
+      const newNote = res.data.data;
+      if (memCache) {
+        memCache.notes.unshift(newNote);
+        context.globalState.update(cacheKey(), memCache);
+      } else {
+        await saveCache([newNote]);
+      }
       vscode.window.showInformationMessage(`\u{1F4CE} Annotation saved for ${relPath}:${lineStart}`);
       const activeEditor = vscode.window.activeTextEditor;
       if (activeEditor) {
@@ -16836,6 +16988,8 @@ ${preview}`);
     writeNoteNestConfig(currentFolder).then(() => installGitHook(currentFolder)).catch(() => {
     });
   }
+  flushOfflineQueue().catch(() => {
+  });
   context.subscriptions.push(
     vscode.commands.registerCommand("notenest.openNotes", () => vscode.commands.executeCommand("notenest.notesView.focus")),
     vscode.commands.registerCommand("notenest.logout", async () => {
