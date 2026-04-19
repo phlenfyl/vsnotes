@@ -5,9 +5,15 @@
   "version": "0.0.1",
   "icon": "media/icon-marketplace.png",
   "publisher": "YOUR_PUBLISHER_NAME",
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Other"],
-  "activationEvents": ["onStartupFinished"],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "viewsContainers": {
@@ -29,10 +35,22 @@
       ]
     },
     "commands": [
-      { "command": "notenest.openNotes", "title": "NoteNest: Open Notes" },
-      { "command": "notenest.logout", "title": "NoteNest: Logout" },
-      { "command": "notenest.annotateSelection", "title": "NoteNest: Annotate Selection" },
-      { "command": "notenest.openNoteById", "title": "NoteNest: Open Note" }
+      {
+        "command": "notenest.openNotes",
+        "title": "NoteNest: Open Notes"
+      },
+      {
+        "command": "notenest.logout",
+        "title": "NoteNest: Logout"
+      },
+      {
+        "command": "notenest.annotateSelection",
+        "title": "NoteNest: Annotate Selection"
+      },
+      {
+        "command": "notenest.openNoteById",
+        "title": "NoteNest: Open Note"
+      }
     ],
     "menus": {
       "editor/context": [
@@ -51,13 +69,12 @@
         "when": "editorHasSelection"
       }
     ],
-
     "configuration": {
       "title": "NoteNest",
       "properties": {
         "notenest.apiUrl": {
           "type": "string",
-          "default": "https://vsnotes-backend.onrender.com",
+          "default": "https://backend-vsnote.vercel.app",
           "description": "NoteNest API URL"
         },
         "notenest.autoShow": {
@@ -93,7 +110,7 @@
   "devDependencies": {
     "@types/node": "^20.11.5",
     "@types/vscode": "^1.85.0",
-    "esbuild": "^0.20.0",
+    "esbuild": "^0.28.0",
     "typescript": "^5.3.3"
   }
 }

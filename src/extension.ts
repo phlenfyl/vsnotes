@@ -5,7 +5,7 @@ import { randomBytes } from 'crypto';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getApiUrl(): string {
-  return vscode.workspace.getConfiguration('notenest').get('apiUrl', 'https://vsnotes-backend.onrender.com');
+  return vscode.workspace.getConfiguration('notenest').get('apiUrl', 'https://backend-vsnote.vercel.app');
 }
 function getFolderPath(): string | null {
   const folders = vscode.workspace.workspaceFolders;
