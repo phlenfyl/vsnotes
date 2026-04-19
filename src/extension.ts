@@ -72,9 +72,6 @@ interface NoteItem {
 const PRIORITY_ORDER: Record<string, number> = {
   emergency: 5, urgent: 4, important: 3, medium: 2, low: 1, none: 0,
 };
-const PRIORITY_BADGE: Record<string, string> = {
-  emergency: '🚨', urgent: '🔴', important: '🟠', medium: '🟡', low: '🟢',
-};
 const PRIORITY_LABEL: Record<string, string> = {
   emergency: 'Emergency', urgent: 'Urgent', important: 'Important', medium: 'Medium', low: 'Low', none: 'None',
 };
@@ -109,15 +106,22 @@ const BG_COLORS = [
 
 function loginHtml(iconUri: string): string {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/>
   <style>
-    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:24px 20px;margin:0;display:flex;flex-direction:column;align-items:center;text-align:center;box-sizing:border-box}
-    p{font-size:13px;color:var(--vscode-descriptionForeground);margin-bottom:20px;line-height:1.5;max-width:220px}
-    button{width:100%;padding:8px 16px;background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:none;border-radius:4px;cursor:pointer;font-size:13px}
-    button:hover{background:var(--vscode-button-hoverBackground)}
+    body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-sideBar-background); padding: 40px 24px; margin: 0; display: flex; flex-direction: column; align-items: center; text-align: center; box-sizing: border-box; min-height: 100vh; justify-content: center; }
+    .icon-container { position: relative; margin-bottom: 32px; }
+    .icon-container img { width: 96px; height: 96px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2)); transition: transform 0.3s ease; }
+    .icon-container:hover img { transform: scale(1.05); }
+    h1 { font-size: 20px; font-weight: 600; margin: 0 0 12px; color: var(--vscode-foreground); }
+    p { font-size: 13px; color: var(--vscode-descriptionForeground); margin-bottom: 32px; line-height: 1.6; max-width: 240px; }
+    .btn { width: 100%; padding: 10px 16px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn:hover { background: var(--vscode-button-hoverBackground); }
+    .btn:active { background: var(--vscode-button-secondaryHoverBackground); }
   </style></head><body>
-  <img src="${iconUri}" width="120" height="120" style="margin-bottom:16px"/>
-  <p>Sign in to keep per-project notes that sync across all your machines.</p>
-  <button id="b">Sign in / Sign up</button>
+  <div class="icon-container"><img src="${iconUri}" alt="NoteNest"/></div>
+  <h1>NoteNest</h1>
+  <p>Your private project notepad, synced across all your devices.</p>
+  <button class="btn" id="b"><i class="codicon codicon-github-inverted"></i> Sign in / Sign up</button>
   <script>
     const vscode=acquireVsCodeApi();
     document.getElementById('b').addEventListener('click',()=>vscode.postMessage({type:'startLogin'}));
@@ -129,30 +133,34 @@ function loginHtml(iconUri: string): string {
 function settingsHtml(autoShow: boolean, noteBgColor: string): string {
   const swatches = BG_COLORS.map(c => `
     <div class="swatch${c.bg === noteBgColor ? ' active' : ''}" data-bg="${c.bg}" data-text="${c.text}"
-      style="background:${c.bg};border-color:${c.bg === noteBgColor ? '#6c8ef5' : 'transparent'}" title="${c.label}">
-      ${c.bg === noteBgColor ? '<span class="check">✓</span>' : ''}
+      style="background:${c.bg};border-color:${c.bg === noteBgColor ? 'var(--vscode-focusBorder)' : 'transparent'}" title="${c.label}">
+      ${c.bg === noteBgColor ? '<i class="codicon codicon-check check"></i>' : ''}
     </div>`).join('');
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/>
   <style>
-    *{box-sizing:border-box}
-    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:16px;margin:0}
-    h2{font-size:14px;margin-bottom:16px}
-    .label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--vscode-descriptionForeground);margin:16px 0 8px}
-    .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-    .back{background:none;border:none;color:var(--vscode-textLink-foreground);cursor:pointer;font-size:12px;padding:0;margin-bottom:14px}
-    .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-    .swatch{width:100%;aspect-ratio:1;border-radius:6px;cursor:pointer;border:2px solid transparent;position:relative;display:flex;align-items:center;justify-content:center;transition:transform 0.1s}
-    .swatch:hover{transform:scale(1.08)}
-    .check{font-size:14px;color:#6c8ef5;font-weight:bold;text-shadow:0 0 4px rgba(0,0,0,0.5)}
-    .logout{margin-top:20px;width:100%;padding:7px;background:var(--vscode-inputValidation-errorBackground);color:var(--vscode-errorForeground);border:1px solid var(--vscode-inputValidation-errorBorder);border-radius:4px;cursor:pointer;font-size:12px}
+    body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-sideBar-background); padding: 16px; margin: 0; box-sizing: border-box; }
+    h2 { font-size: 14px; font-weight: 600; margin: 0 0 16px; }
+    .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--vscode-descriptionForeground); margin: 20px 0 10px; }
+    .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .row label { font-size: 13px; }
+    .back-btn { background: none; border: none; color: var(--vscode-textLink-foreground); cursor: pointer; font-size: 12px; padding: 0; margin-bottom: 16px; display: flex; align-items: center; gap: 4px; }
+    .back-btn:hover { text-decoration: underline; }
+    .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .swatch { width: 100%; aspect-ratio: 1; border-radius: 4px; cursor: pointer; border: 2px solid transparent; position: relative; display: flex; align-items: center; justify-content: center; transition: transform 0.1s, border-color 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .swatch:hover { transform: scale(1.05); }
+    .swatch.active { border-color: var(--vscode-focusBorder) !important; }
+    .check { font-size: 16px; color: var(--vscode-focusBorder); filter: drop-shadow(0 0 2px rgba(0,0,0,0.3)); }
+    .logout-btn { margin-top: 32px; width: 100%; padding: 8px; background: var(--vscode-inputValidation-errorBackground); color: var(--vscode-errorForeground); border: 1px solid var(--vscode-inputValidation-errorBorder); border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .logout-btn:hover { opacity: 0.9; }
   </style></head><body>
-  <button class="back" id="bk">← Back</button>
+  <button class="back-btn" id="bk"><i class="codicon codicon-arrow-left"></i> Back</button>
   <h2>Settings</h2>
   <div class="row"><label>Auto-show on project open</label><input type="checkbox" id="as" ${autoShow ? 'checked' : ''}/></div>
   <div class="label">Note background colour</div>
   <div class="swatches">${swatches}</div>
-  <button class="logout" id="lo">Log out</button>
+  <button class="logout-btn" id="lo"><i class="codicon codicon-sign-out"></i> Log out</button>
   <script>
     const vscode=acquireVsCodeApi();
     document.getElementById('bk').addEventListener('click',()=>vscode.postMessage({type:'showList'}));
@@ -160,7 +168,7 @@ function settingsHtml(autoShow: boolean, noteBgColor: string): string {
     document.querySelectorAll('.swatch').forEach(s=>{
       s.addEventListener('click',()=>{
         document.querySelectorAll('.swatch').forEach(x=>{x.classList.remove('active');x.style.borderColor='transparent';x.innerHTML='';});
-        s.classList.add('active');s.style.borderColor='#6c8ef5';s.innerHTML='<span class="check">✓</span>';
+        s.classList.add('active');s.style.borderColor='var(--vscode-focusBorder)';s.innerHTML='<i class="codicon codicon-check check"></i>';
         vscode.postMessage({type:'setSetting',key:'noteBgColor',value:s.dataset.bg,textColor:s.dataset.text});
       });
     });
@@ -172,19 +180,19 @@ function settingsHtml(autoShow: boolean, noteBgColor: string): string {
 
 function noFolderHtml(): string {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/>
   <style>
-    *{box-sizing:border-box}
-    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:24px 16px;margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-    .icon{font-size:36px;margin-bottom:14px;opacity:0.4}
-    h3{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--vscode-foreground)}
-    p{font-size:12px;color:var(--vscode-descriptionForeground);line-height:1.6;margin:0 0 20px}
-    button{padding:7px 16px;background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:none;border-radius:4px;cursor:pointer;font-size:12px;font-family:var(--vscode-font-family)}
-    button:hover{background:var(--vscode-button-hoverBackground)}
+    body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-sideBar-background); padding: 24px; margin: 0; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; box-sizing: border-box; }
+    .icon { font-size: 48px; margin-bottom: 20px; color: var(--vscode-descriptionForeground); opacity: 0.6; }
+    h3 { font-size: 16px; font-weight: 600; margin: 0 0 10px; color: var(--vscode-foreground); }
+    p { font-size: 13px; color: var(--vscode-descriptionForeground); line-height: 1.6; margin: 0 0 24px; max-width: 240px; }
+    .btn { padding: 8px 16px; background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 500; font-family: var(--vscode-font-family); transition: background 0.2s; display: flex; align-items: center; gap: 8px; }
+    .btn:hover { background: var(--vscode-button-hoverBackground); }
   </style></head><body>
-  <div class="icon">📂</div>
-  <h3>No folder open</h3>
-  <p>Open a project folder to start writing notes for it. Each folder gets its own set of notes.</p>
-  <button id="openBtn">Open Folder</button>
+  <i class="codicon codicon-folder-opened icon"></i>
+  <h3>No project folder open</h3>
+  <p>Open a folder to start managing your project-specific notes.</p>
+  <button class="btn" id="openBtn"><i class="codicon codicon-folder"></i> Open Folder</button>
   <script>
     const vscode=acquireVsCodeApi();
     document.getElementById('openBtn').addEventListener('click',()=>vscode.postMessage({type:'openFolder'}));
@@ -203,80 +211,93 @@ function notesListHtml(projectName: string, notes: NoteItem[], offline?: boolean
     const tagBadges = n.tags.slice(0, 3).map(t =>
       `<span class="tag">${t.replace(/</g, '&lt;')}</span>`).join('');
     const priorityBadge = n.priority && n.priority !== 'none'
-      ? `<span class="priority-badge p-${n.priority}" title="${PRIORITY_LABEL[n.priority]}">${PRIORITY_BADGE[n.priority]}</span>`
+      ? `<span class="priority-indicator p-${n.priority}" title="${PRIORITY_LABEL[n.priority]}"><i class="codicon codicon-circle-filled"></i></span>`
       : '';
-    const statusBadge = n.status === 'done' ? '<span class="status-badge done">✓ done</span>'
-      : n.status === 'passed' ? '<span class="status-badge passed">✓ passed</span>' : '';
+    const statusBadge = n.status === 'done' ? '<span class="status-badge done"><i class="codicon codicon-check"></i> done</span>'
+      : n.status === 'passed' ? '<span class="status-badge passed"><i class="codicon codicon-pass-filled"></i> passed</span>' : '';
     const fileBadge = n.filePath
-      ? `<span class="file-badge" data-id="${n.id}" data-file="${n.filePath}" data-line="${n.lineStart ?? 1}" data-line-start="${n.lineStart ?? 1}" data-line-end="${n.lineEnd ?? n.lineStart ?? 1}" title="Jump to ${n.filePath}:${n.lineStart}\u2013${n.lineEnd}">📎 ${n.filePath.split('/').pop()}:${n.lineStart}–${n.lineEnd}</span>`
+      ? `<span class="file-badge" data-id="${n.id}" data-file="${n.filePath}" data-line="${n.lineStart ?? 1}" data-line-start="${n.lineStart ?? 1}" data-line-end="${n.lineEnd ?? n.lineStart ?? 1}" title="Jump to ${n.filePath}:${n.lineStart}\u2013${n.lineEnd}"><i class="codicon codicon-link"></i> ${n.filePath.split('/').pop()}:${n.lineStart}–${n.lineEnd}</span>`
       : '';
     return `<div class="note-row" data-id="${n.id}">
       <div class="note-main">
         <div class="note-header">
           ${priorityBadge}
-          ${n.pinned ? '<span class="pin">📌</span>' : ''}
+          ${n.pinned ? '<i class="codicon codicon-pin pin-icon"></i>' : ''}
           <span class="note-title">${safeTitle}</span>
-          ${statusBadge}
           <span class="note-date">${date}</span>
         </div>
         ${fileBadge ? `<div class="file-row">${fileBadge}</div>` : ''}
         <div class="note-preview">${preview || '<span class="dim">Empty note</span>'}</div>
-        ${tagBadges ? `<div class="tags">${tagBadges}</div>` : ''}
+        <div class="note-footer">
+          ${tagBadges ? `<div class="tags">${tagBadges}</div>` : '<div></div>'}
+          ${statusBadge}
+        </div>
       </div>
-      <button class="del-btn" data-id="${n.id}" title="Delete">✕</button>
+      <button class="del-btn" data-id="${n.id}" title="Delete"><i class="codicon codicon-trash"></i></button>
     </div>`;
   }).join('');
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/>
   <style>
-    *{box-sizing:border-box}
-    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:0;margin:0;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-    .toolbar{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0}
-    .project-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px}
-    .toolbar-right{display:flex;align-items:center;gap:2px}
-    .icon-btn{background:none;border:none;cursor:pointer;color:var(--vscode-foreground);opacity:0.65;font-size:15px;padding:3px 6px;border-radius:3px;line-height:1}
-    .icon-btn:hover{opacity:1;background:var(--vscode-toolbar-hoverBackground)}
-    .search-bar{padding:5px 10px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0}
-    .search-bar input{width:100%;background:var(--vscode-input-background);border:1px solid var(--vscode-input-border);color:var(--vscode-input-foreground);border-radius:3px;padding:4px 8px;font-size:12px;outline:none;font-family:var(--vscode-font-family)}
-    .search-bar input:focus{border-color:var(--vscode-focusBorder)}
-    .offline-banner{padding:6px 10px;background:var(--vscode-inputValidation-warningBackground);font-size:11px;flex-shrink:0}
-    .notes-list{flex:1;overflow-y:auto;padding:4px 0}
-    .note-row{display:flex;align-items:center;padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--vscode-panel-border);gap:6px}
-    .note-row:hover{background:var(--vscode-list-hoverBackground)}
-    .note-row.hidden{display:none}
-    .note-main{flex:1;min-width:0}
-    .note-header{display:flex;align-items:baseline;gap:4px;margin-bottom:2px}
-    .pin{font-size:10px;flex-shrink:0}
-    .note-title{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
-    .note-date{font-size:10px;color:var(--vscode-descriptionForeground);white-space:nowrap;flex-shrink:0}
-    .note-preview{font-size:11px;color:var(--vscode-descriptionForeground);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .tags{display:flex;gap:3px;margin-top:3px;flex-wrap:wrap}
-    .tag{font-size:10px;padding:1px 5px;border-radius:3px;background:var(--vscode-badge-background);color:var(--vscode-badge-foreground)}
-    .dim{opacity:0.4;font-style:italic}
-    .del-btn{background:none;border:none;cursor:pointer;color:var(--vscode-errorForeground);opacity:0;font-size:11px;padding:2px 4px;border-radius:2px;flex-shrink:0}
-    .note-row:hover .del-btn{opacity:0.5}.del-btn:hover{opacity:1 !important;background:var(--vscode-inputValidation-errorBackground)}
-    .empty{padding:40px 20px;text-align:center;font-size:13px;color:var(--vscode-descriptionForeground);line-height:1.8}
-    .status-badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;flex-shrink:0}
-    .status-badge.done{background:rgba(63,185,80,0.15);color:#3fb950;border:1px solid rgba(63,185,80,0.3)}
-    .status-badge.passed{background:rgba(108,142,245,0.15);color:#6c8ef5;border:1px solid rgba(108,142,245,0.3)}
-    .file-row{margin-bottom:2px}
-    .file-badge{font-size:10px;color:var(--vscode-textLink-foreground);cursor:pointer;opacity:0.8}
-    .file-badge:hover{opacity:1;text-decoration:underline}
+    body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-sideBar-background); padding: 0; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--vscode-panel-border); flex-shrink: 0; background: var(--vscode-sideBar-background); z-index: 10; }
+    .project-name { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--vscode-descriptionForeground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+    .toolbar-right { display: flex; align-items: center; gap: 4px; }
+    .icon-btn { background: none; border: none; cursor: pointer; color: var(--vscode-foreground); opacity: 0.7; font-size: 16px; padding: 4px; border-radius: 4px; line-height: 1; transition: opacity 0.2s, background 0.2s; }
+    .icon-btn:hover { opacity: 1; background: var(--vscode-toolbar-hoverBackground); }
+    .search-bar { padding: 8px 12px; border-bottom: 1px solid var(--vscode-panel-border); flex-shrink: 0; }
+    .search-bar input { width: 100%; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); color: var(--vscode-input-foreground); border-radius: 4px; padding: 6px 10px; font-size: 12px; outline: none; font-family: var(--vscode-font-family); }
+    .search-bar input:focus { border-color: var(--vscode-focusBorder); }
+    .offline-banner { padding: 6px 12px; background: var(--vscode-inputValidation-warningBackground); color: var(--vscode-inputValidation-warningForeground); font-size: 11px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+    .notes-list { flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .note-row { display: flex; align-items: flex-start; padding: 10px; cursor: pointer; border: 1px solid var(--vscode-panel-border); border-radius: 6px; background: var(--vscode-sideBar-background); transition: border-color 0.2s, box-shadow 0.2s, background 0.2s; position: relative; gap: 8px; }
+    .note-row:hover { border-color: var(--vscode-focusBorder); background: var(--vscode-list-hoverBackground); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .note-row.hidden { display: none; }
+    .note-main { flex: 1; min-width: 0; }
+    .note-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .pin-icon { font-size: 12px; color: var(--vscode-symbolIcon-propertyForeground); flex-shrink: 0; }
+    .note-title { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; color: var(--vscode-foreground); }
+    .note-date { font-size: 10px; color: var(--vscode-descriptionForeground); white-space: nowrap; flex-shrink: 0; }
+    .note-preview { font-size: 12px; color: var(--vscode-descriptionForeground); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; margin-bottom: 8px; min-height: 1.4em; }
+    .note-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .tags { display: flex; gap: 4px; flex-wrap: wrap; }
+    .tag { font-size: 10px; padding: 1px 6px; border-radius: 10px; background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); border: 1px solid rgba(128,128,128,0.2); }
+    .dim { opacity: 0.5; font-style: italic; }
+    .del-btn { background: none; border: none; cursor: pointer; color: var(--vscode-errorForeground); opacity: 0; font-size: 14px; padding: 4px; border-radius: 4px; flex-shrink: 0; transition: opacity 0.2s; }
+    .note-row:hover .del-btn { opacity: 0.6; }
+    .del-btn:hover { opacity: 1 !important; background: var(--vscode-inputValidation-errorBackground); }
+    .empty { padding: 60px 20px; text-align:center; font-size: 13px; color: var(--vscode-descriptionForeground); line-height: 1.6; }
+    .empty i { font-size: 32px; display: block; margin-bottom: 12px; opacity: 0.3; }
+    .status-badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: 600; flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+    .status-badge i { font-size: 10px; }
+    .status-badge.done { background: rgba(63,185,80,0.15); color: #3fb950; border: 1px solid rgba(63,185,80,0.3); }
+    .status-badge.passed { background: rgba(108,142,245,0.15); color: #6c8ef5; border: 1px solid rgba(108,142,245,0.3); }
+    .priority-indicator { font-size: 10px; flex-shrink: 0; display: flex; align-items: center; }
+    .priority-indicator.p-emergency { color: #f87171; }
+    .priority-indicator.p-urgent { color: #fb923c; }
+    .priority-indicator.p-important { color: #fbbf24; }
+    .priority-indicator.p-medium { color: #84cc16; }
+    .priority-indicator.p-low { color: #22c55e; }
+    .file-row { margin-bottom: 6px; }
+    .file-badge { font-size: 11px; color: var(--vscode-textLink-foreground); cursor: pointer; opacity: 0.8; display: flex; align-items: center; gap: 4px; }
+    .file-badge:hover { opacity: 1; text-decoration: underline; }
+    .file-badge i { font-size: 12px; }
   </style></head><body>
   <div class="toolbar">
     <span class="project-name" title="${projectName}">${projectName}</span>
     <div class="toolbar-right">
-      <button class="icon-btn" id="newBtn" title="New note (Cmd/Ctrl+N)">+</button>
-      <button class="icon-btn" id="settingsBtn" title="Settings">⚙</button>
+      <button class="icon-btn" id="newBtn" title="New note (Cmd/Ctrl+N)"><i class="codicon codicon-add"></i></button>
+      <button class="icon-btn" id="settingsBtn" title="Settings"><i class="codicon codicon-settings-gear"></i></button>
     </div>
   </div>
   <div class="search-bar">
     <input id="search" placeholder="Search notes…" autocomplete="off"/>
   </div>
-  ${offline ? '<div class="offline-banner">⚠ Offline — changes won\'t save</div>' : ''}
+  ${offline ? '<div class="offline-banner"><i class="codicon codicon-warning"></i> Offline — changes won\'t save</div>' : ''}
   <div class="notes-list" id="list">
     ${items}
-    ${notes.length === 0 ? '<div class="empty">No notes yet.<br/>Press <strong>+</strong> to create one.</div>' : ''}
+    ${notes.length === 0 ? '<div class="empty"><i class="codicon codicon-note"></i>No notes yet.<br/>Press <strong>+</strong> to create one.</div>' : ''}
   </div>
   <script>
     const vscode=acquireVsCodeApi();
@@ -284,7 +305,7 @@ function notesListHtml(projectName: string, notes: NoteItem[], offline?: boolean
     document.getElementById('settingsBtn').addEventListener('click',()=>vscode.postMessage({type:'openSettings'}));
     document.querySelectorAll('.note-row').forEach(row=>{
       row.addEventListener('click',e=>{
-        if(e.target.classList.contains('del-btn'))return;
+        if(e.target.closest('.del-btn'))return;
         vscode.postMessage({type:'openNote',id:row.dataset.id});
       });
     });
@@ -303,7 +324,7 @@ function notesListHtml(projectName: string, notes: NoteItem[], offline?: boolean
         row.classList.toggle('hidden',q!==''&&!title.includes(q)&&!preview.includes(q));
       });
     });
-    // File badge click — jump to file location and highlight the annotated range
+    // File badge click — jump to file location
     document.querySelectorAll('.file-badge').forEach(badge=>{
       badge.addEventListener('click',e=>{
         e.stopPropagation();
@@ -329,109 +350,119 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
   const safeTitle = (note.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const tagsJson = JSON.stringify(note.tags || []);
   const isMarkdown = note.editorMode === 'markdown';
-  const safeContent = (note.content || '').replace(/`/g, '\\`').replace(/\\/g, '\\\\');
+  const contentJson = JSON.stringify(note.content || '');
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/>
   <!-- Quill WYSIWYG -->
   <link rel="stylesheet" href="https://cdn.quilljs.com/1.3.7/quill.snow.css"/>
   <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"><\/script>
   <!-- Marked for Markdown preview -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
   <style>
-    *{box-sizing:border-box}
-    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:0;margin:0;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+    body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-sideBar-background); padding: 0; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
 
     /* Toolbar */
-    .toolbar{display:flex;align-items:center;padding:5px 8px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0;gap:5px}
-    .back-btn{background:none;border:none;cursor:pointer;color:var(--vscode-textLink-foreground);font-size:11px;padding:0;white-space:nowrap;flex-shrink:0}
-    .title-input{flex:1;background:transparent;border:none;color:var(--vscode-foreground);font-size:12px;font-weight:600;outline:none;min-width:0;font-family:var(--vscode-font-family)}
-    .title-input::placeholder{color:var(--vscode-input-placeholderForeground)}
-    .status{font-size:10px;color:#4caf50;white-space:nowrap;flex-shrink:0;min-width:40px;text-align:right}
+    .toolbar { display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--vscode-panel-border); flex-shrink: 0; gap: 8px; background: var(--vscode-sideBar-background); }
+    .back-btn { background: none; border: none; cursor: pointer; color: var(--vscode-textLink-foreground); font-size: 12px; padding: 4px; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 4px; border-radius: 4px; }
+    .back-btn:hover { background: var(--vscode-toolbar-hoverBackground); }
+    .title-input { flex: 1; background: transparent; border: none; color: var(--vscode-foreground); font-size: 13px; font-weight: 600; outline: none; min-width: 0; font-family: var(--vscode-font-family); padding: 4px; border-radius: 4px; }
+    .title-input:focus { background: var(--vscode-input-background); border: 1px solid var(--vscode-focusBorder); }
+    .title-input::placeholder { color: var(--vscode-input-placeholderForeground); }
+    .status { font-size: 10px; color: #4caf50; white-space: nowrap; flex-shrink: 0; min-width: 40px; text-align: right; font-weight: 600; text-transform: uppercase; }
 
     /* Meta bar: tags + pin + mode toggle */
-    .meta-bar{display:flex;align-items:center;gap:6px;padding:4px 8px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0;flex-wrap:wrap}
-    .pin-btn{background:none;border:none;cursor:pointer;font-size:13px;padding:0;opacity:0.5;line-height:1}
-    .pin-btn.active{opacity:1}
-    .tags-input{flex:1;background:transparent;border:none;color:var(--vscode-descriptionForeground);font-size:11px;outline:none;font-family:var(--vscode-font-family);min-width:80px}
-    .tags-input::placeholder{color:var(--vscode-input-placeholderForeground);font-style:italic}
-    .mode-toggle{display:flex;gap:2px;flex-shrink:0}
-    .mode-btn{background:none;border:1px solid var(--vscode-panel-border);color:var(--vscode-descriptionForeground);font-size:10px;padding:2px 6px;border-radius:3px;cursor:pointer}
-    .mode-btn.active{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border-color:transparent}
-    .priority-select{background:var(--vscode-input-background);border:1px solid var(--vscode-panel-border);color:var(--vscode-foreground);font-size:10px;padding:2px 4px;border-radius:3px;cursor:pointer;font-family:var(--vscode-font-family);flex-shrink:0}
-    .status-select{background:var(--vscode-input-background);border:1px solid var(--vscode-panel-border);color:var(--vscode-foreground);font-size:10px;padding:2px 4px;border-radius:3px;cursor:pointer;font-family:var(--vscode-font-family);flex-shrink:0}
-    .status-select.open{border-color:rgba(239,68,68,0.5);color:#f87171}
-    .status-select.done{border-color:rgba(63,185,80,0.5);color:#3fb950}
-    .status-select.passed{border-color:rgba(108,142,245,0.5);color:#6c8ef5}
+    .meta-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--vscode-panel-border); flex-shrink: 0; flex-wrap: wrap; background: var(--vscode-sideBar-background); }
+    .pin-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 4px; color: var(--vscode-foreground); opacity: 0.5; transition: opacity 0.2s, color 0.2s; display: flex; align-items: center; }
+    .pin-btn.active { opacity: 1; color: var(--vscode-symbolIcon-propertyForeground); }
+    .pin-btn:hover { background: var(--vscode-toolbar-hoverBackground); opacity: 1; }
+    .tags-input { flex: 1; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); color: var(--vscode-foreground); font-size: 11px; outline: none; font-family: var(--vscode-font-family); min-width: 100px; padding: 4px 8px; border-radius: 4px; }
+    .tags-input:focus { border-color: var(--vscode-focusBorder); }
+    .tags-input::placeholder { color: var(--vscode-input-placeholderForeground); font-style: italic; }
+    .mode-toggle { display: flex; gap: 2px; flex-shrink: 0; background: var(--vscode-button-secondaryBackground); padding: 2px; border-radius: 6px; }
+    .mode-btn { background: none; border: none; color: var(--vscode-button-secondaryForeground); font-size: 10px; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+    .mode-btn.active { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+    .select-wrap { display: flex; gap: 4px; flex-shrink: 0; }
+    .styled-select { background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); color: var(--vscode-foreground); font-size: 11px; padding: 3px 6px; border-radius: 4px; cursor: pointer; font-family: var(--vscode-font-family); outline: none; }
+    .styled-select:focus { border-color: var(--vscode-focusBorder); }
+    .status-select.open { color: #f87171; }
+    .status-select.done { color: #3fb950; }
+    .status-select.passed { color: #6c8ef5; }
 
     /* Word count */
-    .word-count{padding:3px 8px;font-size:10px;color:var(--vscode-descriptionForeground);flex-shrink:0;border-bottom:1px solid var(--vscode-panel-border);background:var(--vscode-sideBar-background)}
+    .word-count { padding: 4px 12px; font-size: 10px; color: var(--vscode-descriptionForeground); flex-shrink: 0; border-top: 1px solid var(--vscode-panel-border); background: var(--vscode-sideBar-background); display: flex; justify-content: space-between; align-items: center; }
 
     /* Editor area */
-    .editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;background:${bgColor};color:${textColor}}
+    .editor-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: ${bgColor}; color: ${textColor}; }
 
     /* WYSIWYG Quill overrides */
-    .ql-toolbar{background:#fff1;border:none!important;border-bottom:1px solid rgba(128,128,128,0.2)!important;flex-shrink:0;padding:4px!important}
-    .ql-toolbar .ql-stroke{stroke:${textColor}!important}
-    .ql-toolbar .ql-fill{fill:${textColor}!important}
-    .ql-toolbar .ql-picker-label{color:${textColor}!important}
-    .ql-toolbar button:hover .ql-stroke,.ql-toolbar button.ql-active .ql-stroke{stroke:#6c8ef5!important}
-    .ql-container{flex:1;font-size:13px;border:none!important;overflow:auto}
-    .ql-editor{color:${textColor};min-height:200px;line-height:1.7;padding:12px}
-    .ql-editor.ql-blank::before{color:${textColor};opacity:0.35;font-style:italic}
+    .ql-toolbar { background: rgba(128,128,128,0.05) !important; border: none !important; border-bottom: 1px solid var(--vscode-panel-border) !important; flex-shrink: 0; padding: 6px !important; }
+    .ql-toolbar .ql-stroke { stroke: ${textColor} !important; opacity: 0.8; }
+    .ql-toolbar .ql-fill { fill: ${textColor} !important; opacity: 0.8; }
+    .ql-toolbar .ql-picker { color: ${textColor} !important; }
+    .ql-toolbar button:hover .ql-stroke, .ql-toolbar button.ql-active .ql-stroke { stroke: var(--vscode-textLink-foreground) !important; opacity: 1; }
+    .ql-container { flex: 1; font-size: 13px; border: none !important; overflow: auto; }
+    .ql-editor { color: ${textColor}; min-height: 200px; line-height: 1.6; padding: 16px; font-family: var(--vscode-font-family); }
+    .ql-editor.ql-blank::before { color: ${textColor}; opacity: 0.35; font-style: italic; }
 
     /* Markdown area */
-    .md-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;background:${bgColor}}
-    .md-panes{flex:1;display:flex;overflow:hidden}
-    textarea.md-edit{flex:1;background:${bgColor};color:${textColor};border:none;resize:none;font-family:var(--vscode-editor-font-family,monospace);font-size:13px;line-height:1.7;padding:12px;outline:none}
-    textarea.md-edit::placeholder{color:${textColor};opacity:0.35}
-    .md-preview{flex:1;overflow-y:auto;padding:12px;color:${textColor};font-size:13px;line-height:1.7;border-left:1px solid rgba(128,128,128,0.2)}
-    .md-preview h1,.md-preview h2,.md-preview h3{margin-top:0.8em;margin-bottom:0.3em}
-    .md-preview code{background:rgba(128,128,128,0.15);padding:1px 4px;border-radius:3px;font-size:12px}
-    .md-preview pre{background:rgba(128,128,128,0.15);padding:8px;border-radius:4px;overflow-x:auto}
-    .md-preview a{color:#6c8ef5}
-    .md-tabs{display:flex;border-bottom:1px solid rgba(128,128,128,0.2);background:${bgColor};flex-shrink:0}
-    .md-tab{flex:1;text-align:center;padding:5px;font-size:11px;cursor:pointer;color:${textColor};opacity:0.5;border:none;background:none}
-    .md-tab.active{opacity:1;border-bottom:2px solid #6c8ef5}
+    .md-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: ${bgColor}; }
+    .md-panes { flex: 1; display: flex; overflow: hidden; }
+    textarea.md-edit { flex: 1; background: ${bgColor}; color: ${textColor}; border: none; resize: none; font-family: var(--vscode-editor-font-family, monospace); font-size: 13px; line-height: 1.6; padding: 16px; outline: none; }
+    textarea.md-edit::placeholder { color: ${textColor}; opacity: 0.35; }
+    .md-preview { flex: 1; overflow-y: auto; padding: 16px; color: ${textColor}; font-size: 13px; line-height: 1.6; border-left: 1px solid rgba(128,128,128,0.2); }
+    .md-preview h1, .md-preview h2, .md-preview h3 { margin-top: 1em; margin-bottom: 0.5em; color: inherit; }
+    .md-preview code { background: rgba(128,128,128,0.15); padding: 2px 4px; border-radius: 4px; font-size: 12px; font-family: var(--vscode-editor-font-family, monospace); }
+    .md-preview pre { background: rgba(128,128,128,0.15); padding: 12px; border-radius: 6px; overflow-x: auto; margin: 12px 0; }
+    .md-preview pre code { background: none; padding: 0; }
+    .md-preview a { color: var(--vscode-textLink-foreground); }
+    .md-tabs { display: flex; border-bottom: 1px solid var(--vscode-panel-border); background: var(--vscode-sideBar-background); flex-shrink: 0; padding: 0 8px; }
+    .md-tab { padding: 8px 16px; font-size: 11px; font-weight: 600; cursor: pointer; color: var(--vscode-descriptionForeground); border: none; background: none; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; }
+    .md-tab.active { color: var(--vscode-foreground); border-bottom-color: var(--vscode-focusBorder); }
+
+    .annotation-banner { padding: 8px 12px; background: rgba(108,142,245,0.1); border-bottom: 1px solid var(--vscode-panel-border); font-size: 11px; color: var(--vscode-textLink-foreground); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 8px; }
+    .annotation-banner i { font-size: 14px; }
+    .code-snippet { opacity: 0.7; font-family: var(--vscode-editor-font-family, monospace); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
   </style></head><body>
 
   <!-- Toolbar -->
   <div class="toolbar">
-    <button class="back-btn" id="backBtn">← ${projectName}</button>
+    <button class="back-btn" id="backBtn"><i class="codicon codicon-arrow-left"></i> Back</button>
     <input class="title-input" id="titleInput" value="${safeTitle}" placeholder="Note title…"/>
     <span class="status" id="status"></span>
   </div>
 
   <!-- Meta bar -->
   <div class="meta-bar">
-    <button class="pin-btn${note.pinned ? ' active' : ''}" id="pinBtn" title="${note.pinned ? 'Unpin' : 'Pin note'}">📌</button>
-    <select class="priority-select" id="prioritySelect" title="Priority">
-      <option value="none"${(note.priority||'none')==='none'?' selected':''}>— Priority</option>
-      <option value="low"${note.priority==='low'?' selected':''}>🟢 Low</option>
-      <option value="medium"${note.priority==='medium'?' selected':''}>🟡 Medium</option>
-      <option value="important"${note.priority==='important'?' selected':''}>🟠 Important</option>
-      <option value="urgent"${note.priority==='urgent'?' selected':''}>🔴 Urgent</option>
-      <option value="emergency"${note.priority==='emergency'?' selected':''}>🚨 Emergency</option>
-    </select>
-    <select class="status-select ${note.status||'open'}" id="statusSelect" title="Status">
-      <option value="open"${(note.status||'open')==='open'?' selected':''}>⬤ Open</option>
-      <option value="done"${note.status==='done'?' selected':''}>✓ Done</option>
-      <option value="passed"${note.status==='passed'?' selected':''}>✓ Passed</option>
-    </select>
-    <input class="tags-input" id="tagsInput" value="${note.tags.join(', ')}" placeholder="Tags: idea, bug, todo…"/>
+    <button class="pin-btn${note.pinned ? ' active' : ''}" id="pinBtn" title="${note.pinned ? 'Unpin' : 'Pin note'}"><i class="codicon codicon-pin"></i></button>
+    <div class="select-wrap">
+      <select class="styled-select" id="prioritySelect" title="Priority">
+        <option value="none"${(note.priority||'none')==='none'?' selected':''}>Priority: None</option>
+        <option value="low"${note.priority==='low'?' selected':''}>Low</option>
+        <option value="medium"${note.priority==='medium'?' selected':''}>Medium</option>
+        <option value="important"${note.priority==='important'?' selected':''}>Important</option>
+        <option value="urgent"${note.priority==='urgent'?' selected':''}>Urgent</option>
+        <option value="emergency"${note.priority==='emergency'?' selected':''}>Emergency</option>
+      </select>
+      <select class="styled-select status-select ${note.status||'open'}" id="statusSelect" title="Status">
+        <option value="open"${(note.status||'open')==='open'?' selected':''}>Open</option>
+        <option value="done"${note.status==='done'?' selected':''}>Done</option>
+        <option value="passed"${note.status==='passed'?' selected':''}>Passed</option>
+      </select>
+    </div>
+    <input class="tags-input" id="tagsInput" value="${note.tags.join(', ')}" placeholder="Tags (comma separated)…"/>
     <div class="mode-toggle">
-      <button class="mode-btn${!isMarkdown ? ' active' : ''}" id="modeWysiwyg">WYSIWYG</button>
+      <button class="mode-btn${!isMarkdown ? ' active' : ''}" id="modeWysiwyg">Edit</button>
       <button class="mode-btn${isMarkdown ? ' active' : ''}" id="modeMd">Markdown</button>
     </div>
   </div>
 
   <!-- Code annotation banner -->
   ${note.filePath ? `
-  <div style="padding:6px 10px;background:rgba(108,142,245,0.08);border-bottom:1px solid rgba(108,142,245,0.2);font-size:11px;color:var(--vscode-textLink-foreground);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
-    <span id="annotationBanner" style="cursor:pointer" title="Click to jump to this location">📎 ${note.filePath}:${note.lineStart}–${note.lineEnd}</span>
-    <span style="opacity:0.6;font-family:var(--vscode-editor-font-family,monospace);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%">${(note.codeSnippet||'').replace(/</g,'&lt;').slice(0,80)}</span>
+  <div class="annotation-banner" id="annotationBanner" style="cursor:pointer" title="Jump to this location">
+    <span><i class="codicon codicon-link"></i> ${note.filePath}:${note.lineStart}–${note.lineEnd}</span>
+    <span class="code-snippet">${(note.codeSnippet||'').replace(/</g,'&lt;').slice(0,80)}</span>
   </div>` : ''}
-  <!-- Word count -->
-  <div class="word-count" id="wordCount">0 words · 0 chars</div>
 
   <!-- WYSIWYG editor -->
   <div class="editor-wrap" id="wysiwygWrap" style="display:${isMarkdown ? 'none' : 'flex'}">
@@ -450,6 +481,12 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     </div>
   </div>
 
+  <!-- Word count -->
+  <div class="word-count">
+    <span id="wordCount">0 words · 0 chars</span>
+    <span id="saveStatus" style="opacity:0.6;font-style:italic">Saved</span>
+  </div>
+
   <script>
     const vscode = acquireVsCodeApi();
     const noteId = "${note.id}";
@@ -463,10 +500,10 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
       placeholder: 'Start writing…',
       modules: {
         toolbar: [
-          ['bold','italic','underline','strike'],
-          ['blockquote','code-block'],
-          [{'list':'ordered'},{'list':'bullet'}],
-          [{'header':[1,2,3,false]}],
+          ['bold', 'italic', 'underline', 'strike'],
+          ['blockquote', 'code-block'],
+          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+          [{ 'header': [1, 2, 3, false] }],
           ['link'],
           ['clean']
         ]
@@ -474,7 +511,7 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     });
 
     // Load initial content
-    const rawContent = \`${safeContent}\`;
+    const rawContent = ${contentJson};
     if (mode === 'wysiwyg') {
       try { quill.setContents(JSON.parse(rawContent)); } catch { quill.setText(rawContent); }
     } else {
@@ -484,7 +521,7 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
 
     // ── Word count ──────────────────────────────────────────────────────────
     function updateWordCount(text) {
-      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const words = text.trim() ? text.trim().split(/\\s+/).length : 0;
       const chars = text.length;
       document.getElementById('wordCount').textContent = words + ' words · ' + chars + ' chars';
     }
@@ -529,7 +566,6 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
       document.getElementById('modeMd').classList.toggle('active', mode === 'markdown');
       document.getElementById('wysiwygWrap').style.display = mode === 'wysiwyg' ? 'flex' : 'none';
       document.getElementById('mdWrap').style.display = mode === 'markdown' ? 'flex' : 'none';
-      // Convert content between modes (best effort)
       if (mode === 'markdown') {
         const text = quill.getText();
         document.getElementById('mdEdit').value = text;
@@ -551,8 +587,34 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
       scheduleSave();
     });
 
-    // ── Tags ────────────────────────────────────────────────────────────────
+    // ── Selects ─────────────────────────────────────────────────────────────
+    document.getElementById('prioritySelect').addEventListener('change', scheduleSave);
+    document.getElementById('statusSelect').addEventListener('change', e => {
+      const s = e.target;
+      s.className = 'styled-select status-select ' + s.value;
+      scheduleSave();
+    });
+
+    // ── Title & Tags ────────────────────────────────────────────────────────
+    document.getElementById('titleInput').addEventListener('input', scheduleSave);
     document.getElementById('tagsInput').addEventListener('input', scheduleSave);
+
+    // ── Navigation ──────────────────────────────────────────────────────────
+    document.getElementById('backBtn').addEventListener('click', () => {
+      doSave(); // Save immediately before going back
+      vscode.postMessage({ type: 'showList' });
+    });
+    if (document.getElementById('annotationBanner')) {
+      document.getElementById('annotationBanner').addEventListener('click', () => {
+        vscode.postMessage({
+          type: 'jumpToFile',
+          file: "${note.filePath}",
+          line: ${note.lineStart || 1},
+          lineStart: ${note.lineStart || 1},
+          lineEnd: ${note.lineEnd || note.lineStart || 1}
+        });
+      });
+    }
 
     // ── Save ────────────────────────────────────────────────────────────────
     function getContent() {
@@ -564,8 +626,10 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
         .split(',').map(t => t.trim()).filter(Boolean);
     }
     function scheduleSave() {
+      document.getElementById('saveStatus').textContent = 'Changes unsaved...';
+      document.getElementById('saveStatus').style.opacity = '1';
       clearTimeout(saveTimer);
-      saveTimer = setTimeout(doSave, 900);
+      saveTimer = setTimeout(doSave, 1000);
     }
     function doSave() {
       vscode.postMessage({
@@ -581,61 +645,23 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
       });
     }
 
-    document.getElementById('titleInput').addEventListener('input', scheduleSave);
     document.addEventListener('keydown', e => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); clearTimeout(saveTimer); doSave(); }
     });
-
-    // Status select colour update
-    const statusSel = document.getElementById('statusSelect');
-    statusSel.addEventListener('change', function() {
-      statusSel.className = 'status-select ' + statusSel.value;
-      scheduleSave();
-    });
-
-    // Annotation banner click — jump to file and highlight the exact range
-    const annotBanner = document.getElementById('annotationBanner');
-    if (annotBanner) {
-      annotBanner.addEventListener('click', () => {
-        vscode.postMessage({
-          type: 'jumpToFile',
-          file: '${note.filePath || ''}',
-          line: ${note.lineStart || 1},
-          lineStart: ${note.lineStart || 1},
-          lineEnd: ${note.lineEnd || note.lineStart || 1},
-        });
-      });
-    }
 
     // Auto-select Untitled
     const titleEl = document.getElementById('titleInput');
     if (titleEl.value === 'Untitled') { titleEl.focus(); titleEl.select(); }
 
-    // ── Back ────────────────────────────────────────────────────────────────
-    document.getElementById('backBtn').addEventListener('click', () => {
-      clearTimeout(saveTimer);
-      vscode.postMessage({
-        type: 'saveNote',
-        id: noteId,
-        title: titleEl.value,
-        content: getContent(),
-        editorMode: mode,
-        pinned: pinned,
-        tags: getTags(),
-        priority: document.getElementById('prioritySelect').value,
-        status: document.getElementById('statusSelect').value,
-        thenShowList: true,
-      });
-    });
-
     // ── Listen for messages from extension host ────────────────────────────────
     window.addEventListener('message', e => {
       if (e.data.type === 'saved') {
+        document.getElementById('saveStatus').textContent = 'Saved';
+        document.getElementById('saveStatus').style.opacity = '0.6';
         const s = document.getElementById('status');
         s.textContent = '✓ Saved';
         setTimeout(() => { s.textContent = ''; }, 2000);
       }
-      // Opened from hover popup — navigate directly to this note
       if (e.data.type === 'openNoteFromHost') {
         vscode.postMessage({ type: 'openNote', id: e.data.id });
       }

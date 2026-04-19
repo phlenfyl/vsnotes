@@ -36,7 +36,7 @@ The file is structured in this order:
 1. Helper functions (`getApiUrl`, `getFolderPath`)
 2. Auth helpers (`getTokens`, `setTokens`, `refreshAccessToken`, `makeRequest`, `apiGet/Post/Patch/Delete`)
 3. Types (`NoteItem` interface)
-4. Constants (`PRIORITY_ORDER`, `PRIORITY_BADGE`, `BG_COLORS` etc.)
+4. Constants (`PRIORITY_ORDER`, `PRIORITY_LABEL`, `BG_COLORS` etc.)
 5. HTML generator functions (`loginHtml`, `settingsHtml`, `noFolderHtml`, `notesListHtml`, `noteEditorHtml`)
 6. `activate()` — registers everything
 7. `startLoginFlow()` — extension OAuth login
