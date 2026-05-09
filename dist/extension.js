@@ -15580,7 +15580,7 @@ var {
 // src/extension.ts
 var import_crypto2 = require("crypto");
 function getApiUrl() {
-  return vscode.workspace.getConfiguration("notenest").get("apiUrl", "https://backend-vsnote.vercel.app");
+  return vscode.workspace.getConfiguration("notenest").get("apiUrl", "http://localhost:3001");
 }
 function getFolderPath() {
   const folders = vscode.workspace.workspaceFolders;
@@ -15795,7 +15795,8 @@ function notesListHtml(projectName, notes, offline) {
     const tagBadges = n.tags.slice(0, 3).map((t) => `<span class="tag">${t.replace(/</g, "&lt;")}</span>`).join("");
     const priorityBadge = n.priority && n.priority !== "none" ? `<span class="priority-indicator p-${n.priority}" title="${PRIORITY_LABEL[n.priority]}"><i class="codicon codicon-circle-filled"></i></span>` : "";
     const statusBadge = n.status === "done" ? '<span class="status-badge done"><i class="codicon codicon-check"></i> done</span>' : n.status === "passed" ? '<span class="status-badge passed"><i class="codicon codicon-pass-filled"></i> passed</span>' : "";
-    const fileBadge = n.filePath ? `<span class="file-badge" data-id="${n.id}" data-file="${n.filePath}" data-line="${n.lineStart ?? 1}" data-line-start="${n.lineStart ?? 1}" data-line-end="${n.lineEnd ?? n.lineStart ?? 1}" title="Jump to ${n.filePath}:${n.lineStart}\u2013${n.lineEnd}"><i class="codicon codicon-link"></i> ${n.filePath.split("/").pop()}:${n.lineStart}\u2013${n.lineEnd}</span>` : "";
+    const annotationCount = (n.annotations?.length ?? 0) || (n.filePath ? 1 : 0);
+    const fileBadge = annotationCount > 0 ? n.annotations && n.annotations.length > 0 ? `<span class="file-badge" title="${annotationCount} code annotation(s)"><i class="codicon codicon-link"></i> ${annotationCount} annotation${annotationCount > 1 ? "s" : ""}</span>` : `<span class="file-badge" data-id="${n.id}" data-file="${n.filePath}" data-line="${n.lineStart ?? 1}" data-line-start="${n.lineStart ?? 1}" data-line-end="${n.lineEnd ?? n.lineStart ?? 1}" title="Jump to ${n.filePath}:${n.lineStart}\u2013${n.lineEnd}"><i class="codicon codicon-link"></i> ${(n.filePath ?? "").split("/").pop()}:${n.lineStart}\u2013${n.lineEnd}</span>` : "";
     return `<div class="note-row" data-id="${n.id}">
       <div class="note-main">
         <div class="note-header">
@@ -15824,8 +15825,13 @@ function notesListHtml(projectName, notes, offline) {
     .icon-btn { background: none; border: none; cursor: pointer; color: var(--vscode-foreground); opacity: 0.7; font-size: 16px; padding: 4px; border-radius: 4px; line-height: 1; transition: opacity 0.2s, background 0.2s; }
     .icon-btn:hover { opacity: 1; background: var(--vscode-toolbar-hoverBackground); }
     .search-bar { padding: 8px 12px; border-bottom: 1px solid var(--vscode-panel-border); flex-shrink: 0; }
-    .search-bar input { width: 100%; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); color: var(--vscode-input-foreground); border-radius: 4px; padding: 6px 10px; font-size: 12px; outline: none; font-family: var(--vscode-font-family); }
+    .search-bar input { width: 100%; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); color: var(--vscode-input-foreground); border-radius: 4px; padding: 6px 10px; font-size: 12px; outline: none; font-family: var(--vscode-font-family); box-sizing: border-box; }
     .search-bar input:focus { border-color: var(--vscode-focusBorder); }
+    .new-note-row { display: none; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--vscode-focusBorder); border-radius: 6px; background: var(--vscode-input-background); margin: 0 0 4px 0; }
+    .new-note-row.visible { display: flex; }
+    .new-note-input { flex: 1; background: transparent; border: none; color: var(--vscode-input-foreground); font-size: 13px; font-weight: 500; outline: none; font-family: var(--vscode-font-family); padding: 2px 4px; }
+    .new-note-input::placeholder { color: var(--vscode-input-placeholderForeground); font-style: italic; }
+    .new-note-hint { font-size: 10px; color: var(--vscode-descriptionForeground); white-space: nowrap; opacity: 0.7; }
     .offline-banner { padding: 6px 12px; background: var(--vscode-inputValidation-warningBackground); color: var(--vscode-inputValidation-warningForeground); font-size: 11px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
     .notes-list { flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 8px; }
     .note-row { display: flex; align-items: flex-start; padding: 10px; cursor: pointer; border: 1px solid var(--vscode-panel-border); border-radius: 6px; background: var(--vscode-sideBar-background); transition: border-color 0.2s, box-shadow 0.2s, background 0.2s; position: relative; gap: 8px; }
@@ -15873,12 +15879,30 @@ function notesListHtml(projectName, notes, offline) {
   </div>
   ${offline ? `<div class="offline-banner"><i class="codicon codicon-warning"></i> Offline \u2014 changes won't save</div>` : ""}
   <div class="notes-list" id="list">
+    <div class="new-note-row" id="newNoteRow">
+      <i class="codicon codicon-note" style="font-size:14px;opacity:0.6;flex-shrink:0"></i>
+      <input class="new-note-input" id="newNoteInput" placeholder="Note name\u2026 (Enter to create, Esc to cancel)" autocomplete="off" maxlength="120"/>
+      <span class="new-note-hint">\u21B5 create</span>
+    </div>
     ${items}
     ${notes.length === 0 ? '<div class="empty"><i class="codicon codicon-note"></i>No notes yet.<br/>Press <strong>+</strong> to create one.</div>' : ""}
   </div>
   <script>
     const vscode=acquireVsCodeApi();
-    document.getElementById('newBtn').addEventListener('click',()=>vscode.postMessage({type:'newNote'}));
+    const newNoteRow=document.getElementById('newNoteRow');
+    const newNoteInput=document.getElementById('newNoteInput');
+    document.getElementById('newBtn').addEventListener('click',()=>{
+      newNoteRow.classList.add('visible');
+      newNoteInput.value='';
+      newNoteInput.focus();
+    });
+    newNoteInput.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){e.preventDefault();const t=newNoteInput.value.trim();if(t){vscode.postMessage({type:'newNote',title:t});}newNoteRow.classList.remove('visible');}
+      if(e.key==='Escape'){newNoteRow.classList.remove('visible');}
+    });
+    newNoteInput.addEventListener('blur',()=>{
+      setTimeout(()=>{newNoteRow.classList.remove('visible');},150);
+    });
     document.getElementById('settingsBtn').addEventListener('click',()=>vscode.postMessage({type:'openSettings'}));
     document.querySelectorAll('.note-row').forEach(row=>{
       row.addEventListener('click',e=>{
@@ -15916,26 +15940,41 @@ function notesListHtml(projectName, notes, offline) {
     });
     // Keyboard shortcut Cmd/Ctrl+N
     document.addEventListener('keydown',e=>{
-      if((e.metaKey||e.ctrlKey)&&e.key==='n'){e.preventDefault();vscode.postMessage({type:'newNote'});}
+      if((e.metaKey||e.ctrlKey)&&e.key==='n'){e.preventDefault();newNoteRow.classList.add('visible');newNoteInput.value='';newNoteInput.focus();}
     });
   </script></body></html>`;
 }
 function noteEditorHtml(note, projectName, bgColor, textColor) {
   const safeTitle = (note.title || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const tagsJson = JSON.stringify(note.tags || []);
   const isMarkdown = note.editorMode === "markdown";
   const contentJson = JSON.stringify(note.content || "");
+  const annotationsHtml = note.annotations && note.annotations.length > 0 ? note.annotations.map((ann) => `
+  <div class="annotation-block" data-ann-id="${ann.id}">
+    <div class="ann-header">
+      <span class="ann-file" onclick="vscode.postMessage({type:'jumpToFile',file:'${ann.filePath}',lineStart:${ann.lineStart},lineEnd:${ann.lineEnd},line:${ann.lineStart}})">
+        <i class="codicon codicon-link"></i> ${ann.filePath}:${ann.lineStart}\u2013${ann.lineEnd}
+      </span>
+      <select class="ann-status styled-select ${ann.status}" data-ann-id="${ann.id}" onchange="saveAnnotation('${ann.id}')">
+        <option value="open"${ann.status === "open" ? " selected" : ""}>Open</option>
+        <option value="done"${ann.status === "done" ? " selected" : ""}>Done</option>
+        <option value="closed"${ann.status === "closed" ? " selected" : ""}>Closed</option>
+      </select>
+      <button class="ann-del-btn" onclick="deleteAnnotation('${ann.id}')" title="Remove annotation"><i class="codicon codicon-trash"></i></button>
+    </div>
+    ${ann.codeSnippet ? `<pre class="ann-snippet">${ann.codeSnippet.replace(/</g, "&lt;").slice(0, 300)}</pre>` : ""}
+    <textarea class="ann-comment" data-ann-id="${ann.id}" placeholder="Comment on this code\u2026" oninput="scheduleAnnotationSave('${ann.id}')">${(ann.comment || "").replace(/</g, "&lt;")}</textarea>
+  </div>`).join("") : note.filePath ? `
+  <div class="annotation-banner" id="annotationBanner" style="cursor:pointer" title="Jump to this location">
+    <span><i class="codicon codicon-link"></i> ${note.filePath}:${note.lineStart}\u2013${note.lineEnd}</span>
+    <span class="code-snippet">${(note.codeSnippet || "").replace(/</g, "&lt;").slice(0, 80)}</span>
+  </div>` : "";
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/>
-  <!-- Quill WYSIWYG -->
   <link rel="stylesheet" href="https://cdn.quilljs.com/1.3.7/quill.snow.css"/>
   <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
-  <!-- Marked for Markdown preview -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-sideBar-background); padding: 0; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
-
-    /* Toolbar */
     .toolbar { display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--vscode-panel-border); flex-shrink: 0; gap: 8px; background: var(--vscode-sideBar-background); }
     .back-btn { background: none; border: none; cursor: pointer; color: var(--vscode-textLink-foreground); font-size: 12px; padding: 4px; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 4px; border-radius: 4px; }
     .back-btn:hover { background: var(--vscode-toolbar-hoverBackground); }
@@ -15943,8 +15982,6 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     .title-input:focus { background: var(--vscode-input-background); border: 1px solid var(--vscode-focusBorder); }
     .title-input::placeholder { color: var(--vscode-input-placeholderForeground); }
     .status { font-size: 10px; color: #4caf50; white-space: nowrap; flex-shrink: 0; min-width: 40px; text-align: right; font-weight: 600; text-transform: uppercase; }
-
-    /* Meta bar: tags + pin + mode toggle */
     .meta-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--vscode-panel-border); flex-shrink: 0; flex-wrap: wrap; background: var(--vscode-sideBar-background); }
     .pin-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 4px; color: var(--vscode-foreground); opacity: 0.5; transition: opacity 0.2s, color 0.2s; display: flex; align-items: center; }
     .pin-btn.active { opacity: 1; color: var(--vscode-symbolIcon-propertyForeground); }
@@ -15961,14 +15998,8 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     .status-select.open { color: #f87171; }
     .status-select.done { color: #3fb950; }
     .status-select.passed { color: #6c8ef5; }
-
-    /* Word count */
     .word-count { padding: 4px 12px; font-size: 10px; color: var(--vscode-descriptionForeground); flex-shrink: 0; border-top: 1px solid var(--vscode-panel-border); background: var(--vscode-sideBar-background); display: flex; justify-content: space-between; align-items: center; }
-
-    /* Editor area */
     .editor-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: ${bgColor}; color: ${textColor}; }
-
-    /* WYSIWYG Quill overrides */
     .ql-toolbar { background: rgba(128,128,128,0.05) !important; border: none !important; border-bottom: 1px solid var(--vscode-panel-border) !important; flex-shrink: 0; padding: 6px !important; }
     .ql-toolbar .ql-stroke { stroke: ${textColor} !important; opacity: 0.8; }
     .ql-toolbar .ql-fill { fill: ${textColor} !important; opacity: 0.8; }
@@ -15977,8 +16008,6 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     .ql-container { flex: 1; font-size: 13px; border: none !important; overflow: auto; }
     .ql-editor { color: ${textColor}; min-height: 200px; line-height: 1.6; padding: 16px; font-family: var(--vscode-font-family); }
     .ql-editor.ql-blank::before { color: ${textColor}; opacity: 0.35; font-style: italic; }
-
-    /* Markdown area */
     .md-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: ${bgColor}; }
     .md-panes { flex: 1; display: flex; overflow: hidden; }
     textarea.md-edit { flex: 1; background: ${bgColor}; color: ${textColor}; border: none; resize: none; font-family: var(--vscode-editor-font-family, monospace); font-size: 13px; line-height: 1.6; padding: 16px; outline: none; }
@@ -15992,20 +16021,33 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     .md-tabs { display: flex; border-bottom: 1px solid var(--vscode-panel-border); background: var(--vscode-sideBar-background); flex-shrink: 0; padding: 0 8px; }
     .md-tab { padding: 8px 16px; font-size: 11px; font-weight: 600; cursor: pointer; color: var(--vscode-descriptionForeground); border: none; background: none; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; }
     .md-tab.active { color: var(--vscode-foreground); border-bottom-color: var(--vscode-focusBorder); }
-
-    .annotation-banner { padding: 8px 12px; background: rgba(108,142,245,0.1); border-bottom: 1px solid var(--vscode-panel-border); font-size: 11px; color: var(--vscode-textLink-foreground); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 8px; }
+    /* Legacy single annotation banner */
+    .annotation-banner { padding: 8px 12px; background: rgba(108,142,245,0.1); border-bottom: 1px solid var(--vscode-panel-border); font-size: 11px; color: var(--vscode-textLink-foreground); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 8px; cursor: pointer; }
     .annotation-banner i { font-size: 14px; }
     .code-snippet { opacity: 0.7; font-family: var(--vscode-editor-font-family, monospace); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
+    /* New multi-annotation blocks */
+    .annotation-block { border-left: 3px solid rgba(108,142,245,0.6); background: rgba(108,142,245,0.05); margin: 0; padding: 8px 12px; border-bottom: 1px solid var(--vscode-panel-border); flex-shrink: 0; }
+    .ann-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .ann-file { font-size: 11px; color: var(--vscode-textLink-foreground); cursor: pointer; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+    .ann-file:hover { text-decoration: underline; }
+    .ann-status { font-size: 10px; padding: 2px 4px; flex-shrink: 0; }
+    .ann-status.open { color: #f87171; }
+    .ann-status.done { color: #3fb950; }
+    .ann-status.closed { color: var(--vscode-descriptionForeground); }
+    .ann-del-btn { background: none; border: none; cursor: pointer; color: var(--vscode-errorForeground); opacity: 0.5; font-size: 12px; padding: 2px; border-radius: 3px; flex-shrink: 0; }
+    .ann-del-btn:hover { opacity: 1; background: var(--vscode-inputValidation-errorBackground); }
+    .ann-snippet { font-family: var(--vscode-editor-font-family, monospace); font-size: 10px; background: rgba(0,0,0,0.15); padding: 4px 6px; border-radius: 3px; margin: 0 0 6px; overflow-x: auto; white-space: pre; color: ${textColor}; opacity: 0.8; max-height: 60px; }
+    .ann-comment { width: 100%; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); color: var(--vscode-foreground); font-size: 11px; font-family: var(--vscode-font-family); border-radius: 3px; padding: 4px 6px; outline: none; resize: vertical; min-height: 40px; box-sizing: border-box; }
+    .ann-comment:focus { border-color: var(--vscode-focusBorder); }
+    .ann-comment::placeholder { font-style: italic; opacity: 0.6; }
   </style></head><body>
 
-  <!-- Toolbar -->
   <div class="toolbar">
-    <button class="back-btn" id="backBtn"><i class="codicon codicon-arrow-left"></i> Back</button>
+    <button class="back-btn" id="backBtn"><i class="codicon codicon-arrow-left"></i> Notes</button>
     <input class="title-input" id="titleInput" value="${safeTitle}" placeholder="Note title\u2026"/>
     <span class="status" id="status"></span>
   </div>
 
-  <!-- Meta bar -->
   <div class="meta-bar">
     <button class="pin-btn${note.pinned ? " active" : ""}" id="pinBtn" title="${note.pinned ? "Unpin" : "Pin note"}"><i class="codicon codicon-pin"></i></button>
     <div class="select-wrap">
@@ -16030,19 +16072,12 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     </div>
   </div>
 
-  <!-- Code annotation banner -->
-  ${note.filePath ? `
-  <div class="annotation-banner" id="annotationBanner" style="cursor:pointer" title="Jump to this location">
-    <span><i class="codicon codicon-link"></i> ${note.filePath}:${note.lineStart}\u2013${note.lineEnd}</span>
-    <span class="code-snippet">${(note.codeSnippet || "").replace(/</g, "&lt;").slice(0, 80)}</span>
-  </div>` : ""}
+  ${annotationsHtml}
 
-  <!-- WYSIWYG editor -->
   <div class="editor-wrap" id="wysiwygWrap" style="display:${isMarkdown ? "none" : "flex"}">
     <div id="quillEditor"></div>
   </div>
 
-  <!-- Markdown editor -->
   <div class="md-wrap" id="mdWrap" style="display:${isMarkdown ? "flex" : "none"};flex-direction:column">
     <div class="md-tabs">
       <button class="md-tab active" id="tabEdit">Edit</button>
@@ -16054,7 +16089,6 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     </div>
   </div>
 
-  <!-- Word count -->
   <div class="word-count">
     <span id="wordCount">0 words \xB7 0 chars</span>
     <span id="saveStatus" style="opacity:0.6;font-style:italic">Saved</span>
@@ -16066,8 +16100,8 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     let mode = "${note.editorMode || "wysiwyg"}";
     let pinned = ${note.pinned};
     let saveTimer = null;
+    const annSaveTimers = {};
 
-    // \u2500\u2500 Quill init \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     const quill = new Quill('#quillEditor', {
       theme: 'snow',
       placeholder: 'Start writing\u2026',
@@ -16083,7 +16117,6 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
       }
     });
 
-    // Load initial content
     const rawContent = ${contentJson};
     if (mode === 'wysiwyg') {
       try { quill.setContents(JSON.parse(rawContent)); } catch { quill.setText(rawContent); }
@@ -16092,30 +16125,16 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
       updateMdPreview();
     }
 
-    // \u2500\u2500 Word count \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     function updateWordCount(text) {
       const words = text.trim() ? text.trim().split(/\\s+/).length : 0;
-      const chars = text.length;
-      document.getElementById('wordCount').textContent = words + ' words \xB7 ' + chars + ' chars';
+      document.getElementById('wordCount').textContent = words + ' words \xB7 ' + text.length + ' chars';
     }
-
-    quill.on('text-change', () => {
-      updateWordCount(quill.getText());
-      scheduleSave();
-    });
-    document.getElementById('mdEdit').addEventListener('input', e => {
-      updateWordCount(e.target.value);
-      updateMdPreview();
-      scheduleSave();
-    });
-
-    // init word count
+    quill.on('text-change', () => { updateWordCount(quill.getText()); scheduleSave(); });
+    document.getElementById('mdEdit').addEventListener('input', e => { updateWordCount(e.target.value); updateMdPreview(); scheduleSave(); });
     updateWordCount(mode === 'wysiwyg' ? quill.getText() : document.getElementById('mdEdit').value);
 
-    // \u2500\u2500 Markdown preview \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     function updateMdPreview() {
-      const src = document.getElementById('mdEdit').value;
-      document.getElementById('mdPreview').innerHTML = marked.parse(src);
+      document.getElementById('mdPreview').innerHTML = marked.parse(document.getElementById('mdEdit').value);
     }
     document.getElementById('tabEdit').addEventListener('click', () => {
       document.getElementById('tabEdit').classList.add('active');
@@ -16131,7 +16150,6 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
       updateMdPreview();
     });
 
-    // \u2500\u2500 Mode toggle \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     function switchMode(newMode) {
       if (newMode === mode) return;
       mode = newMode;
@@ -16139,20 +16157,13 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
       document.getElementById('modeMd').classList.toggle('active', mode === 'markdown');
       document.getElementById('wysiwygWrap').style.display = mode === 'wysiwyg' ? 'flex' : 'none';
       document.getElementById('mdWrap').style.display = mode === 'markdown' ? 'flex' : 'none';
-      if (mode === 'markdown') {
-        const text = quill.getText();
-        document.getElementById('mdEdit').value = text;
-        updateMdPreview();
-      } else {
-        const md = document.getElementById('mdEdit').value;
-        quill.setText(md);
-      }
+      if (mode === 'markdown') { document.getElementById('mdEdit').value = quill.getText(); updateMdPreview(); }
+      else { quill.setText(document.getElementById('mdEdit').value); }
       scheduleSave();
     }
     document.getElementById('modeWysiwyg').addEventListener('click', () => switchMode('wysiwyg'));
     document.getElementById('modeMd').addEventListener('click', () => switchMode('markdown'));
 
-    // \u2500\u2500 Pin \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     document.getElementById('pinBtn').addEventListener('click', () => {
       pinned = !pinned;
       document.getElementById('pinBtn').classList.toggle('active', pinned);
@@ -16160,73 +16171,71 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
       scheduleSave();
     });
 
-    // \u2500\u2500 Selects \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     document.getElementById('prioritySelect').addEventListener('change', scheduleSave);
     document.getElementById('statusSelect').addEventListener('change', e => {
-      const s = e.target;
-      s.className = 'styled-select status-select ' + s.value;
+      e.target.className = 'styled-select status-select ' + e.target.value;
       scheduleSave();
     });
-
-    // \u2500\u2500 Title & Tags \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     document.getElementById('titleInput').addEventListener('input', scheduleSave);
     document.getElementById('tagsInput').addEventListener('input', scheduleSave);
 
-    // \u2500\u2500 Navigation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     document.getElementById('backBtn').addEventListener('click', () => {
-      doSave(); // Save immediately before going back
+      doSave();
       vscode.postMessage({ type: 'showList' });
     });
-    if (document.getElementById('annotationBanner')) {
-      document.getElementById('annotationBanner').addEventListener('click', () => {
-        vscode.postMessage({
-          type: 'jumpToFile',
-          file: "${note.filePath}",
-          line: ${note.lineStart || 1},
-          lineStart: ${note.lineStart || 1},
-          lineEnd: ${note.lineEnd || note.lineStart || 1}
-        });
+
+    // Legacy single annotation banner click
+    const legacyBanner = document.getElementById('annotationBanner');
+    if (legacyBanner) {
+      legacyBanner.addEventListener('click', () => {
+        vscode.postMessage({ type: 'jumpToFile', file: "${note.filePath || ""}", line: ${note.lineStart || 1}, lineStart: ${note.lineStart || 1}, lineEnd: ${note.lineEnd || note.lineStart || 1} });
       });
     }
 
-    // \u2500\u2500 Save \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     function getContent() {
-      if (mode === 'wysiwyg') return JSON.stringify(quill.getContents());
-      return document.getElementById('mdEdit').value;
+      return mode === 'wysiwyg' ? JSON.stringify(quill.getContents()) : document.getElementById('mdEdit').value;
     }
     function getTags() {
-      return document.getElementById('tagsInput').value
-        .split(',').map(t => t.trim()).filter(Boolean);
+      return document.getElementById('tagsInput').value.split(',').map(t => t.trim()).filter(Boolean);
     }
     function scheduleSave() {
-      document.getElementById('saveStatus').textContent = 'Changes unsaved...';
+      document.getElementById('saveStatus').textContent = 'Unsaved\u2026';
       document.getElementById('saveStatus').style.opacity = '1';
       clearTimeout(saveTimer);
       saveTimer = setTimeout(doSave, 1000);
     }
     function doSave() {
       vscode.postMessage({
-        type: 'saveNote',
-        id: noteId,
+        type: 'saveNote', id: noteId,
         title: document.getElementById('titleInput').value,
-        content: getContent(),
-        editorMode: mode,
-        pinned: pinned,
+        content: getContent(), editorMode: mode, pinned: pinned,
         tags: getTags(),
         priority: document.getElementById('prioritySelect').value,
         status: document.getElementById('statusSelect').value,
       });
     }
 
+    // Annotation helpers
+    function scheduleAnnotationSave(annId) {
+      clearTimeout(annSaveTimers[annId]);
+      annSaveTimers[annId] = setTimeout(() => saveAnnotation(annId), 1000);
+    }
+    function saveAnnotation(annId) {
+      const comment = document.querySelector('.ann-comment[data-ann-id="' + annId + '"]')?.value || '';
+      const status = document.querySelector('.ann-status[data-ann-id="' + annId + '"]')?.value || 'open';
+      vscode.postMessage({ type: 'saveAnnotation', annotationId: annId, comment, status });
+    }
+    function deleteAnnotation(annId) {
+      vscode.postMessage({ type: 'deleteAnnotation', annotationId: annId });
+    }
+
     document.addEventListener('keydown', e => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); clearTimeout(saveTimer); doSave(); }
     });
 
-    // Auto-select Untitled
     const titleEl = document.getElementById('titleInput');
     if (titleEl.value === 'Untitled') { titleEl.focus(); titleEl.select(); }
 
-    // \u2500\u2500 Listen for messages from extension host \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     window.addEventListener('message', e => {
       if (e.data.type === 'saved') {
         document.getElementById('saveStatus').textContent = 'Saved';
@@ -16235,8 +16244,8 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
         s.textContent = '\u2713 Saved';
         setTimeout(() => { s.textContent = ''; }, 2000);
       }
-      if (e.data.type === 'openNoteFromHost') {
-        vscode.postMessage({ type: 'openNote', id: e.data.id });
+      if (e.data.type === 'annotationSaved') {
+        // Visual feedback could be added here
       }
     });
   </script></body></html>`;
@@ -16246,6 +16255,9 @@ async function activate(context) {
   let panel;
   let currentNoteId = null;
   let iconUri = "";
+  const openNotePanels = /* @__PURE__ */ new Map();
+  const openingNotes = /* @__PURE__ */ new Set();
+  let openNoteRef = null;
   function getNoteColors() {
     const config = vscode.workspace.getConfiguration("notenest");
     return {
@@ -16352,29 +16364,17 @@ async function activate(context) {
         }
         flushOfflineQueue().catch(() => {
         });
+        await showNotesList();
         const folderPath = getFolderPath();
         if (folderPath) {
           const cached = loadCache();
           if (cached && cached.notes.length) {
             const top = topPriorityNote(cached.notes);
             if (top) {
-              await openNote(top.id);
-              return;
+              openNote(top.id);
             }
-          }
-          try {
-            const res = await apiGet(secrets, "/notes", { folderPath });
-            const notes = res.data.data;
-            await saveCache(notes);
-            const top = topPriorityNote(notes);
-            if (top) {
-              await openNote(top.id);
-              return;
-            }
-          } catch {
           }
         }
-        await showNotesList();
       }
       async function showNotesList() {
         const folderPath = getFolderPath();
@@ -16408,29 +16408,111 @@ async function activate(context) {
       async function openNote(id) {
         const folderPath = getFolderPath();
         const projectName = folderPath?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
-        currentNoteId = id;
         const { bg, text } = getNoteColors();
+        const existingPanel = openNotePanels.get(id);
+        if (existingPanel) {
+          existingPanel.reveal(vscode.ViewColumn.Beside);
+          return;
+        }
+        if (openingNotes.has(id)) {
+          return;
+        }
+        openingNotes.add(id);
         const cached = loadCache();
         const cachedNote = cached?.notes.find((n) => n.id === id);
+        const noteTitle = cachedNote?.title || "Note";
+        const notePanel = vscode.window.createWebviewPanel(
+          "notenest.note",
+          noteTitle,
+          vscode.ViewColumn.Beside,
+          { enableScripts: true, retainContextWhenHidden: true }
+        );
+        openNotePanels.set(id, notePanel);
+        openingNotes.delete(id);
+        notePanel.onDidDispose(() => {
+          openNotePanels.delete(id);
+        }, null, context.subscriptions);
         if (cachedNote) {
-          webviewView.webview.html = noteEditorHtml(cachedNote, projectName, bg, text);
+          notePanel.webview.html = noteEditorHtml(cachedNote, projectName, bg, text);
+        } else {
+          notePanel.webview.html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:var(--vscode-font-family);color:var(--vscode-descriptionForeground);background:var(--vscode-editor-background);font-size:13px;}</style></head><body>Loading note\u2026</body></html>`;
         }
         try {
           const res = await apiGet(secrets, `/notes/${id}`);
           const freshNote = res.data.data;
           updateNoteInCache(freshNote);
-          if (currentNoteId === id) {
-            const cachedContent = cachedNote?.content ?? "";
-            const freshContent = freshNote.content ?? "";
-            if (freshContent !== cachedContent) {
-              webviewView.webview.html = noteEditorHtml(freshNote, projectName, bg, text);
-            }
-          }
+          notePanel.title = freshNote.title || "Note";
+          notePanel.webview.html = noteEditorHtml(freshNote, projectName, bg, text);
         } catch {
           if (!cachedNote) {
-            await showNotesList();
+            notePanel.dispose();
           }
         }
+        notePanel.webview.onDidReceiveMessage(async (msg) => {
+          if (msg.type === "saveNote") {
+            const patch = { title: msg.title, content: msg.content, editorMode: msg.editorMode, pinned: msg.pinned, tags: msg.tags, priority: msg.priority, status: msg.status };
+            patchNoteInCache(msg.id, patch);
+            notePanel.title = msg.title || "Note";
+            if (panel) {
+              const c2 = loadCache();
+              const fp2 = getFolderPath();
+              const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
+              if (c2) {
+                panel.webview.html = notesListHtml(pn2, c2.notes, false);
+              }
+            }
+            try {
+              await apiPatch(secrets, `/notes/${msg.id}`, patch);
+              flushOfflineQueue().catch(() => {
+              });
+              notePanel.webview.postMessage({ type: "saved" });
+            } catch (e) {
+              const err = e;
+              if (err.message === "NOT_AUTHENTICATED") {
+                if (panel) {
+                  panel.webview.html = loginHtml(iconUri);
+                }
+              } else {
+                await enqueueOfflinePatch({ id: msg.id, patch, localUpdatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+                notePanel.webview.postMessage({ type: "saved" });
+              }
+            }
+          }
+          if (msg.type === "jumpToFile") {
+            const fp2 = getFolderPath();
+            if (!fp2 || !msg.file) return;
+            try {
+              const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(`${fp2}/${msg.file}`));
+              const editor = await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.One });
+              const sl = Math.max(0, (msg.lineStart || msg.line || 1) - 1);
+              const el = Math.max(0, (msg.lineEnd || msg.lineStart || msg.line || 1) - 1);
+              const elt = doc.lineAt(Math.min(el, doc.lineCount - 1));
+              const range = new vscode.Range(sl, 0, elt.lineNumber, elt.text.length);
+              editor.selection = new vscode.Selection(range.start, range.end);
+              editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+            } catch {
+              vscode.window.showErrorMessage(`Could not open file: ${msg.file}`);
+            }
+          }
+          if (msg.type === "deleteAnnotation") {
+            try {
+              await apiDelete(secrets, `/annotations/${msg.annotationId}`);
+              const res = await apiGet(secrets, `/notes/${id}`);
+              const fn = res.data.data;
+              updateNoteInCache(fn);
+              notePanel.webview.html = noteEditorHtml(fn, projectName, bg, text);
+            } catch {
+              vscode.window.showErrorMessage("Failed to delete annotation.");
+            }
+          }
+          if (msg.type === "saveAnnotation") {
+            try {
+              await apiPatch(secrets, `/annotations/${msg.annotationId}`, { comment: msg.comment, status: msg.status });
+              notePanel.webview.postMessage({ type: "annotationSaved", annotationId: msg.annotationId });
+            } catch {
+            }
+          }
+        }, null, context.subscriptions);
       }
       webviewView.webview.onDidReceiveMessage(async (msg) => {
         switch (msg.type) {
@@ -16446,20 +16528,13 @@ async function activate(context) {
           case "newNote": {
             const folderPath = getFolderPath();
             if (!folderPath) {
-              vscode.window.showWarningMessage("Open a folder first \u2014 NoteNest needs a project folder to save notes to.");
+              vscode.window.showWarningMessage("Open a folder first.");
               break;
             }
             const projectName = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "Project";
-            const title = await vscode.window.showInputBox({
-              prompt: "Note name",
-              placeHolder: "e.g. Ideas, TODO, Meeting Notes\u2026",
-              value: ""
-            });
-            if (title === void 0) {
-              break;
-            }
+            const title = msg.title || "Untitled";
             try {
-              const res = await apiPost(secrets, "/notes", { folderPath, title: title || "Untitled", content: "", editorMode: "wysiwyg" });
+              const res = await apiPost(secrets, "/notes", { folderPath, title, content: "", editorMode: "wysiwyg" });
               const newNote = res.data.data;
               if (memCache) {
                 memCache.notes.unshift(newNote);
@@ -16467,9 +16542,11 @@ async function activate(context) {
               } else {
                 await saveCache([newNote]);
               }
-              currentNoteId = res.data.data.id;
-              const { bg, text } = getNoteColors();
-              webviewView.webview.html = noteEditorHtml(res.data.data, projectName, bg, text);
+              const c2 = loadCache();
+              if (c2) {
+                webviewView.webview.html = notesListHtml(projectName, c2.notes, false);
+              }
+              await openNote(newNote.id);
             } catch {
               vscode.window.showErrorMessage("Failed to create note.");
             }
@@ -16499,39 +16576,9 @@ async function activate(context) {
             }
             break;
           }
-          case "saveNote": {
-            const patch = {
-              title: msg.title,
-              content: msg.content,
-              editorMode: msg.editorMode,
-              pinned: msg.pinned,
-              tags: msg.tags,
-              priority: msg.priority,
-              status: msg.status
-            };
-            patchNoteInCache(msg.id, patch);
-            try {
-              await apiPatch(secrets, `/notes/${msg.id}`, patch);
-              flushOfflineQueue().catch(() => {
-              });
-              if (msg.thenShowList) {
-                await showNotesList();
-              } else if (currentNoteId === msg.id) {
-                webviewView.webview.postMessage({ type: "saved" });
-              }
-            } catch (e) {
-              const err = e;
-              if (err.message === "NOT_AUTHENTICATED") {
-                webviewView.webview.html = loginHtml(iconUri);
-              } else {
-                await enqueueOfflinePatch({ id: msg.id, patch, localUpdatedAt: (/* @__PURE__ */ new Date()).toISOString() });
-                if (currentNoteId === msg.id) {
-                  webviewView.webview.postMessage({ type: "saved" });
-                }
-              }
-            }
+          // saveNote is handled per-panel inside openNote() — no-op fallback here
+          case "saveNote":
             break;
-          }
           case "deleteNote": {
             const ok = await vscode.window.showWarningMessage(
               "Delete this note? This cannot be undone.",
@@ -16539,6 +16586,10 @@ async function activate(context) {
               "Delete"
             );
             if (ok === "Delete") {
+              const notePanel = openNotePanels.get(msg.id);
+              if (notePanel) {
+                notePanel.dispose();
+              }
               if (memCache) {
                 memCache.notes = memCache.notes.filter((n) => n.id !== msg.id);
                 context.globalState.update(cacheKey(), memCache);
@@ -16576,6 +16627,7 @@ async function activate(context) {
             break;
         }
       });
+      openNoteRef = openNote;
       render();
     }
   };
@@ -16583,7 +16635,6 @@ async function activate(context) {
     vscode.window.registerWebviewViewProvider("notenest.notesView", provider)
   );
   const annotationDecoration = vscode.window.createTextEditorDecorationType({
-    // Subtle blue-left-border highlight, like a git blame marker
     borderWidth: "0 0 0 3px",
     borderStyle: "solid",
     borderColor: "rgba(108,142,245,0.7)",
@@ -16604,11 +16655,43 @@ async function activate(context) {
     try {
       const res = await apiGet(secrets, "/notes", { folderPath });
       const notes = res.data.data;
-      const annotated = notes.filter((n) => n.filePath === relPath && n.lineStart != null);
-      annotationCache.set(relPath, annotated);
-      const decorations = annotated.map((n) => {
-        const startLine = Math.max(0, (n.lineStart ?? 1) - 1);
-        const endLine = Math.max(0, (n.lineEnd ?? n.lineStart ?? 1) - 1);
+      const flat = [];
+      for (const note of notes) {
+        if (note.annotations && note.annotations.length > 0) {
+          for (const ann of note.annotations) {
+            if (ann.filePath === relPath && ann.lineStart != null) {
+              flat.push({
+                noteId: note.id,
+                noteTitle: note.title,
+                noteContent: note.content,
+                editorMode: note.editorMode,
+                priority: note.priority,
+                status: note.status,
+                lineStart: ann.lineStart,
+                lineEnd: ann.lineEnd,
+                comment: ann.comment || ""
+              });
+            }
+          }
+        }
+        if (note.filePath === relPath && note.lineStart != null && !(note.annotations && note.annotations.length > 0)) {
+          flat.push({
+            noteId: note.id,
+            noteTitle: note.title,
+            noteContent: note.content,
+            editorMode: note.editorMode,
+            priority: note.priority,
+            status: note.status,
+            lineStart: note.lineStart,
+            lineEnd: note.lineEnd ?? note.lineStart,
+            comment: ""
+          });
+        }
+      }
+      annotationCache.set(relPath, flat);
+      const decorations = flat.map((ann) => {
+        const startLine = Math.max(0, ann.lineStart - 1);
+        const endLine = Math.max(0, ann.lineEnd - 1);
         const endLineText = editor.document.lineAt(Math.min(endLine, editor.document.lineCount - 1));
         return { range: new vscode.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length) };
       });
@@ -16626,10 +16709,10 @@ async function activate(context) {
             return;
           }
           const relPath = document2.uri.fsPath.replace(folderPath + "/", "").replace(folderPath + "\\", "");
-          const notes = annotationCache.get(relPath) ?? [];
-          const hovered = notes.find((n) => {
-            const startLine2 = Math.max(0, (n.lineStart ?? 1) - 1);
-            const endLine2 = Math.max(0, (n.lineEnd ?? n.lineStart ?? 1) - 1);
+          const flat = annotationCache.get(relPath) ?? [];
+          const hovered = flat.find((ann) => {
+            const startLine2 = Math.max(0, ann.lineStart - 1);
+            const endLine2 = Math.max(0, ann.lineEnd - 1);
             return position.line >= startLine2 && position.line <= endLine2;
           });
           if (!hovered) {
@@ -16638,12 +16721,12 @@ async function activate(context) {
           let preview = "";
           if (hovered.editorMode === "wysiwyg") {
             try {
-              preview = JSON.parse(hovered.content)?.ops?.map((op) => typeof op.insert === "string" ? op.insert : "").join("");
+              preview = JSON.parse(hovered.noteContent)?.ops?.map((op) => typeof op.insert === "string" ? op.insert : "").join("");
             } catch {
-              preview = hovered.content;
+              preview = hovered.noteContent;
             }
           } else {
-            preview = hovered.content.replace(/[#*_`]/g, "");
+            preview = hovered.noteContent.replace(/[#*_`]/g, "");
           }
           preview = preview.replace(/\n/g, " ").trim().slice(0, 150);
           const priorityLabel = hovered.priority !== "none" ? ` \u2022 ${hovered.priority}` : "";
@@ -16651,23 +16734,27 @@ async function activate(context) {
           const md = new vscode.MarkdownString("", true);
           md.isTrusted = true;
           md.supportHtml = true;
-          md.appendMarkdown(`**\u{1F4CE} ${hovered.title}**`);
+          md.appendMarkdown(`**\u{1F4CE} ${hovered.noteTitle}**`);
           md.appendMarkdown(`
 
 _${statusLabel}${priorityLabel}_`);
-          if (preview) {
+          if (hovered.comment) {
+            md.appendMarkdown(`
+
+${hovered.comment}`);
+          } else if (preview) {
             md.appendMarkdown(`
 
 ${preview}`);
           }
           const openCmd = vscode.Uri.parse(
-            `command:notenest.openNoteById?${encodeURIComponent(JSON.stringify({ id: hovered.id }))}`
+            `command:notenest.openNoteById?${encodeURIComponent(JSON.stringify({ id: hovered.noteId }))}`
           );
           md.appendMarkdown(`
 
 [Open note \u2192](${openCmd})`);
-          const startLine = Math.max(0, (hovered.lineStart ?? 1) - 1);
-          const endLine = Math.max(0, (hovered.lineEnd ?? hovered.lineStart ?? 1) - 1);
+          const startLine = Math.max(0, hovered.lineStart - 1);
+          const endLine = Math.max(0, hovered.lineEnd - 1);
           const endLineText = document2.lineAt(Math.min(endLine, document2.lineCount - 1));
           return new vscode.Hover(md, new vscode.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length));
         }
@@ -16676,29 +16763,43 @@ ${preview}`);
   );
   context.subscriptions.push(
     vscode.commands.registerCommand("notenest.openNoteById", async ({ id }) => {
-      await vscode.commands.executeCommand("notenest.notesView.focus");
-      const folderPath = getFolderPath();
-      const projectName = folderPath?.split(/[\/\\]/).filter(Boolean).pop() ?? "Project";
-      const { bg, text } = getNoteColors();
-      const cached = loadCache();
-      const cachedNote = cached?.notes.find((n) => n.id === id);
-      if (cachedNote && panel) {
-        currentNoteId = id;
-        panel.webview.html = noteEditorHtml(cachedNote, projectName, bg, text);
-      }
-      try {
-        const res = await apiGet(secrets, `/notes/${id}`);
-        const freshNote = res.data.data;
-        updateNoteInCache(freshNote);
-        if (panel && currentNoteId === id && freshNote.content !== (cachedNote?.content ?? "")) {
-          panel.webview.html = noteEditorHtml(freshNote, projectName, bg, text);
-        }
-      } catch {
-        if (!cachedNote) {
-          vscode.window.showErrorMessage("Could not open note.");
-        }
+      if (openNoteRef) {
+        await openNoteRef(id);
       }
     })
+  );
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      { scheme: "file" },
+      {
+        provideCodeLenses(document2) {
+          const folderPath = getFolderPath();
+          if (!folderPath) {
+            return [];
+          }
+          const relPath = document2.uri.fsPath.replace(folderPath + "/", "").replace(folderPath + "\\", "");
+          const flat = annotationCache.get(relPath) ?? [];
+          const seen = /* @__PURE__ */ new Set();
+          const lenses = [];
+          for (const ann of flat) {
+            const key = `${ann.noteId}:${ann.lineStart}`;
+            if (seen.has(key)) {
+              continue;
+            }
+            seen.add(key);
+            const line = Math.max(0, ann.lineStart - 1);
+            const range = new vscode.Range(line, 0, line, 0);
+            lenses.push(new vscode.CodeLens(range, {
+              title: `\u{1F4CE} ${ann.noteTitle}`,
+              command: "notenest.openNoteById",
+              arguments: [{ id: ann.noteId }],
+              tooltip: "Open this NoteNest note"
+            }));
+          }
+          return lenses;
+        }
+      }
+    )
   );
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
@@ -16767,12 +16868,7 @@ ${preview}`);
         savedEditorUri = editor.document.uri;
         const endPos = editor.selection.end;
         const endLine = editor.document.lineAt(endPos.line);
-        const decorationRange = new vscode.Range(
-          endPos.line,
-          endLine.range.end.character,
-          endPos.line,
-          endLine.range.end.character
-        );
+        const decorationRange = new vscode.Range(endPos.line, endLine.range.end.character, endPos.line, endLine.range.end.character);
         editor.setDecorations(selectionDecoration, [{ range: decorationRange }]);
         annotateStatusBarItem.show();
       }, 150);
@@ -16786,14 +16882,8 @@ ${preview}`);
           if (range.isEmpty) {
             return [];
           }
-          const action = new vscode.CodeAction(
-            "\u{1F4CE} NoteNest: Annotate this selection",
-            vscode.CodeActionKind.Empty
-          );
-          action.command = {
-            command: "notenest.annotateSelection",
-            title: "\u{1F4CE} NoteNest: Annotate this selection"
-          };
+          const action = new vscode.CodeAction("\u{1F4CE} NoteNest: Annotate this selection", vscode.CodeActionKind.Empty);
+          action.command = { command: "notenest.annotateSelection", title: "\u{1F4CE} NoteNest: Annotate this selection" };
           return [action];
         }
       },
@@ -16806,61 +16896,190 @@ ${preview}`);
       vscode.window.showWarningMessage("Open a folder first to use NoteNest annotations.");
       return;
     }
+    const { accessToken } = await getTokens(secrets);
+    if (!accessToken) {
+      vscode.window.showErrorMessage("Sign in to NoteNest first.");
+      return;
+    }
     const doc = await vscode.workspace.openTextDocument(docUri);
     const codeSnippet = doc.getText(selection);
     const relPath = docUri.fsPath.replace(folderPath + "/", "").replace(folderPath + "\\", "");
     const lineStart = selection.start.line + 1;
     const lineEnd = selection.end.line + 1;
-    const title = await vscode.window.showInputBox({
-      prompt: `Annotate ${relPath}:${lineStart}\u2013${lineEnd}`,
-      placeHolder: "Note title\u2026"
+    const locationLabel = `${relPath}:${lineStart}\u2013${lineEnd}`;
+    const cached = loadCache();
+    const existingNotes = cached?.notes ?? [];
+    const items = [
+      {
+        label: "$(add) Create new note",
+        description: "",
+        detail: `New note with this annotation attached \u2014 ${locationLabel}`,
+        noteId: void 0
+      }
+    ];
+    if (existingNotes.length > 0) {
+      items.push({ label: "Add to existing note", kind: vscode.QuickPickItemKind.Separator });
+      for (const n of existingNotes) {
+        const annCount = (n.annotations?.length ?? 0) + (n.filePath ? 1 : 0);
+        const annLabel = annCount > 0 ? `${annCount} annotation${annCount > 1 ? "s" : ""} \xB7 ` : "";
+        const date = new Date(n.updatedAt).toLocaleDateString(void 0, { month: "short", day: "numeric" });
+        let preview = "";
+        if (n.editorMode === "markdown") {
+          preview = (n.content || "").replace(/[#*_`\[\]]/g, "").replace(/\n/g, " ").trim().slice(0, 60);
+        } else {
+          try {
+            preview = (JSON.parse(n.content || "").ops || []).map((op) => typeof op.insert === "string" ? op.insert : "").join("").replace(/\n/g, " ").trim().slice(0, 60);
+          } catch {
+            preview = (n.content || "").replace(/<[^>]+>/g, " ").trim().slice(0, 60);
+          }
+        }
+        items.push({
+          label: `$(note) ${n.title}`,
+          description: `${annLabel}${date}`,
+          detail: preview || "Empty note",
+          noteId: n.id
+        });
+      }
+    }
+    const picked = await vscode.window.showQuickPick(items, {
+      title: "Add Annotation",
+      placeHolder: "Create a new note or add to an existing one\u2026",
+      matchOnDescription: true,
+      matchOnDetail: true,
+      ignoreFocusOut: true
     });
-    if (title === void 0) {
+    if (!picked) {
       return;
     }
-    const content = await vscode.window.showInputBox({
-      prompt: "Note content (optional)",
-      placeHolder: "What do you want to remember about this code?"
-    });
-    if (content === void 0) {
-      return;
-    }
-    try {
-      const { accessToken } = await getTokens(secrets);
-      if (!accessToken) {
-        vscode.window.showErrorMessage("Sign in to NoteNest first.");
+    if (!picked.noteId) {
+      const title = await vscode.window.showInputBox({
+        title: "Add Annotation",
+        step: 1,
+        totalSteps: 2,
+        prompt: `New note for ${locationLabel}`,
+        placeHolder: "Note title\u2026",
+        ignoreFocusOut: true
+      });
+      if (title === void 0) {
         return;
       }
-      const res = await apiPost(secrets, "/notes", {
-        folderPath,
-        title: title || "Untitled annotation",
-        content: content || "",
-        editorMode: "markdown",
-        filePath: relPath,
-        lineStart,
-        lineEnd,
-        codeSnippet: codeSnippet.slice(0, 500)
+      const comment = await vscode.window.showInputBox({
+        title: "Add Annotation",
+        step: 2,
+        totalSteps: 2,
+        prompt: "Add a comment for this annotation (optional)",
+        placeHolder: "e.g. This needs refactoring\u2026",
+        ignoreFocusOut: true
       });
-      const newNote = res.data.data;
-      if (memCache) {
-        memCache.notes.unshift(newNote);
-        context.globalState.update(cacheKey(), memCache);
-      } else {
-        await saveCache([newNote]);
+      if (comment === void 0) {
+        return;
       }
-      vscode.window.showInformationMessage(`\u{1F4CE} Annotation saved for ${relPath}:${lineStart}`);
-      const activeEditor = vscode.window.activeTextEditor;
-      if (activeEditor) {
-        refreshGutterDecorations(activeEditor);
+      try {
+        const noteRes = await apiPost(secrets, "/notes", {
+          folderPath,
+          title: title || "Untitled annotation",
+          content: "",
+          editorMode: "wysiwyg"
+        });
+        const newNote = noteRes.data.data;
+        const annRes = await apiPost(secrets, "/annotations", {
+          noteId: newNote.id,
+          filePath: relPath,
+          lineStart,
+          lineEnd,
+          codeSnippet: codeSnippet.slice(0, 500),
+          comment: comment || "",
+          status: "open"
+        });
+        newNote.annotations = [annRes.data.data];
+        if (memCache) {
+          memCache.notes.unshift(newNote);
+          context.globalState.update(cacheKey(), memCache);
+        } else {
+          await saveCache([newNote]);
+        }
+        if (panel) {
+          const c2 = loadCache();
+          const fp2 = getFolderPath();
+          const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
+          if (c2) {
+            panel.webview.html = notesListHtml(pn2, c2.notes, false);
+          }
+        }
+        vscode.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
+      } catch {
+        vscode.window.showErrorMessage("Failed to create note and annotation.");
+        return;
       }
-      if (panel) {
-        await vscode.commands.executeCommand("notenest.notesView.focus");
+    } else {
+      const targetNote = existingNotes.find((n) => n.id === picked.noteId);
+      const comment = await vscode.window.showInputBox({
+        title: "Add Annotation",
+        step: 1,
+        totalSteps: 1,
+        prompt: `Adding annotation to \u201C${targetNote.title}\u201D \u2014 ${locationLabel}`,
+        placeHolder: "Comment (optional)\u2026",
+        ignoreFocusOut: true
+      });
+      if (comment === void 0) {
+        return;
       }
-      savedSelection = null;
-      savedEditorUri = null;
-    } catch {
-      vscode.window.showErrorMessage("Failed to save annotation.");
+      try {
+        const annRes = await apiPost(secrets, "/annotations", {
+          noteId: picked.noteId,
+          filePath: relPath,
+          lineStart,
+          lineEnd,
+          codeSnippet: codeSnippet.slice(0, 500),
+          comment: comment || "",
+          status: "open"
+        });
+        const newAnnotation = annRes.data.data;
+        if (memCache) {
+          const idx = memCache.notes.findIndex((n) => n.id === picked.noteId);
+          if (idx !== -1) {
+            const note = memCache.notes[idx];
+            memCache.notes[idx] = {
+              ...note,
+              annotations: [...note.annotations ?? [], newAnnotation],
+              updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+            };
+            context.globalState.update(cacheKey(), memCache);
+          }
+        }
+        if (panel) {
+          const c2 = loadCache();
+          const fp2 = getFolderPath();
+          const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
+          if (c2) {
+            panel.webview.html = notesListHtml(pn2, c2.notes, false);
+          }
+        }
+        const existingPanel = openNotePanels.get(picked.noteId);
+        if (existingPanel) {
+          try {
+            const freshRes = await apiGet(secrets, `/notes/${picked.noteId}`);
+            const freshNote = freshRes.data.data;
+            updateNoteInCache(freshNote);
+            const { bg, text } = getNoteColors();
+            const fp2 = getFolderPath();
+            const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
+            existingPanel.webview.html = noteEditorHtml(freshNote, pn2, bg, text);
+          } catch {
+          }
+        }
+        vscode.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
+      } catch {
+        vscode.window.showErrorMessage("Failed to save annotation.");
+        return;
+      }
     }
+    const activeEditor = vscode.window.activeTextEditor;
+    if (activeEditor) {
+      refreshGutterDecorations(activeEditor);
+    }
+    savedSelection = null;
+    savedEditorUri = null;
   }
   context.subscriptions.push(
     vscode.commands.registerCommand("notenest.annotateSelectionFromStatusBar", async () => {
@@ -16901,17 +17120,13 @@ ${preview}`);
       "#!/bin/sh",
       "# NoteNest pre-commit check \u2014 auto-installed by NoteNest VS Code extension",
       "# Safe to remove if you uninstall NoteNest. Does nothing if config not found.",
-      "# Tokens are stored in ~/.notenest/tokens.json (never in this project).",
       'NOTENEST_PROJECT_CONFIG=".notenest/config.json"',
       'NOTENEST_HOME_CONFIG="$HOME/.notenest/tokens.json"',
-      "# Skip if either config is missing",
       'if [ ! -f "$NOTENEST_PROJECT_CONFIG" ] || [ ! -f "$NOTENEST_HOME_CONFIG" ]; then exit 0; fi',
       "FOLDER=$(pwd)",
-      "# Read API url and refresh token from home config (no tokens in project)",
       `API=$(node -e "try{const c=require(process.env.HOME+'/.notenest/tokens.json');process.stdout.write(c.apiUrl||'https://vsnotes-backend.onrender.com');}catch(e){process.stdout.write('https://vsnotes-backend.onrender.com')}" 2>/dev/null)`,
       `REFRESH_TOKEN=$(node -e "try{const c=require(process.env.HOME+'/.notenest/tokens.json');process.stdout.write(c.refreshToken||'');}catch(e){}" 2>/dev/null)`,
       'if [ -z "$REFRESH_TOKEN" ]; then exit 0; fi',
-      "# Get a fresh access token using the refresh token",
       'TOKEN=$(REFRESH_TOKEN="$REFRESH_TOKEN" API="$API" node -e "',
       "const https=require('https');",
       "const body=JSON.stringify({refreshToken:process.env.REFRESH_TOKEN});",
@@ -16921,7 +17136,6 @@ ${preview}`);
       "req.on('error',()=>{});req.write(body);req.end();",
       '" 2>/dev/null)',
       'if [ -z "$TOKEN" ]; then exit 0; fi',
-      "# Check for blocking notes",
       `ENCODED_FOLDER=$(node -e "process.stdout.write(encodeURIComponent('$FOLDER'))" 2>/dev/null)`,
       'RESULT=$(curl -sf -H "Authorization: Bearer $TOKEN" "$API/notes/blocking?folderPath=$ENCODED_FOLDER" 2>/dev/null)',
       "if [ $? -ne 0 ]; then exit 0; fi",
@@ -16959,28 +17173,26 @@ ${preview}`);
       return;
     }
     const homeConfigDir = pathMod.join(os.homedir(), ".notenest");
-    const homeConfigPath = pathMod.join(homeConfigDir, "tokens.json");
     if (!fs.existsSync(homeConfigDir)) {
       fs.mkdirSync(homeConfigDir, { recursive: true });
     }
-    fs.writeFileSync(homeConfigPath, JSON.stringify({
+    fs.writeFileSync(pathMod.join(homeConfigDir, "tokens.json"), JSON.stringify({
       apiUrl: getApiUrl(),
       refreshToken: refreshToken || ""
     }, null, 2), { mode: 384 });
     const projectConfigDir = pathMod.join(folderPath, ".notenest");
-    const projectConfigPath = pathMod.join(projectConfigDir, "config.json");
     if (!fs.existsSync(projectConfigDir)) {
       fs.mkdirSync(projectConfigDir, { recursive: true });
     }
-    fs.writeFileSync(projectConfigPath, JSON.stringify({ folderPath }, null, 2));
+    fs.writeFileSync(pathMod.join(projectConfigDir, "config.json"), JSON.stringify({ folderPath }, null, 2));
     const gitignorePath = pathMod.join(folderPath, ".gitignore");
     if (fs.existsSync(gitignorePath)) {
       const gi = fs.readFileSync(gitignorePath, "utf8");
       if (!gi.includes(".notenest")) {
-        fs.appendFileSync(gitignorePath, "\n# NoteNest (local only, not for version control)\n.notenest/\n");
+        fs.appendFileSync(gitignorePath, "\n# NoteNest (local only)\n.notenest/\n");
       }
     } else {
-      fs.writeFileSync(gitignorePath, "# NoteNest (local only, not for version control)\n.notenest/\n");
+      fs.writeFileSync(gitignorePath, "# NoteNest (local only)\n.notenest/\n");
     }
   }
   const currentFolder = getFolderPath();

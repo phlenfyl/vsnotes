@@ -5,7 +5,7 @@ import { randomBytes } from 'crypto';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getApiUrl(): string {
-  return vscode.workspace.getConfiguration('notenest').get('apiUrl', 'https://backend-vsnote.vercel.app');
+  return vscode.workspace.getConfiguration('notenest').get('apiUrl', 'http://localhost:3001');
 }
 function getFolderPath(): string | null {
   const folders = vscode.workspace.workspaceFolders;
@@ -62,11 +62,21 @@ async function apiDelete(s: vscode.SecretStorage, path: string) {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+interface Annotation {
+  id: string; noteId: string;
+  filePath: string; lineStart: number; lineEnd: number;
+  codeSnippet?: string; comment: string; status: string;
+  createdAt: string; updatedAt: string;
+}
+
 interface NoteItem {
   id: string; title: string; content: string;
   updatedAt: string; pinned: boolean; tags: string[]; editorMode: string;
   priority: string; status: string;
+  // Legacy single-annotation fields (kept for backwards compatibility)
   filePath?: string; lineStart?: number; lineEnd?: number; codeSnippet?: string;
+  // New: multiple annotations per note
+  annotations?: Annotation[];
 }
 
 interface NotesCacheEntry {
@@ -229,8 +239,11 @@ function notesListHtml(projectName: string, notes: NoteItem[], offline?: boolean
       : '';
     const statusBadge = n.status === 'done' ? '<span class="status-badge done"><i class="codicon codicon-check"></i> done</span>'
       : n.status === 'passed' ? '<span class="status-badge passed"><i class="codicon codicon-pass-filled"></i> passed</span>' : '';
-    const fileBadge = n.filePath
-      ? `<span class="file-badge" data-id="${n.id}" data-file="${n.filePath}" data-line="${n.lineStart ?? 1}" data-line-start="${n.lineStart ?? 1}" data-line-end="${n.lineEnd ?? n.lineStart ?? 1}" title="Jump to ${n.filePath}:${n.lineStart}\u2013${n.lineEnd}"><i class="codicon codicon-link"></i> ${n.filePath.split('/').pop()}:${n.lineStart}–${n.lineEnd}</span>`
+    const annotationCount = (n.annotations?.length ?? 0) || (n.filePath ? 1 : 0);
+    const fileBadge = annotationCount > 0
+      ? (n.annotations && n.annotations.length > 0
+        ? `<span class="file-badge" title="${annotationCount} code annotation(s)"><i class="codicon codicon-link"></i> ${annotationCount} annotation${annotationCount > 1 ? 's' : ''}</span>`
+        : `<span class="file-badge" data-id="${n.id}" data-file="${n.filePath}" data-line="${n.lineStart ?? 1}" data-line-start="${n.lineStart ?? 1}" data-line-end="${n.lineEnd ?? n.lineStart ?? 1}" title="Jump to ${n.filePath}:${n.lineStart}\u2013${n.lineEnd}"><i class="codicon codicon-link"></i> ${(n.filePath ?? '').split('/').pop()}:${n.lineStart}\u2013${n.lineEnd}</span>`)
       : '';
     return `<div class="note-row" data-id="${n.id}">
       <div class="note-main">
@@ -261,8 +274,13 @@ function notesListHtml(projectName: string, notes: NoteItem[], offline?: boolean
     .icon-btn { background: none; border: none; cursor: pointer; color: var(--vscode-foreground); opacity: 0.7; font-size: 16px; padding: 4px; border-radius: 4px; line-height: 1; transition: opacity 0.2s, background 0.2s; }
     .icon-btn:hover { opacity: 1; background: var(--vscode-toolbar-hoverBackground); }
     .search-bar { padding: 8px 12px; border-bottom: 1px solid var(--vscode-panel-border); flex-shrink: 0; }
-    .search-bar input { width: 100%; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); color: var(--vscode-input-foreground); border-radius: 4px; padding: 6px 10px; font-size: 12px; outline: none; font-family: var(--vscode-font-family); }
+    .search-bar input { width: 100%; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); color: var(--vscode-input-foreground); border-radius: 4px; padding: 6px 10px; font-size: 12px; outline: none; font-family: var(--vscode-font-family); box-sizing: border-box; }
     .search-bar input:focus { border-color: var(--vscode-focusBorder); }
+    .new-note-row { display: none; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--vscode-focusBorder); border-radius: 6px; background: var(--vscode-input-background); margin: 0 0 4px 0; }
+    .new-note-row.visible { display: flex; }
+    .new-note-input { flex: 1; background: transparent; border: none; color: var(--vscode-input-foreground); font-size: 13px; font-weight: 500; outline: none; font-family: var(--vscode-font-family); padding: 2px 4px; }
+    .new-note-input::placeholder { color: var(--vscode-input-placeholderForeground); font-style: italic; }
+    .new-note-hint { font-size: 10px; color: var(--vscode-descriptionForeground); white-space: nowrap; opacity: 0.7; }
     .offline-banner { padding: 6px 12px; background: var(--vscode-inputValidation-warningBackground); color: var(--vscode-inputValidation-warningForeground); font-size: 11px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
     .notes-list { flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 8px; }
     .note-row { display: flex; align-items: flex-start; padding: 10px; cursor: pointer; border: 1px solid var(--vscode-panel-border); border-radius: 6px; background: var(--vscode-sideBar-background); transition: border-color 0.2s, box-shadow 0.2s, background 0.2s; position: relative; gap: 8px; }
@@ -306,16 +324,34 @@ function notesListHtml(projectName: string, notes: NoteItem[], offline?: boolean
     </div>
   </div>
   <div class="search-bar">
-    <input id="search" placeholder="Search notes…" autocomplete="off"/>
+    <input id="search" placeholder="Search notes\u2026" autocomplete="off"/>
   </div>
-  ${offline ? '<div class="offline-banner"><i class="codicon codicon-warning"></i> Offline — changes won\'t save</div>' : ''}
+  ${offline ? '<div class="offline-banner"><i class="codicon codicon-warning"></i> Offline \u2014 changes won\'t save</div>' : ''}
   <div class="notes-list" id="list">
+    <div class="new-note-row" id="newNoteRow">
+      <i class="codicon codicon-note" style="font-size:14px;opacity:0.6;flex-shrink:0"></i>
+      <input class="new-note-input" id="newNoteInput" placeholder="Note name\u2026 (Enter to create, Esc to cancel)" autocomplete="off" maxlength="120"/>
+      <span class="new-note-hint">\u21b5 create</span>
+    </div>
     ${items}
     ${notes.length === 0 ? '<div class="empty"><i class="codicon codicon-note"></i>No notes yet.<br/>Press <strong>+</strong> to create one.</div>' : ''}
   </div>
   <script>
     const vscode=acquireVsCodeApi();
-    document.getElementById('newBtn').addEventListener('click',()=>vscode.postMessage({type:'newNote'}));
+    const newNoteRow=document.getElementById('newNoteRow');
+    const newNoteInput=document.getElementById('newNoteInput');
+    document.getElementById('newBtn').addEventListener('click',()=>{
+      newNoteRow.classList.add('visible');
+      newNoteInput.value='';
+      newNoteInput.focus();
+    });
+    newNoteInput.addEventListener('keydown',e=>{
+      if(e.key==='Enter'){e.preventDefault();const t=newNoteInput.value.trim();if(t){vscode.postMessage({type:'newNote',title:t});}newNoteRow.classList.remove('visible');}
+      if(e.key==='Escape'){newNoteRow.classList.remove('visible');}
+    });
+    newNoteInput.addEventListener('blur',()=>{
+      setTimeout(()=>{newNoteRow.classList.remove('visible');},150);
+    });
     document.getElementById('settingsBtn').addEventListener('click',()=>vscode.postMessage({type:'openSettings'}));
     document.querySelectorAll('.note-row').forEach(row=>{
       row.addEventListener('click',e=>{
@@ -353,7 +389,7 @@ function notesListHtml(projectName: string, notes: NoteItem[], offline?: boolean
     });
     // Keyboard shortcut Cmd/Ctrl+N
     document.addEventListener('keydown',e=>{
-      if((e.metaKey||e.ctrlKey)&&e.key==='n'){e.preventDefault();vscode.postMessage({type:'newNote'});}
+      if((e.metaKey||e.ctrlKey)&&e.key==='n'){e.preventDefault();newNoteRow.classList.add('visible');newNoteInput.value='';newNoteInput.focus();}
     });
   </script></body></html>`;
 }
@@ -362,21 +398,40 @@ function notesListHtml(projectName: string, notes: NoteItem[], offline?: boolean
 
 function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, textColor: string): string {
   const safeTitle = (note.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const tagsJson = JSON.stringify(note.tags || []);
   const isMarkdown = note.editorMode === 'markdown';
   const contentJson = JSON.stringify(note.content || '');
 
+  // Build annotations HTML (new multi-annotation system)
+  const annotationsHtml = (note.annotations && note.annotations.length > 0)
+    ? note.annotations.map(ann => `
+  <div class="annotation-block" data-ann-id="${ann.id}">
+    <div class="ann-header">
+      <span class="ann-file" onclick="vscode.postMessage({type:'jumpToFile',file:'${ann.filePath}',lineStart:${ann.lineStart},lineEnd:${ann.lineEnd},line:${ann.lineStart}})">
+        <i class="codicon codicon-link"></i> ${ann.filePath}:${ann.lineStart}\u2013${ann.lineEnd}
+      </span>
+      <select class="ann-status styled-select ${ann.status}" data-ann-id="${ann.id}" onchange="saveAnnotation('${ann.id}')">
+        <option value="open"${ann.status==='open'?' selected':''}>Open</option>
+        <option value="done"${ann.status==='done'?' selected':''}>Done</option>
+        <option value="closed"${ann.status==='closed'?' selected':''}>Closed</option>
+      </select>
+      <button class="ann-del-btn" onclick="deleteAnnotation('${ann.id}')" title="Remove annotation"><i class="codicon codicon-trash"></i></button>
+    </div>
+    ${ann.codeSnippet ? `<pre class="ann-snippet">${ann.codeSnippet.replace(/</g,'&lt;').slice(0,300)}</pre>` : ''}
+    <textarea class="ann-comment" data-ann-id="${ann.id}" placeholder="Comment on this code\u2026" oninput="scheduleAnnotationSave('${ann.id}')">${(ann.comment||'').replace(/</g,'&lt;')}</textarea>
+  </div>`).join('')
+    : (note.filePath ? `
+  <div class="annotation-banner" id="annotationBanner" style="cursor:pointer" title="Jump to this location">
+    <span><i class="codicon codicon-link"></i> ${note.filePath}:${note.lineStart}\u2013${note.lineEnd}</span>
+    <span class="code-snippet">${(note.codeSnippet||'').replace(/</g,'&lt;').slice(0,80)}</span>
+  </div>` : '');
+
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/>
-  <!-- Quill WYSIWYG -->
   <link rel="stylesheet" href="https://cdn.quilljs.com/1.3.7/quill.snow.css"/>
   <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"><\/script>
-  <!-- Marked for Markdown preview -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"><\/script>
   <style>
     body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-sideBar-background); padding: 0; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; }
-
-    /* Toolbar */
     .toolbar { display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--vscode-panel-border); flex-shrink: 0; gap: 8px; background: var(--vscode-sideBar-background); }
     .back-btn { background: none; border: none; cursor: pointer; color: var(--vscode-textLink-foreground); font-size: 12px; padding: 4px; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 4px; border-radius: 4px; }
     .back-btn:hover { background: var(--vscode-toolbar-hoverBackground); }
@@ -384,8 +439,6 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     .title-input:focus { background: var(--vscode-input-background); border: 1px solid var(--vscode-focusBorder); }
     .title-input::placeholder { color: var(--vscode-input-placeholderForeground); }
     .status { font-size: 10px; color: #4caf50; white-space: nowrap; flex-shrink: 0; min-width: 40px; text-align: right; font-weight: 600; text-transform: uppercase; }
-
-    /* Meta bar: tags + pin + mode toggle */
     .meta-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--vscode-panel-border); flex-shrink: 0; flex-wrap: wrap; background: var(--vscode-sideBar-background); }
     .pin-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 4px; color: var(--vscode-foreground); opacity: 0.5; transition: opacity 0.2s, color 0.2s; display: flex; align-items: center; }
     .pin-btn.active { opacity: 1; color: var(--vscode-symbolIcon-propertyForeground); }
@@ -402,14 +455,8 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     .status-select.open { color: #f87171; }
     .status-select.done { color: #3fb950; }
     .status-select.passed { color: #6c8ef5; }
-
-    /* Word count */
     .word-count { padding: 4px 12px; font-size: 10px; color: var(--vscode-descriptionForeground); flex-shrink: 0; border-top: 1px solid var(--vscode-panel-border); background: var(--vscode-sideBar-background); display: flex; justify-content: space-between; align-items: center; }
-
-    /* Editor area */
     .editor-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: ${bgColor}; color: ${textColor}; }
-
-    /* WYSIWYG Quill overrides */
     .ql-toolbar { background: rgba(128,128,128,0.05) !important; border: none !important; border-bottom: 1px solid var(--vscode-panel-border) !important; flex-shrink: 0; padding: 6px !important; }
     .ql-toolbar .ql-stroke { stroke: ${textColor} !important; opacity: 0.8; }
     .ql-toolbar .ql-fill { fill: ${textColor} !important; opacity: 0.8; }
@@ -418,8 +465,6 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     .ql-container { flex: 1; font-size: 13px; border: none !important; overflow: auto; }
     .ql-editor { color: ${textColor}; min-height: 200px; line-height: 1.6; padding: 16px; font-family: var(--vscode-font-family); }
     .ql-editor.ql-blank::before { color: ${textColor}; opacity: 0.35; font-style: italic; }
-
-    /* Markdown area */
     .md-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: ${bgColor}; }
     .md-panes { flex: 1; display: flex; overflow: hidden; }
     textarea.md-edit { flex: 1; background: ${bgColor}; color: ${textColor}; border: none; resize: none; font-family: var(--vscode-editor-font-family, monospace); font-size: 13px; line-height: 1.6; padding: 16px; outline: none; }
@@ -433,20 +478,33 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     .md-tabs { display: flex; border-bottom: 1px solid var(--vscode-panel-border); background: var(--vscode-sideBar-background); flex-shrink: 0; padding: 0 8px; }
     .md-tab { padding: 8px 16px; font-size: 11px; font-weight: 600; cursor: pointer; color: var(--vscode-descriptionForeground); border: none; background: none; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; }
     .md-tab.active { color: var(--vscode-foreground); border-bottom-color: var(--vscode-focusBorder); }
-
-    .annotation-banner { padding: 8px 12px; background: rgba(108,142,245,0.1); border-bottom: 1px solid var(--vscode-panel-border); font-size: 11px; color: var(--vscode-textLink-foreground); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 8px; }
+    /* Legacy single annotation banner */
+    .annotation-banner { padding: 8px 12px; background: rgba(108,142,245,0.1); border-bottom: 1px solid var(--vscode-panel-border); font-size: 11px; color: var(--vscode-textLink-foreground); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; gap: 8px; cursor: pointer; }
     .annotation-banner i { font-size: 14px; }
     .code-snippet { opacity: 0.7; font-family: var(--vscode-editor-font-family, monospace); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
+    /* New multi-annotation blocks */
+    .annotation-block { border-left: 3px solid rgba(108,142,245,0.6); background: rgba(108,142,245,0.05); margin: 0; padding: 8px 12px; border-bottom: 1px solid var(--vscode-panel-border); flex-shrink: 0; }
+    .ann-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .ann-file { font-size: 11px; color: var(--vscode-textLink-foreground); cursor: pointer; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 4px; }
+    .ann-file:hover { text-decoration: underline; }
+    .ann-status { font-size: 10px; padding: 2px 4px; flex-shrink: 0; }
+    .ann-status.open { color: #f87171; }
+    .ann-status.done { color: #3fb950; }
+    .ann-status.closed { color: var(--vscode-descriptionForeground); }
+    .ann-del-btn { background: none; border: none; cursor: pointer; color: var(--vscode-errorForeground); opacity: 0.5; font-size: 12px; padding: 2px; border-radius: 3px; flex-shrink: 0; }
+    .ann-del-btn:hover { opacity: 1; background: var(--vscode-inputValidation-errorBackground); }
+    .ann-snippet { font-family: var(--vscode-editor-font-family, monospace); font-size: 10px; background: rgba(0,0,0,0.15); padding: 4px 6px; border-radius: 3px; margin: 0 0 6px; overflow-x: auto; white-space: pre; color: ${textColor}; opacity: 0.8; max-height: 60px; }
+    .ann-comment { width: 100%; background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); color: var(--vscode-foreground); font-size: 11px; font-family: var(--vscode-font-family); border-radius: 3px; padding: 4px 6px; outline: none; resize: vertical; min-height: 40px; box-sizing: border-box; }
+    .ann-comment:focus { border-color: var(--vscode-focusBorder); }
+    .ann-comment::placeholder { font-style: italic; opacity: 0.6; }
   </style></head><body>
 
-  <!-- Toolbar -->
   <div class="toolbar">
-    <button class="back-btn" id="backBtn"><i class="codicon codicon-arrow-left"></i> Back</button>
-    <input class="title-input" id="titleInput" value="${safeTitle}" placeholder="Note title…"/>
+    <button class="back-btn" id="backBtn"><i class="codicon codicon-arrow-left"></i> Notes</button>
+    <input class="title-input" id="titleInput" value="${safeTitle}" placeholder="Note title\u2026"/>
     <span class="status" id="status"></span>
   </div>
 
-  <!-- Meta bar -->
   <div class="meta-bar">
     <button class="pin-btn${note.pinned ? ' active' : ''}" id="pinBtn" title="${note.pinned ? 'Unpin' : 'Pin note'}"><i class="codicon codicon-pin"></i></button>
     <div class="select-wrap">
@@ -464,40 +522,32 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
         <option value="passed"${note.status==='passed'?' selected':''}>Passed</option>
       </select>
     </div>
-    <input class="tags-input" id="tagsInput" value="${note.tags.join(', ')}" placeholder="Tags (comma separated)…"/>
+    <input class="tags-input" id="tagsInput" value="${note.tags.join(', ')}" placeholder="Tags (comma separated)\u2026"/>
     <div class="mode-toggle">
       <button class="mode-btn${!isMarkdown ? ' active' : ''}" id="modeWysiwyg">Edit</button>
       <button class="mode-btn${isMarkdown ? ' active' : ''}" id="modeMd">Markdown</button>
     </div>
   </div>
 
-  <!-- Code annotation banner -->
-  ${note.filePath ? `
-  <div class="annotation-banner" id="annotationBanner" style="cursor:pointer" title="Jump to this location">
-    <span><i class="codicon codicon-link"></i> ${note.filePath}:${note.lineStart}–${note.lineEnd}</span>
-    <span class="code-snippet">${(note.codeSnippet||'').replace(/</g,'&lt;').slice(0,80)}</span>
-  </div>` : ''}
+  ${annotationsHtml}
 
-  <!-- WYSIWYG editor -->
   <div class="editor-wrap" id="wysiwygWrap" style="display:${isMarkdown ? 'none' : 'flex'}">
     <div id="quillEditor"></div>
   </div>
 
-  <!-- Markdown editor -->
   <div class="md-wrap" id="mdWrap" style="display:${isMarkdown ? 'flex' : 'none'};flex-direction:column">
     <div class="md-tabs">
       <button class="md-tab active" id="tabEdit">Edit</button>
       <button class="md-tab" id="tabPreview">Preview</button>
     </div>
     <div class="md-panes">
-      <textarea class="md-edit" id="mdEdit" placeholder="Write Markdown…"></textarea>
+      <textarea class="md-edit" id="mdEdit" placeholder="Write Markdown\u2026"></textarea>
       <div class="md-preview" id="mdPreview" style="display:none"></div>
     </div>
   </div>
 
-  <!-- Word count -->
   <div class="word-count">
-    <span id="wordCount">0 words · 0 chars</span>
+    <span id="wordCount">0 words \u00b7 0 chars</span>
     <span id="saveStatus" style="opacity:0.6;font-style:italic">Saved</span>
   </div>
 
@@ -507,11 +557,11 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     let mode = "${note.editorMode || 'wysiwyg'}";
     let pinned = ${note.pinned};
     let saveTimer = null;
+    const annSaveTimers = {};
 
-    // ── Quill init ──────────────────────────────────────────────────────────
     const quill = new Quill('#quillEditor', {
       theme: 'snow',
-      placeholder: 'Start writing…',
+      placeholder: 'Start writing\u2026',
       modules: {
         toolbar: [
           ['bold', 'italic', 'underline', 'strike'],
@@ -524,7 +574,6 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
       }
     });
 
-    // Load initial content
     const rawContent = ${contentJson};
     if (mode === 'wysiwyg') {
       try { quill.setContents(JSON.parse(rawContent)); } catch { quill.setText(rawContent); }
@@ -533,30 +582,16 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
       updateMdPreview();
     }
 
-    // ── Word count ──────────────────────────────────────────────────────────
     function updateWordCount(text) {
       const words = text.trim() ? text.trim().split(/\\s+/).length : 0;
-      const chars = text.length;
-      document.getElementById('wordCount').textContent = words + ' words · ' + chars + ' chars';
+      document.getElementById('wordCount').textContent = words + ' words \u00b7 ' + text.length + ' chars';
     }
-
-    quill.on('text-change', () => {
-      updateWordCount(quill.getText());
-      scheduleSave();
-    });
-    document.getElementById('mdEdit').addEventListener('input', e => {
-      updateWordCount(e.target.value);
-      updateMdPreview();
-      scheduleSave();
-    });
-
-    // init word count
+    quill.on('text-change', () => { updateWordCount(quill.getText()); scheduleSave(); });
+    document.getElementById('mdEdit').addEventListener('input', e => { updateWordCount(e.target.value); updateMdPreview(); scheduleSave(); });
     updateWordCount(mode === 'wysiwyg' ? quill.getText() : document.getElementById('mdEdit').value);
 
-    // ── Markdown preview ────────────────────────────────────────────────────
     function updateMdPreview() {
-      const src = document.getElementById('mdEdit').value;
-      document.getElementById('mdPreview').innerHTML = marked.parse(src);
+      document.getElementById('mdPreview').innerHTML = marked.parse(document.getElementById('mdEdit').value);
     }
     document.getElementById('tabEdit').addEventListener('click', () => {
       document.getElementById('tabEdit').classList.add('active');
@@ -572,7 +607,6 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
       updateMdPreview();
     });
 
-    // ── Mode toggle ─────────────────────────────────────────────────────────
     function switchMode(newMode) {
       if (newMode === mode) return;
       mode = newMode;
@@ -580,20 +614,13 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
       document.getElementById('modeMd').classList.toggle('active', mode === 'markdown');
       document.getElementById('wysiwygWrap').style.display = mode === 'wysiwyg' ? 'flex' : 'none';
       document.getElementById('mdWrap').style.display = mode === 'markdown' ? 'flex' : 'none';
-      if (mode === 'markdown') {
-        const text = quill.getText();
-        document.getElementById('mdEdit').value = text;
-        updateMdPreview();
-      } else {
-        const md = document.getElementById('mdEdit').value;
-        quill.setText(md);
-      }
+      if (mode === 'markdown') { document.getElementById('mdEdit').value = quill.getText(); updateMdPreview(); }
+      else { quill.setText(document.getElementById('mdEdit').value); }
       scheduleSave();
     }
     document.getElementById('modeWysiwyg').addEventListener('click', () => switchMode('wysiwyg'));
     document.getElementById('modeMd').addEventListener('click', () => switchMode('markdown'));
 
-    // ── Pin ─────────────────────────────────────────────────────────────────
     document.getElementById('pinBtn').addEventListener('click', () => {
       pinned = !pinned;
       document.getElementById('pinBtn').classList.toggle('active', pinned);
@@ -601,83 +628,81 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
       scheduleSave();
     });
 
-    // ── Selects ─────────────────────────────────────────────────────────────
     document.getElementById('prioritySelect').addEventListener('change', scheduleSave);
     document.getElementById('statusSelect').addEventListener('change', e => {
-      const s = e.target;
-      s.className = 'styled-select status-select ' + s.value;
+      e.target.className = 'styled-select status-select ' + e.target.value;
       scheduleSave();
     });
-
-    // ── Title & Tags ────────────────────────────────────────────────────────
     document.getElementById('titleInput').addEventListener('input', scheduleSave);
     document.getElementById('tagsInput').addEventListener('input', scheduleSave);
 
-    // ── Navigation ──────────────────────────────────────────────────────────
     document.getElementById('backBtn').addEventListener('click', () => {
-      doSave(); // Save immediately before going back
+      doSave();
       vscode.postMessage({ type: 'showList' });
     });
-    if (document.getElementById('annotationBanner')) {
-      document.getElementById('annotationBanner').addEventListener('click', () => {
-        vscode.postMessage({
-          type: 'jumpToFile',
-          file: "${note.filePath}",
-          line: ${note.lineStart || 1},
-          lineStart: ${note.lineStart || 1},
-          lineEnd: ${note.lineEnd || note.lineStart || 1}
-        });
+
+    // Legacy single annotation banner click
+    const legacyBanner = document.getElementById('annotationBanner');
+    if (legacyBanner) {
+      legacyBanner.addEventListener('click', () => {
+        vscode.postMessage({ type: 'jumpToFile', file: "${note.filePath||''}", line: ${note.lineStart||1}, lineStart: ${note.lineStart||1}, lineEnd: ${note.lineEnd||note.lineStart||1} });
       });
     }
 
-    // ── Save ────────────────────────────────────────────────────────────────
     function getContent() {
-      if (mode === 'wysiwyg') return JSON.stringify(quill.getContents());
-      return document.getElementById('mdEdit').value;
+      return mode === 'wysiwyg' ? JSON.stringify(quill.getContents()) : document.getElementById('mdEdit').value;
     }
     function getTags() {
-      return document.getElementById('tagsInput').value
-        .split(',').map(t => t.trim()).filter(Boolean);
+      return document.getElementById('tagsInput').value.split(',').map(t => t.trim()).filter(Boolean);
     }
     function scheduleSave() {
-      document.getElementById('saveStatus').textContent = 'Changes unsaved...';
+      document.getElementById('saveStatus').textContent = 'Unsaved\u2026';
       document.getElementById('saveStatus').style.opacity = '1';
       clearTimeout(saveTimer);
       saveTimer = setTimeout(doSave, 1000);
     }
     function doSave() {
       vscode.postMessage({
-        type: 'saveNote',
-        id: noteId,
+        type: 'saveNote', id: noteId,
         title: document.getElementById('titleInput').value,
-        content: getContent(),
-        editorMode: mode,
-        pinned: pinned,
+        content: getContent(), editorMode: mode, pinned: pinned,
         tags: getTags(),
         priority: document.getElementById('prioritySelect').value,
         status: document.getElementById('statusSelect').value,
       });
     }
 
+    // Annotation helpers
+    function scheduleAnnotationSave(annId) {
+      clearTimeout(annSaveTimers[annId]);
+      annSaveTimers[annId] = setTimeout(() => saveAnnotation(annId), 1000);
+    }
+    function saveAnnotation(annId) {
+      const comment = document.querySelector('.ann-comment[data-ann-id="' + annId + '"]')?.value || '';
+      const status = document.querySelector('.ann-status[data-ann-id="' + annId + '"]')?.value || 'open';
+      vscode.postMessage({ type: 'saveAnnotation', annotationId: annId, comment, status });
+    }
+    function deleteAnnotation(annId) {
+      vscode.postMessage({ type: 'deleteAnnotation', annotationId: annId });
+    }
+
     document.addEventListener('keydown', e => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); clearTimeout(saveTimer); doSave(); }
     });
 
-    // Auto-select Untitled
     const titleEl = document.getElementById('titleInput');
     if (titleEl.value === 'Untitled') { titleEl.focus(); titleEl.select(); }
 
-    // ── Listen for messages from extension host ────────────────────────────────
     window.addEventListener('message', e => {
       if (e.data.type === 'saved') {
         document.getElementById('saveStatus').textContent = 'Saved';
         document.getElementById('saveStatus').style.opacity = '0.6';
         const s = document.getElementById('status');
-        s.textContent = '✓ Saved';
+        s.textContent = '\u2713 Saved';
         setTimeout(() => { s.textContent = ''; }, 2000);
       }
-      if (e.data.type === 'openNoteFromHost') {
-        vscode.postMessage({ type: 'openNote', id: e.data.id });
+      if (e.data.type === 'annotationSaved') {
+        // Visual feedback could be added here
       }
     });
   <\/script></body></html>`;
@@ -691,6 +716,14 @@ export async function activate(context: vscode.ExtensionContext) {
   let currentNoteId: string | null = null;
   let iconUri = '';
 
+  // Track open note panels to avoid duplicates (noteId -> WebviewPanel)
+  const openNotePanels = new Map<string, vscode.WebviewPanel>();
+  // Track notes currently being opened to prevent duplicate panels during async gap
+  const openingNotes = new Set<string>();
+  // Shared openNote ref — set by resolveWebviewView so the command registered
+  // outside that closure can call it
+  let openNoteRef: ((id: string) => Promise<void>) | null = null;
+
   function getNoteColors(): { bg: string; text: string } {
     const config = vscode.workspace.getConfiguration('notenest');
     return {
@@ -700,8 +733,6 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 
   // ── Notes cache ───────────────────────────────────────────────────────────
-  // In-memory cache for the current session (instant reads).
-  // Also persisted to globalState so it survives VS Code restarts.
   let memCache: { notes: NoteItem[]; cachedAt: string } | null = null;
 
   function cacheKey(): string {
@@ -726,7 +757,7 @@ export async function activate(context: vscode.ExtensionContext) {
     if (!memCache) { return; }
     const idx = memCache.notes.findIndex(n => n.id === updated.id);
     if (idx !== -1) { memCache.notes[idx] = updated; }
-    context.globalState.update(cacheKey(), memCache); // fire-and-forget persist
+    context.globalState.update(cacheKey(), memCache);
   }
 
   function patchNoteInCache(id: string, patch: Partial<NoteItem>): void {
@@ -746,10 +777,9 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 
   async function enqueueOfflinePatch(item: OfflineQueueItem): Promise<void> {
-    const q = getQueue().filter(i => i.id !== item.id); // keep only latest for each note
+    const q = getQueue().filter(i => i.id !== item.id);
     q.push(item);
     await context.globalState.update(QUEUE_KEY, q);
-    // Also update cache so the UI reflects the edit immediately
     patchNoteInCache(item.id, { ...item.patch });
   }
 
@@ -759,7 +789,6 @@ export async function activate(context: vscode.ExtensionContext) {
     const remaining: OfflineQueueItem[] = [];
     for (const item of q) {
       try {
-        // Check for conflict: fetch latest server version
         const res = await apiGet(secrets, `/notes/${item.id}`);
         const serverNote: NoteItem = res.data.data;
         const serverUpdated = new Date(serverNote.updatedAt).getTime();
@@ -767,7 +796,6 @@ export async function activate(context: vscode.ExtensionContext) {
         const cachedAt = memCache ? new Date(memCache.cachedAt).getTime() : 0;
 
         if (serverUpdated > cachedAt && serverUpdated > localEdited) {
-          // Genuine conflict — server has changes we didn't see
           const choice = await vscode.window.showWarningMessage(
             `"${serverNote.title}" was edited on another machine while you were offline. Which version do you want to keep?`,
             { modal: true },
@@ -776,14 +804,13 @@ export async function activate(context: vscode.ExtensionContext) {
           );
           if (choice === 'Keep server version') {
             updateNoteInCache(serverNote);
-            continue; // discard local patch
+            continue;
           }
-          // else fall through and push local version to server
         }
         await apiPatch(secrets, `/notes/${item.id}`, item.patch);
         updateNoteInCache({ ...serverNote, ...item.patch, updatedAt: new Date().toISOString() });
       } catch {
-        remaining.push(item); // still offline, keep in queue
+        remaining.push(item);
       }
     }
     await context.globalState.update(QUEUE_KEY, remaining);
@@ -803,29 +830,18 @@ export async function activate(context: vscode.ExtensionContext) {
         if (!accessToken && !(await refreshAccessToken(secrets))) {
           webviewView.webview.html = loginHtml(iconUri); return;
         }
-        // Flush any offline edits now that we may be back online
         flushOfflineQueue().catch(() => {});
-        // On startup: open the highest-priority note directly.
-        // Use cache first for instant render, then revalidate in background.
+        // Always show the notes list in the sidebar first
+        await showNotesList();
+        // Then auto-open the top-priority note as an editor tab (without replacing the sidebar)
         const folderPath = getFolderPath();
         if (folderPath) {
           const cached = loadCache();
           if (cached && cached.notes.length) {
             const top = topPriorityNote(cached.notes);
-            if (top) {
-              await openNote(top.id); return;
-            }
+            if (top) { openNote(top.id); }
           }
-          // No cache yet — fetch fresh
-          try {
-            const res = await apiGet(secrets, '/notes', { folderPath });
-            const notes: NoteItem[] = res.data.data;
-            await saveCache(notes);
-            const top = topPriorityNote(notes);
-            if (top) { await openNote(top.id); return; }
-          } catch { /* fall through to list */ }
         }
-        await showNotesList();
       }
 
       async function showNotesList() {
@@ -834,17 +850,14 @@ export async function activate(context: vscode.ExtensionContext) {
         currentNoteId = null;
         if (!folderPath) { webviewView.webview.html = noFolderHtml(); return; }
 
-        // ── Render from cache instantly ──────────────────────────────────────
         const cached = loadCache();
         if (cached) {
           webviewView.webview.html = notesListHtml(projectName, cached.notes, false);
         }
 
-        // ── Revalidate in background ─────────────────────────────────────────
         try {
           const res = await apiGet(secrets, '/notes', { folderPath });
           await saveCache(res.data.data);
-          // Only re-render list if we're still on the list (not navigated to a note)
           if (currentNoteId === null) {
             webviewView.webview.html = notesListHtml(projectName, res.data.data, false);
           }
@@ -853,10 +866,8 @@ export async function activate(context: vscode.ExtensionContext) {
           if (err.message === 'NOT_AUTHENTICATED') {
             webviewView.webview.html = loginHtml(iconUri);
           } else if (!cached) {
-            // Truly offline with no cache at all
             webviewView.webview.html = notesListHtml(projectName, [], true);
           } else if (currentNoteId === null) {
-            // Offline but we have cache — re-render with offline banner
             webviewView.webview.html = notesListHtml(projectName, cached.notes, true);
           }
         }
@@ -865,33 +876,99 @@ export async function activate(context: vscode.ExtensionContext) {
       async function openNote(id: string) {
         const folderPath = getFolderPath();
         const projectName = folderPath?.split(/[\/\\]/).filter(Boolean).pop() ?? 'No project';
-        currentNoteId = id;
         const { bg, text } = getNoteColors();
 
-        // ── Render from cache instantly ──────────────────────────────────────
+        // If already open, just reveal it
+        const existingPanel = openNotePanels.get(id);
+        if (existingPanel) { existingPanel.reveal(vscode.ViewColumn.Beside); return; }
+
+        // If already in the process of being opened, don't create a second panel
+        if (openingNotes.has(id)) { return; }
+        openingNotes.add(id);
+
         const cached = loadCache();
         const cachedNote = cached?.notes.find(n => n.id === id);
+        const noteTitle = cachedNote?.title || 'Note';
+
+        const notePanel = vscode.window.createWebviewPanel(
+          'notenest.note', noteTitle,
+          vscode.ViewColumn.Beside,
+          { enableScripts: true, retainContextWhenHidden: true }
+        );
+        openNotePanels.set(id, notePanel);
+        openingNotes.delete(id);
+        notePanel.onDidDispose(() => { openNotePanels.delete(id); }, null, context.subscriptions);
+
+        // Render immediately from cache so the panel is never blank
         if (cachedNote) {
-          webviewView.webview.html = noteEditorHtml(cachedNote, projectName, bg, text);
+          notePanel.webview.html = noteEditorHtml(cachedNote, projectName, bg, text);
+        } else {
+          notePanel.webview.html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:var(--vscode-font-family);color:var(--vscode-descriptionForeground);background:var(--vscode-editor-background);font-size:13px;}</style></head><body>Loading note\u2026</body></html>`;
         }
 
-        // ── Revalidate in background ─────────────────────────────────────────
+        // Fetch fresh data and update if anything changed
         try {
           const res = await apiGet(secrets, `/notes/${id}`);
           const freshNote: NoteItem = res.data.data;
           updateNoteInCache(freshNote);
-          // Only update the editor if we're still viewing this note and content changed
-          if (currentNoteId === id) {
-            const cachedContent = cachedNote?.content ?? '';
-            const freshContent = freshNote.content ?? '';
-            if (freshContent !== cachedContent) {
-              webviewView.webview.html = noteEditorHtml(freshNote, projectName, bg, text);
+          notePanel.title = freshNote.title || 'Note';
+          // Always re-render with fresh data (annotations may have changed)
+          notePanel.webview.html = noteEditorHtml(freshNote, projectName, bg, text);
+        } catch {
+          if (!cachedNote) { notePanel.dispose(); }
+          // If fetch fails but we have cache, the cached render is already showing — fine
+        }
+
+        notePanel.webview.onDidReceiveMessage(async (msg) => {
+          if (msg.type === 'saveNote') {
+            const patch = { title: msg.title, content: msg.content, editorMode: msg.editorMode, pinned: msg.pinned, tags: msg.tags, priority: msg.priority, status: msg.status };
+            patchNoteInCache(msg.id, patch);
+            notePanel.title = msg.title || 'Note';
+            // Refresh sidebar list so changes reflect there too
+            if (panel) {
+              const c2 = loadCache(); const fp2 = getFolderPath();
+              const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? 'No project';
+              if (c2) { panel.webview.html = notesListHtml(pn2, c2.notes, false); }
+            }
+            try {
+              await apiPatch(secrets, `/notes/${msg.id}`, patch);
+              flushOfflineQueue().catch(() => {});
+              notePanel.webview.postMessage({ type: 'saved' });
+            } catch (e: unknown) {
+              const err = e as { message?: string };
+              if (err.message === 'NOT_AUTHENTICATED') { if (panel) { panel.webview.html = loginHtml(iconUri); } }
+              else { await enqueueOfflinePatch({ id: msg.id, patch, localUpdatedAt: new Date().toISOString() }); notePanel.webview.postMessage({ type: 'saved' }); }
             }
           }
-        } catch {
-          // Offline — if we already rendered from cache, that's fine
-          if (!cachedNote) { await showNotesList(); }
-        }
+          if (msg.type === 'jumpToFile') {
+            const fp2 = getFolderPath(); if (!fp2 || !msg.file) return;
+            try {
+              const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(`${fp2}/${msg.file}`));
+              const editor = await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.One });
+              const sl = Math.max(0, (msg.lineStart || msg.line || 1) - 1);
+              const el = Math.max(0, (msg.lineEnd || msg.lineStart || msg.line || 1) - 1);
+              const elt = doc.lineAt(Math.min(el, doc.lineCount - 1));
+              const range = new vscode.Range(sl, 0, elt.lineNumber, elt.text.length);
+              editor.selection = new vscode.Selection(range.start, range.end);
+              editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+            } catch { vscode.window.showErrorMessage(`Could not open file: ${msg.file}`); }
+          }
+          if (msg.type === 'deleteAnnotation') {
+            try {
+              await apiDelete(secrets, `/annotations/${msg.annotationId}`);
+              const res = await apiGet(secrets, `/notes/${id}`);
+              const fn: NoteItem = res.data.data;
+              updateNoteInCache(fn);
+              notePanel.webview.html = noteEditorHtml(fn, projectName, bg, text);
+            } catch { vscode.window.showErrorMessage('Failed to delete annotation.'); }
+          }
+          if (msg.type === 'saveAnnotation') {
+            try {
+              await apiPatch(secrets, `/annotations/${msg.annotationId}`, { comment: msg.comment, status: msg.status });
+              notePanel.webview.postMessage({ type: 'annotationSaved', annotationId: msg.annotationId });
+            } catch { /* offline */ }
+          }
+        }, null, context.subscriptions);
       }
 
       webviewView.webview.onDidReceiveMessage(async (msg) => {
@@ -906,28 +983,19 @@ export async function activate(context: vscode.ExtensionContext) {
 
           case 'newNote': {
             const folderPath = getFolderPath();
-            if (!folderPath) {
-              vscode.window.showWarningMessage('Open a folder first — NoteNest needs a project folder to save notes to.');
-              break;
-            }
+            if (!folderPath) { vscode.window.showWarningMessage('Open a folder first.'); break; }
             const projectName = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? 'Project';
-            const title = await vscode.window.showInputBox({
-              prompt: 'Note name', placeHolder: 'e.g. Ideas, TODO, Meeting Notes…', value: '',
-            });
-            if (title === undefined) { break; }
+            const title = msg.title || 'Untitled';
             try {
-              const res = await apiPost(secrets, '/notes', { folderPath, title: title || 'Untitled', content: '', editorMode: 'wysiwyg' });
+              const res = await apiPost(secrets, '/notes', { folderPath, title, content: '', editorMode: 'wysiwyg' });
               const newNote: NoteItem = res.data.data;
-              // Add to cache immediately
-              if (memCache) {
-                memCache.notes.unshift(newNote);
-                context.globalState.update(cacheKey(), memCache);
-              } else {
-                await saveCache([newNote]);
-              }
-              currentNoteId = res.data.data.id;
-              const { bg, text } = getNoteColors();
-              webviewView.webview.html = noteEditorHtml(res.data.data, projectName, bg, text);
+              if (memCache) { memCache.notes.unshift(newNote); context.globalState.update(cacheKey(), memCache); }
+              else { await saveCache([newNote]); }
+              // Refresh sidebar list so the new note appears
+              const c2 = loadCache();
+              if (c2) { webviewView.webview.html = notesListHtml(projectName, c2.notes, false); }
+              // Open the new note as an editor tab
+              await openNote(newNote.id);
             } catch { vscode.window.showErrorMessage('Failed to create note.'); }
             break;
           }
@@ -944,7 +1012,6 @@ export async function activate(context: vscode.ExtensionContext) {
               const editor = await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.One });
               const startLine = Math.max(0, (msg.lineStart || msg.line || 1) - 1);
               const endLine = Math.max(0, (msg.lineEnd || msg.lineStart || msg.line || 1) - 1);
-              // Select the full range from start line col 0 to end of end line
               const endLineText = doc.lineAt(Math.min(endLine, doc.lineCount - 1));
               const range = new vscode.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length);
               editor.selection = new vscode.Selection(range.start, range.end);
@@ -953,42 +1020,16 @@ export async function activate(context: vscode.ExtensionContext) {
             break;
           }
 
-          case 'saveNote': {
-            const patch = {
-              title: msg.title, content: msg.content, editorMode: msg.editorMode,
-              pinned: msg.pinned, tags: msg.tags, priority: msg.priority, status: msg.status,
-            };
-            // Always update the in-memory cache immediately so back-navigation is instant
-            patchNoteInCache(msg.id, patch);
-            try {
-              await apiPatch(secrets, `/notes/${msg.id}`, patch);
-              // Flush any queued offline edits now that we're confirmed online
-              flushOfflineQueue().catch(() => {});
-              if (msg.thenShowList) {
-                await showNotesList();
-              } else if (currentNoteId === msg.id) {
-                webviewView.webview.postMessage({ type: 'saved' });
-              }
-            } catch (e: unknown) {
-              const err = e as { message?: string };
-              if (err.message === 'NOT_AUTHENTICATED') {
-                webviewView.webview.html = loginHtml(iconUri);
-              } else {
-                // Offline — queue the patch so it syncs when back online
-                await enqueueOfflinePatch({ id: msg.id, patch, localUpdatedAt: new Date().toISOString() });
-                if (currentNoteId === msg.id) {
-                  webviewView.webview.postMessage({ type: 'saved' }); // still show "Saved" (locally)
-                }
-              }
-            }
-            break;
-          }
+          // saveNote is handled per-panel inside openNote() — no-op fallback here
+          case 'saveNote': break;
 
           case 'deleteNote': {
             const ok = await vscode.window.showWarningMessage(
               'Delete this note? This cannot be undone.', { modal: true }, 'Delete');
             if (ok === 'Delete') {
-              // Remove from cache immediately for instant list update
+              // Close the panel if it's open
+              const notePanel = openNotePanels.get(msg.id);
+              if (notePanel) { notePanel.dispose(); }
               if (memCache) {
                 memCache.notes = memCache.notes.filter(n => n.id !== msg.id);
                 context.globalState.update(cacheKey(), memCache);
@@ -1025,6 +1066,9 @@ export async function activate(context: vscode.ExtensionContext) {
         }
       });
 
+      // Expose openNote so the command registered outside this closure can call it
+      openNoteRef = openNote;
+
       render();
     },
   };
@@ -1033,9 +1077,8 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider('notenest.notesView', provider)
   );
 
-  // ── Annotation highlight decoration — persistent coloured highlight on annotated lines
+  // ── Annotation highlight decoration ──────────────────────────────────────────
   const annotationDecoration = vscode.window.createTextEditorDecorationType({
-    // Subtle blue-left-border highlight, like a git blame marker
     borderWidth: '0 0 0 3px',
     borderStyle: 'solid',
     borderColor: 'rgba(108,142,245,0.7)',
@@ -1047,8 +1090,20 @@ export async function activate(context: vscode.ExtensionContext) {
     gutterIconSize: '60%',
   });
 
-  // Cache: file relPath -> notes with annotations for that file
-  const annotationCache = new Map<string, NoteItem[]>();
+  // annotationCache maps relPath -> flat list of { noteId, noteTitle, noteContent,
+  // editorMode, priority, status, lineStart, lineEnd } — one entry per annotation
+  interface FlatAnnotation {
+    noteId: string;
+    noteTitle: string;
+    noteContent: string;
+    editorMode: string;
+    priority: string;
+    status: string;
+    lineStart: number;
+    lineEnd: number;
+    comment: string;
+  }
+  const annotationCache = new Map<string, FlatAnnotation[]>();
 
   async function refreshAnnotations(editor: vscode.TextEditor) {
     const folderPath = getFolderPath();
@@ -1059,13 +1114,49 @@ export async function activate(context: vscode.ExtensionContext) {
     try {
       const res = await apiGet(secrets, '/notes', { folderPath });
       const notes: NoteItem[] = res.data.data;
-      const annotated = notes.filter(n => n.filePath === relPath && n.lineStart != null);
-      // Update cache for hover provider
-      annotationCache.set(relPath, annotated);
-      // Apply highlight decorations covering the full annotated range
-      const decorations = annotated.map(n => {
-        const startLine = Math.max(0, (n.lineStart ?? 1) - 1);
-        const endLine = Math.max(0, (n.lineEnd ?? n.lineStart ?? 1) - 1);
+
+      // Build a flat list of all annotations for this file from both systems
+      const flat: FlatAnnotation[] = [];
+      for (const note of notes) {
+        // New system: annotations[] array
+        if (note.annotations && note.annotations.length > 0) {
+          for (const ann of note.annotations) {
+            if (ann.filePath === relPath && ann.lineStart != null) {
+              flat.push({
+                noteId: note.id,
+                noteTitle: note.title,
+                noteContent: note.content,
+                editorMode: note.editorMode,
+                priority: note.priority,
+                status: note.status,
+                lineStart: ann.lineStart,
+                lineEnd: ann.lineEnd,
+                comment: ann.comment || '',
+              });
+            }
+          }
+        }
+        // Legacy system: single filePath/lineStart on the note itself
+        if (note.filePath === relPath && note.lineStart != null && !(note.annotations && note.annotations.length > 0)) {
+          flat.push({
+            noteId: note.id,
+            noteTitle: note.title,
+            noteContent: note.content,
+            editorMode: note.editorMode,
+            priority: note.priority,
+            status: note.status,
+            lineStart: note.lineStart,
+            lineEnd: note.lineEnd ?? note.lineStart,
+            comment: '',
+          });
+        }
+      }
+
+      annotationCache.set(relPath, flat);
+
+      const decorations = flat.map(ann => {
+        const startLine = Math.max(0, ann.lineStart - 1);
+        const endLine = Math.max(0, ann.lineEnd - 1);
         const endLineText = editor.document.lineAt(Math.min(endLine, editor.document.lineCount - 1));
         return { range: new vscode.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length) };
       });
@@ -1073,7 +1164,7 @@ export async function activate(context: vscode.ExtensionContext) {
     } catch { /* offline or not authed */ }
   }
 
-  // ── Hover provider — shows note popup when hovering annotated lines ─────────
+  // ── Hover provider ────────────────────────────────────────────────────────────
   context.subscriptions.push(
     vscode.languages.registerHoverProvider(
       { scheme: 'file' },
@@ -1084,42 +1175,40 @@ export async function activate(context: vscode.ExtensionContext) {
           const relPath = document.uri.fsPath
             .replace(folderPath + '/', '')
             .replace(folderPath + '\\', '');
-          const notes = annotationCache.get(relPath) ?? [];
-          // Find a note whose range covers the hovered line
-          const hovered = notes.find(n => {
-            const startLine = Math.max(0, (n.lineStart ?? 1) - 1);
-            const endLine = Math.max(0, (n.lineEnd ?? n.lineStart ?? 1) - 1);
+          const flat = annotationCache.get(relPath) ?? [];
+          const hovered = flat.find(ann => {
+            const startLine = Math.max(0, ann.lineStart - 1);
+            const endLine = Math.max(0, ann.lineEnd - 1);
             return position.line >= startLine && position.line <= endLine;
           });
           if (!hovered) { return; }
 
-          // Extract plain text preview
           let preview = '';
           if (hovered.editorMode === 'wysiwyg') {
-            try { preview = JSON.parse(hovered.content)?.ops?.map((op: {insert?: unknown}) => typeof op.insert === 'string' ? op.insert : '').join(''); }
-            catch { preview = hovered.content; }
+            try { preview = JSON.parse(hovered.noteContent)?.ops?.map((op: {insert?: unknown}) => typeof op.insert === 'string' ? op.insert : '').join(''); }
+            catch { preview = hovered.noteContent; }
           } else {
-            preview = hovered.content.replace(/[#*_`]/g, '');
+            preview = hovered.noteContent.replace(/[#*_`]/g, '');
           }
           preview = preview.replace(/\n/g, ' ').trim().slice(0, 150);
 
           const priorityLabel = hovered.priority !== 'none' ? ` \u2022 ${hovered.priority}` : '';
-          const statusLabel = hovered.status === 'done' ? ' ✓ Done' : hovered.status === 'passed' ? ' ✓ Passed' : ' ● Open';
+          const statusLabel = hovered.status === 'done' ? ' \u2713 Done' : hovered.status === 'passed' ? ' \u2713 Passed' : ' \u25cf Open';
 
           const md = new vscode.MarkdownString('', true);
           md.isTrusted = true;
           md.supportHtml = true;
-          md.appendMarkdown(`**📎 ${hovered.title}**`);
+          md.appendMarkdown(`**\ud83d\udcce ${hovered.noteTitle}**`);
           md.appendMarkdown(`\n\n_${statusLabel}${priorityLabel}_`);
-          if (preview) { md.appendMarkdown(`\n\n${preview}`); }
-          // Clickable command link to open the note
+          if (hovered.comment) { md.appendMarkdown(`\n\n${hovered.comment}`); }
+          else if (preview) { md.appendMarkdown(`\n\n${preview}`); }
           const openCmd = vscode.Uri.parse(
-            `command:notenest.openNoteById?${encodeURIComponent(JSON.stringify({ id: hovered.id }))}`
+            `command:notenest.openNoteById?${encodeURIComponent(JSON.stringify({ id: hovered.noteId }))}`
           );
-          md.appendMarkdown(`\n\n[Open note →](${openCmd})`);
+          md.appendMarkdown(`\n\n[Open note \u2192](${openCmd})`);
 
-          const startLine = Math.max(0, (hovered.lineStart ?? 1) - 1);
-          const endLine = Math.max(0, (hovered.lineEnd ?? hovered.lineStart ?? 1) - 1);
+          const startLine = Math.max(0, hovered.lineStart - 1);
+          const endLine = Math.max(0, hovered.lineEnd - 1);
           const endLineText = document.lineAt(Math.min(endLine, document.lineCount - 1));
           return new vscode.Hover(md, new vscode.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length));
         },
@@ -1127,35 +1216,45 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  // ── openNoteById command — called from hover popup "Open note" link ───────
-  // Opens the note directly in the sidebar — works regardless of which view is active.
+  // ── openNoteById command ──────────────────────────────────────────────────────
   context.subscriptions.push(
     vscode.commands.registerCommand('notenest.openNoteById', async ({ id }: { id: string }) => {
-      await vscode.commands.executeCommand('notenest.notesView.focus');
-      const folderPath = getFolderPath();
-      const projectName = folderPath?.split(/[\/\\]/).filter(Boolean).pop() ?? 'Project';
-      const { bg, text } = getNoteColors();
-
-      // Render from cache instantly
-      const cached = loadCache();
-      const cachedNote = cached?.notes.find(n => n.id === id);
-      if (cachedNote && panel) {
-        currentNoteId = id;
-        panel.webview.html = noteEditorHtml(cachedNote, projectName, bg, text);
-      }
-
-      // Revalidate in background
-      try {
-        const res = await apiGet(secrets, `/notes/${id}`);
-        const freshNote: NoteItem = res.data.data;
-        updateNoteInCache(freshNote);
-        if (panel && currentNoteId === id && freshNote.content !== (cachedNote?.content ?? '')) {
-          panel.webview.html = noteEditorHtml(freshNote, projectName, bg, text);
-        }
-      } catch {
-        if (!cachedNote) { vscode.window.showErrorMessage('Could not open note.'); }
-      }
+      // openNoteRef is assigned by resolveWebviewView once the sidebar is initialised
+      if (openNoteRef) { await openNoteRef(id); }
     })
+  );
+
+  // ── CodeLens provider — clickable note title above each annotated line ─────────
+  context.subscriptions.push(
+    vscode.languages.registerCodeLensProvider(
+      { scheme: 'file' },
+      {
+        provideCodeLenses(document): vscode.CodeLens[] {
+          const folderPath = getFolderPath();
+          if (!folderPath) { return []; }
+          const relPath = document.uri.fsPath
+            .replace(folderPath + '/', '')
+            .replace(folderPath + '\\', '');
+          const flat = annotationCache.get(relPath) ?? [];
+          const seen = new Set<string>();
+          const lenses: vscode.CodeLens[] = [];
+          for (const ann of flat) {
+            const key = `${ann.noteId}:${ann.lineStart}`;
+            if (seen.has(key)) { continue; }
+            seen.add(key);
+            const line = Math.max(0, ann.lineStart - 1);
+            const range = new vscode.Range(line, 0, line, 0);
+            lenses.push(new vscode.CodeLens(range, {
+              title: `\ud83d\udcce ${ann.noteTitle}`,
+              command: 'notenest.openNoteById',
+              arguments: [{ id: ann.noteId }],
+              tooltip: 'Open this NoteNest note',
+            }));
+          }
+          return lenses;
+        },
+      }
+    )
   );
 
   context.subscriptions.push(
@@ -1167,7 +1266,6 @@ export async function activate(context: vscode.ExtensionContext) {
     refreshAnnotations(vscode.window.activeTextEditor);
   }
 
-  // Also refresh when documents are saved (notes may have changed)
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument(doc => {
       const editor = vscode.window.visibleTextEditors.find(e => e.document === doc);
@@ -1175,15 +1273,14 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Expose refreshAnnotations so runAnnotate can call it after saving
   async function refreshGutterDecorations(editor: vscode.TextEditor) {
     await refreshAnnotations(editor);
   }
 
-  // ── Inline selection decoration — shows shortcut hint at end of selected line
+  // ── Selection decoration ──────────────────────────────────────────────────────
   const selectionDecoration = vscode.window.createTextEditorDecorationType({
     after: {
-      contentText: '  NoteNest ⌘⇧N to annotate',
+      contentText: '  NoteNest \u2318\u21e7N to annotate',
       color: new vscode.ThemeColor('editorCodeLens.foreground'),
       margin: '0 0 0 12px',
       fontStyle: 'italic',
@@ -1192,76 +1289,56 @@ export async function activate(context: vscode.ExtensionContext) {
     rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
   });
 
-  // ── Status bar button — clickable, appears instantly on selection ─────────
   const annotateStatusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right, 1000
   );
-  annotateStatusBarItem.text = '📎 Annotate selection';
-  annotateStatusBarItem.tooltip = 'Add a NoteNest note to the selected code — or press ⌘⇧N';
+  annotateStatusBarItem.text = '\ud83d\udcce Annotate selection';
+  annotateStatusBarItem.tooltip = 'Add a NoteNest note to the selected code \u2014 or press \u2318\u21e7N';
   annotateStatusBarItem.command = 'notenest.annotateSelectionFromStatusBar';
   annotateStatusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
   context.subscriptions.push(annotateStatusBarItem);
 
-  // Saved selection snapshot — captured before status bar click clears it
   let savedEditorUri: vscode.Uri | null = null;
   let savedSelection: vscode.Selection | null = null;
-
   let selectionDecorationTimer: ReturnType<typeof setTimeout> | null = null;
 
   context.subscriptions.push(
     vscode.window.onDidChangeTextEditorSelection(e => {
       if (selectionDecorationTimer) { clearTimeout(selectionDecorationTimer); }
-
       const editor = e.textEditor;
       const selection = editor.selection;
-
       if (selection.isEmpty) {
         editor.setDecorations(selectionDecoration, []);
         annotateStatusBarItem.hide();
         return;
       }
-
-      // Debounce slightly so it doesn't flash while dragging to select
       selectionDecorationTimer = setTimeout(() => {
         if (editor.selection.isEmpty) {
           editor.setDecorations(selectionDecoration, []);
           annotateStatusBarItem.hide();
-          savedSelection = null;
-          savedEditorUri = null;
+          savedSelection = null; savedEditorUri = null;
           return;
         }
-        // ✓ Snapshot the selection NOW before any click can clear it
         savedSelection = new vscode.Selection(editor.selection.start, editor.selection.end);
         savedEditorUri = editor.document.uri;
-        // Show inline decoration at end of selected line
         const endPos = editor.selection.end;
         const endLine = editor.document.lineAt(endPos.line);
-        const decorationRange = new vscode.Range(
-          endPos.line, endLine.range.end.character,
-          endPos.line, endLine.range.end.character
-        );
+        const decorationRange = new vscode.Range(endPos.line, endLine.range.end.character, endPos.line, endLine.range.end.character);
         editor.setDecorations(selectionDecoration, [{ range: decorationRange }]);
-        // Show clickable status bar button
         annotateStatusBarItem.show();
       }, 150);
     })
   );
 
-  // ── CodeAction provider — also shows in lightbulb for keyboard users ────────
+  // ── CodeAction provider ───────────────────────────────────────────────────────
   context.subscriptions.push(
     vscode.languages.registerCodeActionsProvider(
       { scheme: 'file' },
       {
         provideCodeActions(document, range) {
           if (range.isEmpty) { return []; }
-          const action = new vscode.CodeAction(
-            '📎 NoteNest: Annotate this selection',
-            vscode.CodeActionKind.Empty
-          );
-          action.command = {
-            command: 'notenest.annotateSelection',
-            title: '📎 NoteNest: Annotate this selection',
-          };
+          const action = new vscode.CodeAction('\ud83d\udcce NoteNest: Annotate this selection', vscode.CodeActionKind.Empty);
+          action.command = { command: 'notenest.annotateSelection', title: '\ud83d\udcce NoteNest: Annotate this selection' };
           return [action];
         },
       },
@@ -1269,65 +1346,200 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  // ── Shared annotate logic ─────────────────────────────────────────────────
+  // ── Annotate logic ────────────────────────────────────────────────────────────
   async function runAnnotate(docUri: vscode.Uri, selection: vscode.Selection) {
     const folderPath = getFolderPath();
-    if (!folderPath) {
-      vscode.window.showWarningMessage('Open a folder first to use NoteNest annotations.');
-      return;
-    }
+    if (!folderPath) { vscode.window.showWarningMessage('Open a folder first to use NoteNest annotations.'); return; }
+    const { accessToken } = await getTokens(secrets);
+    if (!accessToken) { vscode.window.showErrorMessage('Sign in to NoteNest first.'); return; }
+
     const doc = await vscode.workspace.openTextDocument(docUri);
     const codeSnippet = doc.getText(selection);
-    const relPath = docUri.fsPath
-      .replace(folderPath + '/', '')
-      .replace(folderPath + '\\', '');
+    const relPath = docUri.fsPath.replace(folderPath + '/', '').replace(folderPath + '\\', '');
     const lineStart = selection.start.line + 1;
     const lineEnd = selection.end.line + 1;
+    const locationLabel = `${relPath}:${lineStart}\u2013${lineEnd}`;
 
-    const title = await vscode.window.showInputBox({
-      prompt: `Annotate ${relPath}:${lineStart}–${lineEnd}`,
-      placeHolder: 'Note title…',
-    });
-    if (title === undefined) { return; }
+    // ── Step 1: pick an existing note or create new ───────────────────────────
+    const cached = loadCache();
+    const existingNotes = cached?.notes ?? [];
 
-    const content = await vscode.window.showInputBox({
-      prompt: 'Note content (optional)',
-      placeHolder: 'What do you want to remember about this code?',
-    });
-    if (content === undefined) { return; }
+    interface AnnotatePickItem extends vscode.QuickPickItem { noteId?: string; }
 
-    try {
-      const { accessToken } = await getTokens(secrets);
-      if (!accessToken) { vscode.window.showErrorMessage('Sign in to NoteNest first.'); return; }
-      const res = await apiPost(secrets, '/notes', {
-        folderPath,
-        title: title || 'Untitled annotation',
-        content: content || '',
-        editorMode: 'markdown',
-        filePath: relPath,
-        lineStart,
-        lineEnd,
-        codeSnippet: codeSnippet.slice(0, 500),
-      });
-      // Add new annotation note to cache immediately
-      const newNote: NoteItem = res.data.data;
-      if (memCache) {
-        memCache.notes.unshift(newNote);
-        context.globalState.update(cacheKey(), memCache);
-      } else {
-        await saveCache([newNote]);
+    const items: AnnotatePickItem[] = [
+      {
+        label: '$(add) Create new note',
+        description: '',
+        detail: `New note with this annotation attached \u2014 ${locationLabel}`,
+        noteId: undefined,
+      },
+    ];
+
+    if (existingNotes.length > 0) {
+      items.push({ label: 'Add to existing note', kind: vscode.QuickPickItemKind.Separator });
+      for (const n of existingNotes) {
+        const annCount = (n.annotations?.length ?? 0) + (n.filePath ? 1 : 0);
+        const annLabel = annCount > 0 ? `${annCount} annotation${annCount > 1 ? 's' : ''} \u00b7 ` : '';
+        const date = new Date(n.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        let preview = '';
+        if (n.editorMode === 'markdown') {
+          preview = (n.content || '').replace(/[#*_`\[\]]/g, '').replace(/\n/g, ' ').trim().slice(0, 60);
+        } else {
+          try { preview = (JSON.parse(n.content || '').ops || []).map((op: {insert?: unknown}) => typeof op.insert === 'string' ? op.insert : '').join('').replace(/\n/g, ' ').trim().slice(0, 60); }
+          catch { preview = (n.content || '').replace(/<[^>]+>/g, ' ').trim().slice(0, 60); }
+        }
+        items.push({
+          label: `$(note) ${n.title}`,
+          description: `${annLabel}${date}`,
+          detail: preview || 'Empty note',
+          noteId: n.id,
+        });
       }
-      vscode.window.showInformationMessage(`📎 Annotation saved for ${relPath}:${lineStart}`);
-      const activeEditor = vscode.window.activeTextEditor;
-      if (activeEditor) { refreshGutterDecorations(activeEditor); }
-      if (panel) { await vscode.commands.executeCommand('notenest.notesView.focus'); }
-      // Clear the saved snapshot
-      savedSelection = null;
-      savedEditorUri = null;
-    } catch { vscode.window.showErrorMessage('Failed to save annotation.'); }
+    }
+
+    const picked = await vscode.window.showQuickPick(items, {
+      title: 'Add Annotation',
+      placeHolder: 'Create a new note or add to an existing one\u2026',
+      matchOnDescription: true,
+      matchOnDetail: true,
+      ignoreFocusOut: true,
+    });
+    if (!picked) { return; }
+
+    // ── Step 2a: creating a new note — ask for title then comment ─────────────
+    if (!picked.noteId) {
+      const title = await vscode.window.showInputBox({
+        title: 'Add Annotation',
+        step: 1,
+        totalSteps: 2,
+        prompt: `New note for ${locationLabel}`,
+        placeHolder: 'Note title\u2026',
+        ignoreFocusOut: true,
+      });
+      if (title === undefined) { return; }
+
+      const comment = await vscode.window.showInputBox({
+        title: 'Add Annotation',
+        step: 2,
+        totalSteps: 2,
+        prompt: 'Add a comment for this annotation (optional)',
+        placeHolder: 'e.g. This needs refactoring\u2026',
+        ignoreFocusOut: true,
+      });
+      if (comment === undefined) { return; }
+
+      try {
+        // Create the note first
+        const noteRes = await apiPost(secrets, '/notes', {
+          folderPath,
+          title: title || 'Untitled annotation',
+          content: '',
+          editorMode: 'wysiwyg',
+        });
+        const newNote: NoteItem = noteRes.data.data;
+
+        // Then attach the annotation to it
+        const annRes = await apiPost(secrets, '/annotations', {
+          noteId: newNote.id,
+          filePath: relPath,
+          lineStart,
+          lineEnd,
+          codeSnippet: codeSnippet.slice(0, 500),
+          comment: comment || '',
+          status: 'open',
+        });
+        // Put the annotation on the note object so cache is accurate
+        newNote.annotations = [annRes.data.data];
+
+        if (memCache) {
+          memCache.notes.unshift(newNote);
+          context.globalState.update(cacheKey(), memCache);
+        } else {
+          await saveCache([newNote]);
+        }
+
+        // Refresh sidebar list
+        if (panel) {
+          const c2 = loadCache(); const fp2 = getFolderPath();
+          const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? 'No project';
+          if (c2) { panel.webview.html = notesListHtml(pn2, c2.notes, false); }
+        }
+
+        vscode.window.showInformationMessage(`\ud83d\udcce Annotation added to new note \u201c${newNote.title}\u201d`);
+      } catch { vscode.window.showErrorMessage('Failed to create note and annotation.'); return; }
+
+    // ── Step 2b: adding to existing note — ask for comment only ──────────────
+    } else {
+      const targetNote = existingNotes.find(n => n.id === picked.noteId)!;
+
+      const comment = await vscode.window.showInputBox({
+        title: 'Add Annotation',
+        step: 1,
+        totalSteps: 1,
+        prompt: `Adding annotation to \u201c${targetNote.title}\u201d \u2014 ${locationLabel}`,
+        placeHolder: 'Comment (optional)\u2026',
+        ignoreFocusOut: true,
+      });
+      if (comment === undefined) { return; }
+
+      try {
+        const annRes = await apiPost(secrets, '/annotations', {
+          noteId: picked.noteId,
+          filePath: relPath,
+          lineStart,
+          lineEnd,
+          codeSnippet: codeSnippet.slice(0, 500),
+          comment: comment || '',
+          status: 'open',
+        });
+        const newAnnotation = annRes.data.data;
+
+        // Update cache: push new annotation onto the note
+        if (memCache) {
+          const idx = memCache.notes.findIndex(n => n.id === picked.noteId);
+          if (idx !== -1) {
+            const note = memCache.notes[idx];
+            memCache.notes[idx] = {
+              ...note,
+              annotations: [...(note.annotations ?? []), newAnnotation],
+              updatedAt: new Date().toISOString(),
+            };
+            context.globalState.update(cacheKey(), memCache);
+          }
+        }
+
+        // Refresh sidebar list
+        if (panel) {
+          const c2 = loadCache(); const fp2 = getFolderPath();
+          const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? 'No project';
+          if (c2) { panel.webview.html = notesListHtml(pn2, c2.notes, false); }
+        }
+
+        // If that note's editor panel is open, re-render it with fresh data
+        const existingPanel = openNotePanels.get(picked.noteId!);
+        if (existingPanel) {
+          try {
+            const freshRes = await apiGet(secrets, `/notes/${picked.noteId}`);
+            const freshNote: NoteItem = freshRes.data.data;
+            updateNoteInCache(freshNote);
+            const { bg, text } = getNoteColors();
+            const fp2 = getFolderPath();
+            const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? 'No project';
+            existingPanel.webview.html = noteEditorHtml(freshNote, pn2, bg, text);
+          } catch { /* panel stays stale, not critical */ }
+        }
+
+        vscode.window.showInformationMessage(`\ud83d\udcce Annotation added to \u201c${targetNote.title}\u201d`);
+      } catch { vscode.window.showErrorMessage('Failed to save annotation.'); return; }
+    }
+
+    // ── Common cleanup ────────────────────────────────────────────────────────
+    const activeEditor = vscode.window.activeTextEditor;
+    if (activeEditor) { refreshGutterDecorations(activeEditor); }
+    savedSelection = null;
+    savedEditorUri = null;
   }
 
-  // ── Status bar command — uses saved snapshot (selection already gone by click time) ─
   context.subscriptions.push(
     vscode.commands.registerCommand('notenest.annotateSelectionFromStatusBar', async () => {
       if (!savedSelection || !savedEditorUri) {
@@ -1338,15 +1550,12 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // ── Annotate selection command (keyboard shortcut / right-click) ────────────
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand('notenest.annotateSelection', async (editor) => {
-      // Use live selection (keyboard / right-click); fall back to snapshot if empty
       let selection = editor.selection;
       let docUri = editor.document.uri;
       if (selection.isEmpty && savedSelection && savedEditorUri) {
-        selection = savedSelection;
-        docUri = savedEditorUri;
+        selection = savedSelection; docUri = savedEditorUri;
       }
       if (selection.isEmpty) {
         vscode.window.showWarningMessage('Select some code first, then run Annotate with NoteNest.');
@@ -1356,32 +1565,27 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // ── Git hook installer ─────────────────────────────────────────────────────
+  // ── Git hook installer ────────────────────────────────────────────────────────
   async function installGitHook(folderPath: string) {
     const fs = require('fs');
     const pathMod = require('path');
     const hookDir = pathMod.join(folderPath, '.git', 'hooks');
     const hookPath = pathMod.join(hookDir, 'pre-commit');
 
-    // Only install if .git exists
     if (!fs.existsSync(pathMod.join(folderPath, '.git'))) { return; }
     if (!fs.existsSync(hookDir)) { fs.mkdirSync(hookDir, { recursive: true }); }
 
     const hookScript = [
       '#!/bin/sh',
-      '# NoteNest pre-commit check — auto-installed by NoteNest VS Code extension',
+      '# NoteNest pre-commit check \u2014 auto-installed by NoteNest VS Code extension',
       '# Safe to remove if you uninstall NoteNest. Does nothing if config not found.',
-      '# Tokens are stored in ~/.notenest/tokens.json (never in this project).',
       'NOTENEST_PROJECT_CONFIG=".notenest/config.json"',
       'NOTENEST_HOME_CONFIG="$HOME/.notenest/tokens.json"',
-      '# Skip if either config is missing',
       'if [ ! -f "$NOTENEST_PROJECT_CONFIG" ] || [ ! -f "$NOTENEST_HOME_CONFIG" ]; then exit 0; fi',
       'FOLDER=$(pwd)',
-      '# Read API url and refresh token from home config (no tokens in project)',
       'API=$(node -e "try{const c=require(process.env.HOME+\'/.notenest/tokens.json\');process.stdout.write(c.apiUrl||\'https://vsnotes-backend.onrender.com\');}catch(e){process.stdout.write(\'https://vsnotes-backend.onrender.com\')}" 2>/dev/null)',
       'REFRESH_TOKEN=$(node -e "try{const c=require(process.env.HOME+\'/.notenest/tokens.json\');process.stdout.write(c.refreshToken||\'\');}catch(e){}" 2>/dev/null)',
       'if [ -z "$REFRESH_TOKEN" ]; then exit 0; fi',
-      '# Get a fresh access token using the refresh token',
       'TOKEN=$(REFRESH_TOKEN="$REFRESH_TOKEN" API="$API" node -e "',
       'const https=require(\'https\');',
       'const body=JSON.stringify({refreshToken:process.env.REFRESH_TOKEN});',
@@ -1391,17 +1595,16 @@ export async function activate(context: vscode.ExtensionContext) {
       'req.on(\'error\',()=>{});req.write(body);req.end();',
       '" 2>/dev/null)',
       'if [ -z "$TOKEN" ]; then exit 0; fi',
-      '# Check for blocking notes',
       'ENCODED_FOLDER=$(node -e "process.stdout.write(encodeURIComponent(\'$FOLDER\'))" 2>/dev/null)',
       'RESULT=$(curl -sf -H "Authorization: Bearer $TOKEN" "$API/notes/blocking?folderPath=$ENCODED_FOLDER" 2>/dev/null)',
       'if [ $? -ne 0 ]; then exit 0; fi',
-      'BLOCKED=$(node -e "try{const r=JSON.parse(process.argv[1]);if(r.blocked){console.log(\'BLOCKED\');r.data.forEach(n=>console.log(\'  • \'+n.title+(n.priority!==\'none\'?\' [\'+n.priority+\']\':\'\')));}}catch(e){}" "$RESULT" 2>/dev/null)',
+      'BLOCKED=$(node -e "try{const r=JSON.parse(process.argv[1]);if(r.blocked){console.log(\'BLOCKED\');r.data.forEach(n=>console.log(\'  \u2022 \'+n.title+(n.priority!==\'none\'?\' [\'+n.priority+\']\':\'\')));}}catch(e){}" "$RESULT" 2>/dev/null)',
       'if echo "$BLOCKED" | grep -q "BLOCKED"; then',
       '  echo ""',
-      '  echo "❌ NoteNest: Open notes are blocking this commit:"',
+      '  echo "\u274c NoteNest: Open notes are blocking this commit:"',
       '  echo "$BLOCKED" | grep -v "BLOCKED"',
       '  echo ""',
-      '  echo "Mark them as done in VS Code (NoteNest sidebar → change status to Done) then try again."',
+      '  echo "Mark them as done in VS Code (NoteNest sidebar \u2192 change status to Done) then try again."',
       '  echo ""',
       '  exit 1',
       'fi',
@@ -1411,11 +1614,9 @@ export async function activate(context: vscode.ExtensionContext) {
     if (fs.existsSync(hookPath)) {
       const existing = fs.readFileSync(hookPath, 'utf8');
       if (existing.includes('NoteNest pre-commit check')) {
-        // Already installed — replace it with the latest version
         const withoutOld = existing.replace(/\n*# NoteNest pre-commit check[\s\S]*?exit 0\s*$/, '').trimEnd();
         fs.writeFileSync(hookPath, withoutOld ? withoutOld + '\n\n' + hookScript : hookScript);
       } else {
-        // Append to existing hook
         fs.writeFileSync(hookPath, existing.trimEnd() + '\n\n' + hookScript);
       }
     } else {
@@ -1431,41 +1632,32 @@ export async function activate(context: vscode.ExtensionContext) {
     const { accessToken, refreshToken } = await getTokens(secrets);
     if (!accessToken) { return; }
 
-    // ── 1. Store tokens in ~/.notenest/tokens.json (home dir, NOT in project) ──
-    // This keeps credentials completely away from project linters and scanners.
     const homeConfigDir = pathMod.join(os.homedir(), '.notenest');
-    const homeConfigPath = pathMod.join(homeConfigDir, 'tokens.json');
     if (!fs.existsSync(homeConfigDir)) { fs.mkdirSync(homeConfigDir, { recursive: true }); }
-    fs.writeFileSync(homeConfigPath, JSON.stringify({
+    fs.writeFileSync(pathMod.join(homeConfigDir, 'tokens.json'), JSON.stringify({
       apiUrl: getApiUrl(),
       refreshToken: refreshToken || '',
-    }, null, 2), { mode: 0o600 }); // 600 = owner read/write only
+    }, null, 2), { mode: 0o600 });
 
-    // ── 2. Write a minimal project-level marker (no tokens, no URL) ──────────
-    // This just tells the hook that NoteNest is active for this project.
     const projectConfigDir = pathMod.join(folderPath, '.notenest');
-    const projectConfigPath = pathMod.join(projectConfigDir, 'config.json');
     if (!fs.existsSync(projectConfigDir)) { fs.mkdirSync(projectConfigDir, { recursive: true }); }
-    fs.writeFileSync(projectConfigPath, JSON.stringify({ folderPath }, null, 2));
+    fs.writeFileSync(pathMod.join(projectConfigDir, 'config.json'), JSON.stringify({ folderPath }, null, 2));
 
-    // ── 3. Ensure .notenest/ is gitignored ────────────────────────────────────
     const gitignorePath = pathMod.join(folderPath, '.gitignore');
     if (fs.existsSync(gitignorePath)) {
       const gi = fs.readFileSync(gitignorePath, 'utf8');
       if (!gi.includes('.notenest')) {
-        fs.appendFileSync(gitignorePath, '\n# NoteNest (local only, not for version control)\n.notenest/\n');
+        fs.appendFileSync(gitignorePath, '\n# NoteNest (local only)\n.notenest/\n');
       }
     } else {
-      fs.writeFileSync(gitignorePath, '# NoteNest (local only, not for version control)\n.notenest/\n');
+      fs.writeFileSync(gitignorePath, '# NoteNest (local only)\n.notenest/\n');
     }
   }
 
-  // Install hook and write config when a folder is open
   const currentFolder = getFolderPath();
   if (currentFolder) {
     writeNoteNestConfig(currentFolder).then(() => installGitHook(currentFolder)).catch(() => {});
   }
-  // Attempt to flush any offline-queued edits from previous sessions
   flushOfflineQueue().catch(() => {});
   context.subscriptions.push(
     vscode.commands.registerCommand('notenest.openNotes', () =>
@@ -1494,7 +1686,7 @@ async function startLoginFlow(secrets: vscode.SecretStorage, onSuccess: () => vo
     const { data } = await axios.get(`${apiUrl}/auth/extension/login`, { params: { state } });
     if (!data.success) { vscode.window.showErrorMessage('Failed to start login.'); return; }
     await vscode.env.openExternal(vscode.Uri.parse(data.data.url));
-    vscode.window.showInformationMessage('Complete sign-in in your browser. Waiting…');
+    vscode.window.showInformationMessage('Complete sign-in in your browser. Waiting\u2026');
     for (let i = 0; i < 60; i++) {
       await new Promise(r => setTimeout(r, 3000));
       try {
@@ -1502,7 +1694,7 @@ async function startLoginFlow(secrets: vscode.SecretStorage, onSuccess: () => vo
         if (td.success && td.data.ready) {
           await setTokens(secrets, td.data.tokens.accessToken, td.data.tokens.refreshToken);
           await secrets.store('user', JSON.stringify(td.data.user));
-          vscode.window.showInformationMessage(`✅ Logged in as ${td.data.user.name}`);
+          vscode.window.showInformationMessage(`\u2705 Logged in as ${td.data.user.name}`);
           onSuccess(); return;
         }
       } catch { /* keep polling */ }

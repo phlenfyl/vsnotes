@@ -43,7 +43,7 @@ The file is structured in this order:
 8. `deactivate()`
 
 ## VS Code config keys (all prefixed `notenest.`)
-- `notenest.apiUrl` — backend URL (default: `https://vsnotes-backend.onrender.com`)
+- `notenest.apiUrl` — backend URL (default: `https://notenest-backend.up.railway.app`)
 - `notenest.autoShow` — auto-show on project open
 - `notenest.noteBgColor` — note editor background colour
 - `notenest.noteTextColor` — note editor text colour
@@ -104,7 +104,7 @@ All HTML for the webview is generated as template literal strings in TypeScript.
 - The extension sends to the webview with `webviewView.webview.postMessage()`
 
 ## Backend API URL
-Default is `https://vsnotes-backend.onrender.com`. Configurable via `notenest.apiUrl` VS Code setting.
+Default is `https://notenest-backend.up.railway.app`. Configurable via `notenest.apiUrl` VS Code setting.
 
 ## Publisher / marketplace
 - `publisher` in `package.json` is `YOUR_PUBLISHER_NAME` — replace before publishing
