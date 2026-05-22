@@ -7,7 +7,7 @@ import * as path from 'path';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getApiUrl(): string {
-  return vscode.workspace.getConfiguration('notenest').get('apiUrl', 'http://localhost:3001');
+  return vscode.workspace.getConfiguration('notevs').get('apiUrl', 'http://localhost:3001');
 }
 function getFolderPath(): string | null {
   const folders = vscode.workspace.workspaceFolders;
@@ -213,9 +213,9 @@ const BG_COLORS = [
 // ── HTML: Welcome ─────────────────────────────────────────────────────────────
 
 function welcomeHtml(iconUri: string, existingUser: boolean): string {
-  const title = existingUser ? 'Welcome back' : 'NoteNest';
+  const title = existingUser ? 'Welcome back' : 'NoteVs';
   const description = existingUser
-    ? 'NoteNest now works offline by default. Your existing notes are still synced. Choose how you\'d like to work.'
+    ? 'NoteVs now works offline by default. Your existing notes are still synced. Choose how you\'d like to work.'
     : 'Project notes and code annotations, right inside VS Code. No account needed.';
   const primaryLabel = existingUser ? '&#9729;&#65039;&nbsp; Keep Cloud Sync' : '&#9654;&nbsp; Get Started';
   const primaryMsg  = existingUser ? 'keepSync'    : 'getStarted';
@@ -238,7 +238,7 @@ function welcomeHtml(iconUri: string, existingUser: boolean): string {
     .btn-secondary:hover{background:var(--vscode-button-secondaryHoverBackground)}
     .sync-hint{font-size:11px;color:var(--vscode-descriptionForeground);text-align:center;max-width:200px;line-height:1.5;margin-top:16px;margin-bottom:0}
   </style></head><body>
-  <div class="icon-container"><img src="${iconUri}" alt="NoteNest"/></div>
+  <div class="icon-container"><img src="${iconUri}" alt="NoteVs"/></div>
   <h1>${title}</h1>
   <p>${description}</p>
   <button class="btn" id="primary">${primaryLabel}</button>
@@ -267,8 +267,8 @@ function loginHtml(iconUri: string): string {
     .btn:hover { background: var(--vscode-button-hoverBackground); }
     .btn:active { background: var(--vscode-button-secondaryHoverBackground); }
   </style></head><body>
-  <div class="icon-container"><img src="${iconUri}" alt="NoteNest"/></div>
-  <h1>NoteNest</h1>
+  <div class="icon-container"><img src="${iconUri}" alt="NoteVs"/></div>
+  <h1>NoteVs</h1>
   <p>Your private project notepad, synced across all your devices.</p>
   <button class="btn" id="b"><i class="codicon codicon-github-inverted"></i> Sign in / Sign up</button>
   <script>
@@ -311,7 +311,7 @@ function settingsHtml(
     : `<div class="setting-hint">Notes stay on this device until sync is enabled.</div>`;
 
   const logoutHtml = syncEnabled
-    ? `<button class="logout-btn" id="lo"><i class="codicon codicon-sign-out"></i> Sign out of NoteNest</button>`
+    ? `<button class="logout-btn" id="lo"><i class="codicon codicon-sign-out"></i> Sign out of NoteVs</button>`
     : '';
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
@@ -746,7 +746,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const openingNotes = new Set<string>();
 
   function getNoteColors(): { bg: string; text: string } {
-    const config = vscode.workspace.getConfiguration('notenest');
+    const config = vscode.workspace.getConfiguration('notevs');
     return { bg: config.get('noteBgColor', '#1e1e1e'), text: config.get('noteTextColor', '#d4d4d4') };
   }
 
@@ -847,7 +847,7 @@ export async function activate(context: vscode.ExtensionContext) {
     openingNotes.delete(id);
     notePanel.onDidDispose(() => { openNotePanels.delete(id); }, null, context.subscriptions);
 
-    const syncEnabledOpen = context.globalState.get<boolean>('notenest.syncEnabled') ?? false;
+    const syncEnabledOpen = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
 
     // try local storage first
     const localNote = readLocalNote(context, id);
@@ -874,7 +874,7 @@ export async function activate(context: vscode.ExtensionContext) {
       if (msg.type === 'saveNote') {
         const patch = { title: msg.title, content: msg.content, editorMode: msg.editorMode, pinned: msg.pinned, tags: msg.tags, priority: msg.priority, status: msg.status };
         notePanel.title = msg.title || 'Note';
-        const syncEnabledSave = context.globalState.get<boolean>('notenest.syncEnabled') ?? false;
+        const syncEnabledSave = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
         const fp2 = getFolderPath();
         const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? 'No project';
         if (!syncEnabledSave) {
@@ -892,7 +892,7 @@ export async function activate(context: vscode.ExtensionContext) {
           patchNoteInCache(msg.id, patch);
           if (panel) {
             const c2 = loadCache();
-            const ls2 = context.globalState.get<string | null>('notenest.lastSyncAt') ?? null;
+            const ls2 = context.globalState.get<string | null>('notevs.lastSyncAt') ?? null;
             if (c2) { panel.webview.html = notesListHtml(pn2, c2.notes, 'synced', ls2); }
           }
           try {
@@ -948,8 +948,8 @@ export async function activate(context: vscode.ExtensionContext) {
       iconUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png')).toString();
 
       async function render() {
-        const firstRunComplete = context.globalState.get<boolean>('notenest.firstRunComplete') ?? false;
-        const syncEnabled = context.globalState.get<boolean>('notenest.syncEnabled') ?? false;
+        const firstRunComplete = context.globalState.get<boolean>('notevs.firstRunComplete') ?? false;
+        const syncEnabled = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
 
         if (!firstRunComplete) {
           const { accessToken } = await getTokens(secrets);
@@ -978,7 +978,7 @@ export async function activate(context: vscode.ExtensionContext) {
       async function showNotesList() {
         const folderPath = getFolderPath();
         const projectName = folderPath?.split(/[\/\\]/).filter(Boolean).pop() ?? 'No project';
-        const lastSyncAt = context.globalState.get<string | null>('notenest.lastSyncAt') ?? null;
+        const lastSyncAt = context.globalState.get<string | null>('notevs.lastSyncAt') ?? null;
         currentNoteId = null;
         if (!folderPath) { webviewView.webview.html = noFolderHtml(); return; }
         const cached = loadCache();
@@ -998,33 +998,33 @@ export async function activate(context: vscode.ExtensionContext) {
       webviewView.webview.onDidReceiveMessage(async (msg) => {
         switch (msg.type) {
           case 'getStarted': {
-            await context.globalState.update('notenest.firstRunComplete', true);
-            await context.globalState.update('notenest.syncEnabled', false);
+            await context.globalState.update('notevs.firstRunComplete', true);
+            await context.globalState.update('notevs.syncEnabled', false);
             await render();
             break;
           }
           case 'enableSync': {
-            await context.globalState.update('notenest.firstRunComplete', true);
-            await context.globalState.update('notenest.syncEnabled', true);
+            await context.globalState.update('notevs.firstRunComplete', true);
+            await context.globalState.update('notevs.syncEnabled', true);
             webviewView.webview.html = loginHtml(iconUri);
             break;
           }
           case 'keepSync': {
-            await context.globalState.update('notenest.firstRunComplete', true);
-            await context.globalState.update('notenest.syncEnabled', true);
+            await context.globalState.update('notevs.firstRunComplete', true);
+            await context.globalState.update('notevs.syncEnabled', true);
             await render();
             break;
           }
           case 'goLocalOnly': {
-            await context.globalState.update('notenest.firstRunComplete', true);
-            await context.globalState.update('notenest.syncEnabled', false);
+            await context.globalState.update('notevs.firstRunComplete', true);
+            await context.globalState.update('notevs.syncEnabled', false);
             await clearTokens(secrets);
             await render();
             break;
           }
           case 'toggleSync': {
             if (msg.enabled) {
-              await context.globalState.update('notenest.syncEnabled', true);
+              await context.globalState.update('notevs.syncEnabled', true);
               webviewView.webview.html = loginHtml(iconUri);
             } else {
               const ok = await vscode.window.showWarningMessage(
@@ -1032,13 +1032,13 @@ export async function activate(context: vscode.ExtensionContext) {
                 { modal: true }, 'Disable sync'
               );
               if (ok === 'Disable sync') {
-                await context.globalState.update('notenest.syncEnabled', false);
+                await context.globalState.update('notevs.syncEnabled', false);
                 await clearTokens(secrets);
                 await render();
               } else {
                 // re-render settings with sync still on
-                const config = vscode.workspace.getConfiguration('notenest');
-                const lsAt = context.globalState.get<string | null>('notenest.lastSyncAt') ?? null;
+                const config = vscode.workspace.getConfiguration('notevs');
+                const lsAt = context.globalState.get<string | null>('notevs.lastSyncAt') ?? null;
                 webviewView.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), true, null, lsAt);
               }
             }
@@ -1053,12 +1053,12 @@ export async function activate(context: vscode.ExtensionContext) {
               await flushOfflineQueue();
               const res = await apiGet(secrets, '/notes', { folderPath });
               await saveCache(res.data.data);
-              await context.globalState.update('notenest.lastSyncAt', new Date().toISOString());
-              const lsAt2 = context.globalState.get<string | null>('notenest.lastSyncAt') ?? null;
+              await context.globalState.update('notevs.lastSyncAt', new Date().toISOString());
+              const lsAt2 = context.globalState.get<string | null>('notevs.lastSyncAt') ?? null;
               webviewView.webview.html = notesListHtml(pnSync, res.data.data, 'synced', lsAt2);
             } catch {
               const pnSyncErr = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? 'No project';
-              const lsAt3 = context.globalState.get<string | null>('notenest.lastSyncAt') ?? null;
+              const lsAt3 = context.globalState.get<string | null>('notevs.lastSyncAt') ?? null;
               webviewView.webview.html = notesListHtml(pnSyncErr, loadCache()?.notes ?? [], 'error', lsAt3, 'Sync failed');
             }
             break;
@@ -1071,7 +1071,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (!folderPath) { vscode.window.showWarningMessage('Open a folder first.'); break; }
             const projectName = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? 'Project';
             const title = msg.title || 'Untitled';
-            const syncEnabled2 = context.globalState.get<boolean>('notenest.syncEnabled') ?? false;
+            const syncEnabled2 = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
             if (!syncEnabled2) {
               // local mode — write to disk
               const now = new Date().toISOString();
@@ -1091,7 +1091,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 const newNote: NoteItem = res.data.data;
                 if (memCache) { memCache.notes.unshift(newNote); context.globalState.update(cacheKey(), memCache); }
                 else { await saveCache([newNote]); }
-                const lastSyncAt2 = context.globalState.get<string | null>('notenest.lastSyncAt') ?? null;
+                const lastSyncAt2 = context.globalState.get<string | null>('notevs.lastSyncAt') ?? null;
                 const c2 = loadCache();
                 if (c2) { webviewView.webview.html = notesListHtml(projectName, c2.notes, 'synced', lastSyncAt2); }
                 await openNote(newNote.id);
@@ -1122,7 +1122,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (ok === 'Delete') {
               const notePanel = openNotePanels.get(msg.id);
               if (notePanel) { notePanel.dispose(); }
-              const syncEnabledDel = context.globalState.get<boolean>('notenest.syncEnabled') ?? false;
+              const syncEnabledDel = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
               if (!syncEnabledDel) {
                 deleteLocalNote(context, msg.id);
                 const folderPathDel = getFolderPath();
@@ -1139,9 +1139,9 @@ export async function activate(context: vscode.ExtensionContext) {
             break;
           }
           case 'openSettings': {
-            const config = vscode.workspace.getConfiguration('notenest');
-            const syncEnabledSettings = context.globalState.get<boolean>('notenest.syncEnabled') ?? false;
-            const lastSyncAtSettings = context.globalState.get<string | null>('notenest.lastSyncAt') ?? null;
+            const config = vscode.workspace.getConfiguration('notevs');
+            const syncEnabledSettings = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
+            const lastSyncAtSettings = context.globalState.get<string | null>('notevs.lastSyncAt') ?? null;
             let syncUserEmailSettings: string | null = null;
             if (syncEnabledSettings) {
               try { const u = await secrets.get('user'); syncUserEmailSettings = u ? JSON.parse(u)?.email ?? null : null; } catch { /* no user stored */ }
@@ -1150,7 +1150,7 @@ export async function activate(context: vscode.ExtensionContext) {
             break;
           }
           case 'setSetting': {
-            const config = vscode.workspace.getConfiguration('notenest');
+            const config = vscode.workspace.getConfiguration('notevs');
             if (msg.key === 'autoShow') { await config.update('autoShow', msg.value, vscode.ConfigurationTarget.Global); }
             if (msg.key === 'noteBgColor') {
               await config.update('noteBgColor', msg.value, vscode.ConfigurationTarget.Global);
@@ -1166,7 +1166,7 @@ export async function activate(context: vscode.ExtensionContext) {
     },
   };
 
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider('notenest.notesView', provider));
+  context.subscriptions.push(vscode.window.registerWebviewViewProvider('notevs.notesView', provider));
 
   // ── Annotation decorations ────────────────────────────────────────────────────
   const annotationDecoration = vscode.window.createTextEditorDecorationType({
@@ -1186,7 +1186,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const folderPath = getFolderPath();
     if (!folderPath) { return; }
     const relPath = editor.document.uri.fsPath.replace(folderPath + '/', '').replace(folderPath + '\\', '');
-    const syncEnabledRef = context.globalState.get<boolean>('notenest.syncEnabled') ?? false;
+    const syncEnabledRef = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
 
     let notes: NoteItem[] = [];
     if (!syncEnabledRef) {
@@ -1250,7 +1250,7 @@ export async function activate(context: vscode.ExtensionContext) {
         md.appendMarkdown(`\n\n_${statusLabel}${priorityLabel}_`);
         if (hovered.comment) { md.appendMarkdown(`\n\n${hovered.comment}`); }
         else if (preview) { md.appendMarkdown(`\n\n${preview}`); }
-        const openCmd = vscode.Uri.parse(`command:notenest.openNoteById?${encodeURIComponent(JSON.stringify({ id: hovered.noteId }))}`);
+        const openCmd = vscode.Uri.parse(`command:notevs.openNoteById?${encodeURIComponent(JSON.stringify({ id: hovered.noteId }))}`);
         md.appendMarkdown(`\n\n[Open note \u2192](${openCmd})`);
         const startLine = Math.max(0, hovered.lineStart - 1);
         const endLine = Math.max(0, hovered.lineEnd - 1);
@@ -1262,7 +1262,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // ── openNoteById command — works even when sidebar is closed ──────────────────
   context.subscriptions.push(
-    vscode.commands.registerCommand('notenest.openNoteById', async ({ id }: { id: string }) => {
+    vscode.commands.registerCommand('notevs.openNoteById', async ({ id }: { id: string }) => {
       await openNote(id);
     })
   );
@@ -1285,9 +1285,9 @@ export async function activate(context: vscode.ExtensionContext) {
           const range = new vscode.Range(line, 0, line, 0);
           lenses.push(new vscode.CodeLens(range, {
             title: `\ud83d\udcce ${ann.noteTitle}`,
-            command: 'notenest.openNoteById',
+            command: 'notevs.openNoteById',
             arguments: [{ id: ann.noteId }],
-            tooltip: 'Open this NoteNest note',
+            tooltip: 'Open this NoteVs note',
           }));
         }
         return lenses;
@@ -1306,14 +1306,14 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // ── Selection decoration ──────────────────────────────────────────────────────
   const selectionDecoration = vscode.window.createTextEditorDecorationType({
-    after: { contentText: '  NoteNest \u2318\u21e7N to annotate', color: new vscode.ThemeColor('editorCodeLens.foreground'), margin: '0 0 0 12px', fontStyle: 'italic', fontWeight: '400' },
+    after: { contentText: '  NoteVs \u2318\u21e7N to annotate', color: new vscode.ThemeColor('editorCodeLens.foreground'), margin: '0 0 0 12px', fontStyle: 'italic', fontWeight: '400' },
     rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
   });
 
   const annotateStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1000);
   annotateStatusBarItem.text = '\ud83d\udcce Annotate selection';
-  annotateStatusBarItem.tooltip = 'Add a NoteNest note to the selected code \u2014 or press \u2318\u21e7N';
-  annotateStatusBarItem.command = 'notenest.annotateSelectionFromStatusBar';
+  annotateStatusBarItem.tooltip = 'Add a NoteVs note to the selected code \u2014 or press \u2318\u21e7N';
+  annotateStatusBarItem.command = 'notevs.annotateSelectionFromStatusBar';
   annotateStatusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
   context.subscriptions.push(annotateStatusBarItem);
 
@@ -1342,8 +1342,8 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.languages.registerCodeActionsProvider({ scheme: 'file' }, {
     provideCodeActions(document, range) {
       if (range.isEmpty) { return []; }
-      const action = new vscode.CodeAction('\ud83d\udcce NoteNest: Annotate this selection', vscode.CodeActionKind.Empty);
-      action.command = { command: 'notenest.annotateSelection', title: '\ud83d\udcce NoteNest: Annotate this selection' };
+      const action = new vscode.CodeAction('\ud83d\udcce NoteVs: Annotate this selection', vscode.CodeActionKind.Empty);
+      action.command = { command: 'notevs.annotateSelection', title: '\ud83d\udcce NoteVs: Annotate this selection' };
       return [action];
     },
   }, { providedCodeActionKinds: [vscode.CodeActionKind.Empty] }));
@@ -1351,11 +1351,11 @@ export async function activate(context: vscode.ExtensionContext) {
   // ── Annotate logic ────────────────────────────────────────────────────────────
   async function runAnnotate(docUri: vscode.Uri, selection: vscode.Selection) {
     const folderPath = getFolderPath();
-    if (!folderPath) { vscode.window.showWarningMessage('Open a folder first to use NoteNest annotations.'); return; }
-    const syncEnabledAnnotate = context.globalState.get<boolean>('notenest.syncEnabled') ?? false;
+    if (!folderPath) { vscode.window.showWarningMessage('Open a folder first to use NoteVs annotations.'); return; }
+    const syncEnabledAnnotate = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
     if (syncEnabledAnnotate) {
       const { accessToken } = await getTokens(secrets);
-      if (!accessToken) { vscode.window.showErrorMessage('Sign in to NoteNest first.'); return; }
+      if (!accessToken) { vscode.window.showErrorMessage('Sign in to NoteVs first.'); return; }
     }
 
     const doc = await vscode.workspace.openTextDocument(docUri);
@@ -1365,7 +1365,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const lineEnd = selection.end.line + 1;
     const locationLabel = `${relPath}:${lineStart}\u2013${lineEnd}`;
 
-    const syncEnabledAnn = context.globalState.get<boolean>('notenest.syncEnabled') ?? false;
+    const syncEnabledAnn = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
     // In local mode read from disk; in sync mode read from API cache
     const existingNotes: NoteItem[] = syncEnabledAnn
       ? (loadCache()?.notes ?? [])
@@ -1427,7 +1427,7 @@ export async function activate(context: vscode.ExtensionContext) {
           const annRes = await apiPost(secrets, '/annotations', { noteId: newNote.id, filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || '', status: 'open' });
           newNote.annotations = [annRes.data.data];
           if (memCache) { memCache.notes.unshift(newNote); context.globalState.update(cacheKey(), memCache); } else { await saveCache([newNote]); }
-          if (panel) { const c2 = loadCache(); const lsA = context.globalState.get<string | null>('notenest.lastSyncAt') ?? null; if (c2) { panel.webview.html = notesListHtml(pnAnn, c2.notes, 'synced', lsA); } }
+          if (panel) { const c2 = loadCache(); const lsA = context.globalState.get<string | null>('notevs.lastSyncAt') ?? null; if (c2) { panel.webview.html = notesListHtml(pnAnn, c2.notes, 'synced', lsA); } }
           vscode.window.showInformationMessage(`\ud83d\udcce Annotation added to new note \u201c${newNote.title}\u201d`);
         } catch { vscode.window.showErrorMessage('Failed to create note and annotation.'); return; }
       }
@@ -1466,7 +1466,7 @@ export async function activate(context: vscode.ExtensionContext) {
             const idx = memCache.notes.findIndex(n => n.id === picked.noteId);
             if (idx !== -1) { const note = memCache.notes[idx]; memCache.notes[idx] = { ...note, annotations: [...(note.annotations ?? []), newAnnotation], updatedAt: new Date().toISOString() }; context.globalState.update(cacheKey(), memCache); }
           }
-          if (panel) { const c2 = loadCache(); const lsB = context.globalState.get<string | null>('notenest.lastSyncAt') ?? null; if (c2) { panel.webview.html = notesListHtml(pnAnn, c2.notes, 'synced', lsB); } }
+          if (panel) { const c2 = loadCache(); const lsB = context.globalState.get<string | null>('notevs.lastSyncAt') ?? null; if (c2) { panel.webview.html = notesListHtml(pnAnn, c2.notes, 'synced', lsB); } }
           const existingPanel = openNotePanels.get(picked.noteId!);
           if (existingPanel) {
             try { const freshRes = await apiGet(secrets, `/notes/${picked.noteId}`); const freshNote: NoteItem = freshRes.data.data; updateNoteInCache(freshNote); const { bg, text } = getNoteColors(); existingPanel.webview.html = noteEditorHtml(freshNote, pnAnn, bg, text); } catch { /* stale ok */ }
@@ -1482,16 +1482,16 @@ export async function activate(context: vscode.ExtensionContext) {
     savedEditorUri = null;
   }
 
-  context.subscriptions.push(vscode.commands.registerCommand('notenest.annotateSelectionFromStatusBar', async () => {
+  context.subscriptions.push(vscode.commands.registerCommand('notevs.annotateSelectionFromStatusBar', async () => {
     if (!savedSelection || !savedEditorUri) { vscode.window.showWarningMessage('Select some code first, then click Annotate.'); return; }
     await runAnnotate(savedEditorUri, savedSelection);
   }));
 
-  context.subscriptions.push(vscode.commands.registerTextEditorCommand('notenest.annotateSelection', async (editor) => {
+  context.subscriptions.push(vscode.commands.registerTextEditorCommand('notevs.annotateSelection', async (editor) => {
     let selection = editor.selection;
     let docUri = editor.document.uri;
     if (selection.isEmpty && savedSelection && savedEditorUri) { selection = savedSelection; docUri = savedEditorUri; }
-    if (selection.isEmpty) { vscode.window.showWarningMessage('Select some code first, then run Annotate with NoteNest.'); return; }
+    if (selection.isEmpty) { vscode.window.showWarningMessage('Select some code first, then run Annotate with NoteVs.'); return; }
     await runAnnotate(docUri, selection);
   }));
 
@@ -1535,8 +1535,8 @@ export async function activate(context: vscode.ExtensionContext) {
   if (currentFolder) { writeNoteNestConfig(currentFolder).then(() => installGitHook(currentFolder)).catch(() => {}); }
   flushOfflineQueue().catch(() => {});
   context.subscriptions.push(
-    vscode.commands.registerCommand('notenest.openNotes', () => vscode.commands.executeCommand('notenest.notesView.focus')),
-    vscode.commands.registerCommand('notenest.logout', async () => { await clearTokens(secrets); if (panel) { panel.webview.html = loginHtml(iconUri); } }),
+    vscode.commands.registerCommand('notevs.openNotes', () => vscode.commands.executeCommand('notevs.notesView.focus')),
+    vscode.commands.registerCommand('notevs.logout', async () => { await clearTokens(secrets); if (panel) { panel.webview.html = loginHtml(iconUri); } }),
   );
   context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(async () => {
     const config = vscode.workspace.getConfiguration('projectnotes');

@@ -1,6 +1,6 @@
 {
-  "name": "notenest",
-  "displayName": "NoteNest",
+  "name": "notevs",
+  "displayName": "NoteVs",
   "description": "Write notes for each VS Code project. Syncs to the cloud across all your machines.",
   "version": "0.0.1",
   "icon": "media/icon-marketplace.png",
@@ -19,75 +19,75 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "notenest",
-          "title": "NoteNest",
+          "id": "notevs",
+          "title": "NoteVs",
           "icon": "media/icon.png"
         }
       ]
     },
     "views": {
-      "notenest": [
+      "notevs": [
         {
           "type": "webview",
-          "id": "notenest.notesView",
+          "id": "notevs.notesView",
           "name": "Notes"
         }
       ]
     },
     "commands": [
       {
-        "command": "notenest.openNotes",
-        "title": "NoteNest: Open Notes"
+        "command": "notevs.openNotes",
+        "title": "NoteVs: Open Notes"
       },
       {
-        "command": "notenest.logout",
-        "title": "NoteNest: Logout"
+        "command": "notevs.logout",
+        "title": "NoteVs: Logout"
       },
       {
-        "command": "notenest.annotateSelection",
-        "title": "NoteNest: Annotate Selection"
+        "command": "notevs.annotateSelection",
+        "title": "NoteVs: Annotate Selection"
       },
       {
-        "command": "notenest.openNoteById",
-        "title": "NoteNest: Open Note"
+        "command": "notevs.openNoteById",
+        "title": "NoteVs: Open Note"
       }
     ],
     "menus": {
       "editor/context": [
         {
-          "command": "notenest.annotateSelection",
+          "command": "notevs.annotateSelection",
           "when": "editorHasSelection",
-          "group": "notenest@1"
+          "group": "notevs@1"
         }
       ]
     },
     "keybindings": [
       {
-        "command": "notenest.annotateSelection",
+        "command": "notevs.annotateSelection",
         "key": "ctrl+shift+n",
         "mac": "cmd+shift+n",
         "when": "editorHasSelection"
       }
     ],
     "configuration": {
-      "title": "NoteNest",
+      "title": "NoteVs",
       "properties": {
-        "notenest.apiUrl": {
+        "notevs.apiUrl": {
           "type": "string",
           "default": "http://localhost:3001",
-          "description": "NoteNest API URL"
+          "description": "NoteVs API URL"
         },
-        "notenest.autoShow": {
+        "notevs.autoShow": {
           "type": "boolean",
           "default": true,
           "description": "Automatically show notes when opening a project"
         },
-        "notenest.noteBgColor": {
+        "notevs.noteBgColor": {
           "type": "string",
           "default": "#1e1e1e",
           "description": "Background colour for the note editor"
         },
-        "notenest.noteTextColor": {
+        "notevs.noteTextColor": {
           "type": "string",
           "default": "#d4d4d4",
           "description": "Text colour for the note editor"
@@ -102,7 +102,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/notenest-extension"
+    "url": "https://github.com/YOUR_USERNAME/notevs-extension"
   },
   "dependencies": {
     "axios": "^1.6.7"
