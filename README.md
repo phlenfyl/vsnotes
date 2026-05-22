@@ -29,3 +29,22 @@ Write notes for each VS Code project. They sync to the cloud so they're availabl
 ## Self-hosting
 
 If you want to run your own backend, clone the [projectnotes-backend](https://github.com/YOUR_USERNAME/projectnotes-backend) repo, deploy it, and set `projectnotes.apiUrl` to your server URL in VS Code settings.
+
+```
+extension
+├─ CHANGELOG.md
+├─ CLAUDE.md
+├─ README.md
+├─ docs
+│  ├─ 01-local-first-architecture.md
+│  └─ 02-ui-changes-screen-design.md
+├─ media
+│  ├─ icon-marketplace.png
+│  ├─ icon.png
+│  └─ icon.svg
+├─ package.json
+├─ src
+│  └─ extension.ts
+└─ tsconfig.json
+
+```
