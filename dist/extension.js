@@ -8877,11 +8877,11 @@ var require_mime_types = __commonJS({
       }
       return exts[0];
     }
-    function lookup(path) {
-      if (!path || typeof path !== "string") {
+    function lookup(path2) {
+      if (!path2 || typeof path2 !== "string") {
         return false;
       }
-      var extension2 = extname("x." + path).toLowerCase().substr(1);
+      var extension2 = extname("x." + path2).toLowerCase().substr(1);
       if (!extension2) {
         return false;
       }
@@ -9986,11 +9986,11 @@ var require_form_data = __commonJS({
     "use strict";
     var CombinedStream = require_combined_stream();
     var util3 = require("util");
-    var path = require("path");
+    var path2 = require("path");
     var http3 = require("http");
     var https2 = require("https");
     var parseUrl2 = require("url").parse;
-    var fs = require("fs");
+    var fs2 = require("fs");
     var Stream = require("stream").Stream;
     var crypto2 = require("crypto");
     var mime = require_mime_types();
@@ -10057,7 +10057,7 @@ var require_form_data = __commonJS({
         if (value.end != void 0 && value.end != Infinity && value.start != void 0) {
           callback(null, value.end + 1 - (value.start ? value.start : 0));
         } else {
-          fs.stat(value.path, function(err, stat) {
+          fs2.stat(value.path, function(err, stat) {
             if (err) {
               callback(err);
               return;
@@ -10114,11 +10114,11 @@ var require_form_data = __commonJS({
     FormData3.prototype._getContentDisposition = function(value, options) {
       var filename;
       if (typeof options.filepath === "string") {
-        filename = path.normalize(options.filepath).replace(/\\/g, "/");
+        filename = path2.normalize(options.filepath).replace(/\\/g, "/");
       } else if (options.filename || value && (value.name || value.path)) {
-        filename = path.basename(options.filename || value && (value.name || value.path));
+        filename = path2.basename(options.filename || value && (value.name || value.path));
       } else if (value && value.readable && hasOwn(value, "httpVersion")) {
-        filename = path.basename(value.client._httpMessage.path || "");
+        filename = path2.basename(value.client._httpMessage.path || "");
       }
       if (filename) {
         return 'filename="' + filename + '"';
@@ -12134,9 +12134,9 @@ function isVisitable(thing) {
 function removeBrackets(key) {
   return utils_default.endsWith(key, "[]") ? key.slice(0, -2) : key;
 }
-function renderKey(path, key, dots) {
-  if (!path) return key;
-  return path.concat(key).map(function each(token, i) {
+function renderKey(path2, key, dots) {
+  if (!path2) return key;
+  return path2.concat(key).map(function each(token, i) {
     token = removeBrackets(token);
     return !dots && i ? "[" + token + "]" : token;
   }).join(dots ? "." : "");
@@ -12189,13 +12189,13 @@ function toFormData(obj, formData, options) {
     }
     return value;
   }
-  function defaultVisitor(value, key, path) {
+  function defaultVisitor(value, key, path2) {
     let arr = value;
     if (utils_default.isReactNative(formData) && utils_default.isReactNativeBlob(value)) {
-      formData.append(renderKey(path, key, dots), convertValue(value));
+      formData.append(renderKey(path2, key, dots), convertValue(value));
       return false;
     }
-    if (value && !path && typeof value === "object") {
+    if (value && !path2 && typeof value === "object") {
       if (utils_default.endsWith(key, "{}")) {
         key = metaTokens ? key : key.slice(0, -2);
         value = JSON.stringify(value);
@@ -12214,7 +12214,7 @@ function toFormData(obj, formData, options) {
     if (isVisitable(value)) {
       return true;
     }
-    formData.append(renderKey(path, key, dots), convertValue(value));
+    formData.append(renderKey(path2, key, dots), convertValue(value));
     return false;
   }
   const stack = [];
@@ -12223,16 +12223,16 @@ function toFormData(obj, formData, options) {
     convertValue,
     isVisitable
   });
-  function build(value, path) {
+  function build(value, path2) {
     if (utils_default.isUndefined(value)) return;
     if (stack.indexOf(value) !== -1) {
-      throw Error("Circular reference detected in " + path.join("."));
+      throw Error("Circular reference detected in " + path2.join("."));
     }
     stack.push(value);
     utils_default.forEach(value, function each(el, key) {
-      const result = !(utils_default.isUndefined(el) || el === null) && visitor.call(formData, el, utils_default.isString(key) ? key.trim() : key, path, exposedHelpers);
+      const result = !(utils_default.isUndefined(el) || el === null) && visitor.call(formData, el, utils_default.isString(key) ? key.trim() : key, path2, exposedHelpers);
       if (result === true) {
-        build(el, path ? path.concat(key) : [key]);
+        build(el, path2 ? path2.concat(key) : [key]);
       }
     });
     stack.pop();
@@ -12444,7 +12444,7 @@ var platform_default = {
 // ../node_modules/axios/lib/helpers/toURLEncodedForm.js
 function toURLEncodedForm(data, options) {
   return toFormData_default(data, new platform_default.classes.URLSearchParams(), {
-    visitor: function(value, key, path, helpers) {
+    visitor: function(value, key, path2, helpers) {
       if (platform_default.isNode && utils_default.isBuffer(value)) {
         this.append(key, value.toString("base64"));
         return false;
@@ -12474,11 +12474,11 @@ function arrayToObject(arr) {
   return obj;
 }
 function formDataToJSON(formData) {
-  function buildPath(path, value, target, index) {
-    let name = path[index++];
+  function buildPath(path2, value, target, index) {
+    let name = path2[index++];
     if (name === "__proto__") return true;
     const isNumericKey = Number.isFinite(+name);
-    const isLast = index >= path.length;
+    const isLast = index >= path2.length;
     name = !name && utils_default.isArray(target) ? target.length : name;
     if (isLast) {
       if (utils_default.hasOwnProp(target, name)) {
@@ -12491,7 +12491,7 @@ function formDataToJSON(formData) {
     if (!target[name] || !utils_default.isObject(target[name])) {
       target[name] = [];
     }
-    const result = buildPath(path, value, target[name], index);
+    const result = buildPath(path2, value, target[name], index);
     if (result && utils_default.isArray(target[name])) {
       target[name] = arrayToObject(target[name]);
     }
@@ -14045,9 +14045,9 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
       auth = urlUsername + ":" + urlPassword;
     }
     auth && headers.delete("authorization");
-    let path;
+    let path2;
     try {
-      path = buildURL(
+      path2 = buildURL(
         parsed.pathname + parsed.search,
         config.params,
         config.paramsSerializer
@@ -14065,7 +14065,7 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
       false
     );
     const options = {
-      path,
+      path: path2,
       method,
       headers: headers.toJSON(),
       agents: { http: config.httpAgent, https: config.httpsAgent },
@@ -14314,14 +14314,14 @@ var isURLSameOrigin_default = platform_default.hasStandardBrowserEnv ? /* @__PUR
 var cookies_default = platform_default.hasStandardBrowserEnv ? (
   // Standard browser envs support document.cookie
   {
-    write(name, value, expires, path, domain, secure, sameSite) {
+    write(name, value, expires, path2, domain, secure, sameSite) {
       if (typeof document === "undefined") return;
       const cookie = [`${name}=${encodeURIComponent(value)}`];
       if (utils_default.isNumber(expires)) {
         cookie.push(`expires=${new Date(expires).toUTCString()}`);
       }
-      if (utils_default.isString(path)) {
-        cookie.push(`path=${path}`);
+      if (utils_default.isString(path2)) {
+        cookie.push(`path=${path2}`);
       }
       if (utils_default.isString(domain)) {
         cookie.push(`domain=${domain}`);
@@ -15579,6 +15579,8 @@ var {
 
 // src/extension.ts
 var import_crypto2 = require("crypto");
+var fs = __toESM(require("fs"));
+var path = __toESM(require("path"));
 function getApiUrl() {
   return vscode.workspace.getConfiguration("notenest").get("apiUrl", "http://localhost:3001");
 }
@@ -15636,26 +15638,18 @@ async function makeRequest(s, fn) {
 }
 var base = () => getApiUrl();
 var hdr = (t) => ({ Authorization: `Bearer ${t}` });
-async function apiGet(s, path, params) {
-  return makeRequest(s, (t) => axios_default.get(`${base()}${path}`, { headers: hdr(t), params }));
+async function apiGet(s, path2, params) {
+  return makeRequest(s, (t) => axios_default.get(`${base()}${path2}`, { headers: hdr(t), params }));
 }
-async function apiPost(s, path, body) {
-  return makeRequest(s, (t) => axios_default.post(`${base()}${path}`, body, { headers: hdr(t) }));
+async function apiPost(s, path2, body) {
+  return makeRequest(s, (t) => axios_default.post(`${base()}${path2}`, body, { headers: hdr(t) }));
 }
-async function apiPatch(s, path, body) {
-  return makeRequest(s, (t) => axios_default.patch(`${base()}${path}`, body, { headers: hdr(t) }));
+async function apiPatch(s, path2, body) {
+  return makeRequest(s, (t) => axios_default.patch(`${base()}${path2}`, body, { headers: hdr(t) }));
 }
-async function apiDelete(s, path) {
-  return makeRequest(s, (t) => axios_default.delete(`${base()}${path}`, { headers: hdr(t) }));
+async function apiDelete(s, path2) {
+  return makeRequest(s, (t) => axios_default.delete(`${base()}${path2}`, { headers: hdr(t) }));
 }
-var PRIORITY_ORDER = {
-  emergency: 5,
-  urgent: 4,
-  important: 3,
-  medium: 2,
-  low: 1,
-  none: 0
-};
 var PRIORITY_LABEL = {
   emergency: "Emergency",
   urgent: "Urgent",
@@ -15664,18 +15658,85 @@ var PRIORITY_LABEL = {
   low: "Low",
   none: "None"
 };
-function topPriorityNote(notes) {
-  if (!notes.length) {
-    return null;
+function getNotesDir(context) {
+  return path.join(context.globalStorageUri.fsPath, "notes");
+}
+function getMetaPath(context) {
+  return path.join(context.globalStorageUri.fsPath, "meta.json");
+}
+function ensureLocalDirs(context) {
+  const notesDir = getNotesDir(context);
+  if (!fs.existsSync(notesDir)) {
+    fs.mkdirSync(notesDir, { recursive: true });
   }
-  return [...notes].sort((a, b) => {
-    const pa = PRIORITY_ORDER[a.priority ?? "none"] ?? 0;
-    const pb = PRIORITY_ORDER[b.priority ?? "none"] ?? 0;
-    if (pb !== pa) {
-      return pb - pa;
+}
+function readLocalMeta(context) {
+  const metaPath = getMetaPath(context);
+  try {
+    if (fs.existsSync(metaPath)) {
+      return JSON.parse(fs.readFileSync(metaPath, "utf8"));
+    }
+  } catch {
+  }
+  return { version: 1, noteIndex: [] };
+}
+function writeLocalMeta(context, meta) {
+  fs.writeFileSync(getMetaPath(context), JSON.stringify(meta, null, 2), "utf8");
+}
+function readLocalNote(context, id) {
+  const notePath = path.join(getNotesDir(context), `${id}.json`);
+  try {
+    if (fs.existsSync(notePath)) {
+      return JSON.parse(fs.readFileSync(notePath, "utf8"));
+    }
+  } catch {
+  }
+  return null;
+}
+function writeLocalNote(context, note) {
+  ensureLocalDirs(context);
+  fs.writeFileSync(path.join(getNotesDir(context), `${note.id}.json`), JSON.stringify(note, null, 2), "utf8");
+  const meta = readLocalMeta(context);
+  const entry = { id: note.id, title: note.title, updatedAt: note.updatedAt, folderPath: note.folderPath || "" };
+  const idx = meta.noteIndex.findIndex((e) => e.id === note.id);
+  if (idx !== -1) {
+    meta.noteIndex[idx] = entry;
+  } else {
+    meta.noteIndex.unshift(entry);
+  }
+  writeLocalMeta(context, meta);
+}
+function deleteLocalNote(context, id) {
+  const notePath = path.join(getNotesDir(context), `${id}.json`);
+  if (fs.existsSync(notePath)) {
+    fs.unlinkSync(notePath);
+  }
+  const meta = readLocalMeta(context);
+  meta.noteIndex = meta.noteIndex.filter((e) => e.id !== id);
+  writeLocalMeta(context, meta);
+}
+function readLocalNotes(context, folderPath) {
+  ensureLocalDirs(context);
+  const meta = readLocalMeta(context);
+  const notes = [];
+  for (const entry of meta.noteIndex) {
+    if (entry.folderPath !== folderPath) {
+      continue;
+    }
+    const note = readLocalNote(context, entry.id);
+    if (note && !note.deletedAt) {
+      notes.push(note);
+    }
+  }
+  return notes.sort((a, b) => {
+    if (a.pinned && !b.pinned) {
+      return -1;
+    }
+    if (!a.pinned && b.pinned) {
+      return 1;
     }
     return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-  })[0];
+  });
 }
 var BG_COLORS = [
   { label: "Dark", bg: "#1e1e1e", text: "#d4d4d4" },
@@ -15691,6 +15752,41 @@ var BG_COLORS = [
   { label: "Mint", bg: "#f0faf4", text: "#1a3d2b" },
   { label: "Lavender", bg: "#f3f0ff", text: "#2d1f6e" }
 ];
+function welcomeHtml(iconUri, existingUser) {
+  const title = existingUser ? "Welcome back" : "NoteNest";
+  const description = existingUser ? "NoteNest now works offline by default. Your existing notes are still synced. Choose how you'd like to work." : "Project notes and code annotations, right inside VS Code. No account needed.";
+  const primaryLabel = existingUser ? "&#9729;&#65039;&nbsp; Keep Cloud Sync" : "&#9654;&nbsp; Get Started";
+  const primaryMsg = existingUser ? "keepSync" : "getStarted";
+  const secondaryLabel = existingUser ? "&#128187;&nbsp; Switch to Local Only" : "&#9729;&#65039;&nbsp; Enable Cloud Sync";
+  const secondaryMsg = existingUser ? "goLocalOnly" : "enableSync";
+  const hint = existingUser ? "" : '<p class="sync-hint">Sync lets you view notes on the web and across machines. Requires a free account.</p>';
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/>
+  <style>
+    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:40px 24px;margin:0;display:flex;flex-direction:column;align-items:center;text-align:center;box-sizing:border-box;min-height:100vh;justify-content:center}
+    .icon-container{position:relative;margin-bottom:32px}
+    .icon-container img{width:96px;height:96px;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.2));transition:transform 0.3s ease}
+    .icon-container:hover img{transform:scale(1.05)}
+    h1{font-size:20px;font-weight:600;margin:0 0 12px;color:var(--vscode-foreground)}
+    p{font-size:13px;color:var(--vscode-descriptionForeground);margin-bottom:32px;line-height:1.6;max-width:240px}
+    .btn{width:100%;padding:10px 16px;background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;transition:background 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box}
+    .btn:hover{background:var(--vscode-button-hoverBackground)}
+    .btn-secondary{width:100%;padding:10px 16px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;transition:background 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;box-sizing:border-box}
+    .btn-secondary:hover{background:var(--vscode-button-secondaryHoverBackground)}
+    .sync-hint{font-size:11px;color:var(--vscode-descriptionForeground);text-align:center;max-width:200px;line-height:1.5;margin-top:16px;margin-bottom:0}
+  </style></head><body>
+  <div class="icon-container"><img src="${iconUri}" alt="NoteNest"/></div>
+  <h1>${title}</h1>
+  <p>${description}</p>
+  <button class="btn" id="primary">${primaryLabel}</button>
+  <button class="btn-secondary" id="secondary">${secondaryLabel}</button>
+  ${hint}
+  <script>
+    const vscode=acquireVsCodeApi();
+    document.getElementById('primary').addEventListener('click',()=>vscode.postMessage({type:'${primaryMsg}'}));
+    document.getElementById('secondary').addEventListener('click',()=>vscode.postMessage({type:'${secondaryMsg}'}));
+  </script></body></html>`;
+}
 function loginHtml(iconUri) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/>
@@ -15714,40 +15810,72 @@ function loginHtml(iconUri) {
     document.getElementById('b').addEventListener('click',()=>vscode.postMessage({type:'startLogin'}));
   </script></body></html>`;
 }
-function settingsHtml(autoShow, noteBgColor) {
+function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyncAt) {
   const swatches = BG_COLORS.map((c) => `
     <div class="swatch${c.bg === noteBgColor ? " active" : ""}" data-bg="${c.bg}" data-text="${c.text}"
       style="background:${c.bg};border-color:${c.bg === noteBgColor ? "var(--vscode-focusBorder)" : "transparent"}" title="${c.label}">
       ${c.bg === noteBgColor ? '<i class="codicon codicon-check check"></i>' : ""}
     </div>`).join("");
+  const lastSyncLabel = lastSyncAt ? (() => {
+    const diff = Date.now() - new Date(lastSyncAt).getTime();
+    const mins = Math.floor(diff / 6e4);
+    if (mins < 1) {
+      return "just now";
+    }
+    if (mins < 60) {
+      return `${mins} min ago`;
+    }
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) {
+      return `${hrs} hr ago`;
+    }
+    return new Date(lastSyncAt).toLocaleDateString(void 0, { month: "short", day: "numeric" });
+  })() : "Never";
+  const syncStatusHtml = syncEnabled ? `${syncUserEmail ? `<div class="sync-connected"><i class="codicon codicon-check"></i> Connected &middot; ${syncUserEmail.replace(/</g, "&lt;")}</div>` : ""}
+       <div class="sync-last">Last sync: ${lastSyncLabel}</div>
+       <button class="sync-now-btn" id="syncNowBtn"><i class="codicon codicon-sync"></i> Sync Now</button>` : `<div class="setting-hint">Notes stay on this device until sync is enabled.</div>`;
+  const logoutHtml = syncEnabled ? `<button class="logout-btn" id="lo"><i class="codicon codicon-sign-out"></i> Sign out of NoteNest</button>` : "";
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/>
   <style>
-    body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); background: var(--vscode-sideBar-background); padding: 16px; margin: 0; box-sizing: border-box; }
-    h2 { font-size: 14px; font-weight: 600; margin: 0 0 16px; }
-    .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--vscode-descriptionForeground); margin: 20px 0 10px; }
-    .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .row label { font-size: 13px; }
-    .back-btn { background: none; border: none; color: var(--vscode-textLink-foreground); cursor: pointer; font-size: 12px; padding: 0; margin-bottom: 16px; display: flex; align-items: center; gap: 4px; }
-    .back-btn:hover { text-decoration: underline; }
-    .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-    .swatch { width: 100%; aspect-ratio: 1; border-radius: 4px; cursor: pointer; border: 2px solid transparent; position: relative; display: flex; align-items: center; justify-content: center; transition: transform 0.1s, border-color 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .swatch:hover { transform: scale(1.05); }
-    .swatch.active { border-color: var(--vscode-focusBorder) !important; }
-    .check { font-size: 16px; color: var(--vscode-focusBorder); filter: drop-shadow(0 0 2px rgba(0,0,0,0.3)); }
-    .logout-btn { margin-top: 32px; width: 100%; padding: 8px; background: var(--vscode-inputValidation-errorBackground); color: var(--vscode-errorForeground); border: 1px solid var(--vscode-inputValidation-errorBorder); border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .logout-btn:hover { opacity: 0.9; }
+    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:16px;margin:0;box-sizing:border-box}
+    h2{font-size:14px;font-weight:600;margin:0 0 16px}
+    .label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--vscode-descriptionForeground);margin:20px 0 10px}
+    .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .row label{font-size:13px}
+    .back-btn{background:none;border:none;color:var(--vscode-textLink-foreground);cursor:pointer;font-size:12px;padding:0;margin-bottom:16px;display:flex;align-items:center;gap:4px}
+    .back-btn:hover{text-decoration:underline}
+    .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .swatch{width:100%;aspect-ratio:1;border-radius:4px;cursor:pointer;border:2px solid transparent;position:relative;display:flex;align-items:center;justify-content:center;transition:transform 0.1s,border-color 0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+    .swatch:hover{transform:scale(1.05)}
+    .swatch.active{border-color:var(--vscode-focusBorder)!important}
+    .check{font-size:16px;color:var(--vscode-focusBorder);filter:drop-shadow(0 0 2px rgba(0,0,0,0.3))}
+    .logout-btn{margin-top:32px;width:100%;padding:8px;background:var(--vscode-inputValidation-errorBackground);color:var(--vscode-errorForeground);border:1px solid var(--vscode-inputValidation-errorBorder);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;transition:opacity 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box}
+    .logout-btn:hover{opacity:0.9}
+    .setting-hint{font-size:11px;color:var(--vscode-descriptionForeground);margin:-4px 0 12px;line-height:1.5}
+    .sync-connected{font-size:11px;color:#3fb950;margin-bottom:4px;display:flex;align-items:center;gap:4px}
+    .sync-last{font-size:11px;color:var(--vscode-descriptionForeground);margin-bottom:10px}
+    .sync-now-btn{padding:5px 12px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;margin-bottom:16px;display:inline-flex;align-items:center;gap:6px}
+    .sync-now-btn:hover{background:var(--vscode-button-secondaryHoverBackground)}
   </style></head><body>
   <button class="back-btn" id="bk"><i class="codicon codicon-arrow-left"></i> Back</button>
   <h2>Settings</h2>
   <div class="row"><label>Auto-show on project open</label><input type="checkbox" id="as" ${autoShow ? "checked" : ""}/></div>
+  <div class="label">Cloud Sync</div>
+  <div class="row"><label>Sync to web &amp; across machines</label><input type="checkbox" id="syncToggle" ${syncEnabled ? "checked" : ""}/></div>
+  ${syncStatusHtml}
   <div class="label">Note background colour</div>
   <div class="swatches">${swatches}</div>
-  <button class="logout-btn" id="lo"><i class="codicon codicon-sign-out"></i> Log out</button>
+  ${logoutHtml}
   <script>
     const vscode=acquireVsCodeApi();
     document.getElementById('bk').addEventListener('click',()=>vscode.postMessage({type:'showList'}));
     document.getElementById('as').addEventListener('change',e=>vscode.postMessage({type:'setSetting',key:'autoShow',value:e.target.checked}));
+    document.getElementById('syncToggle').addEventListener('change',e=>vscode.postMessage({type:'toggleSync',enabled:e.target.checked}));
+    const syncNowBtn=document.getElementById('syncNowBtn');
+    if(syncNowBtn){syncNowBtn.addEventListener('click',()=>vscode.postMessage({type:'syncNow'}));}
+    const loBtn=document.getElementById('lo');
+    if(loBtn){loBtn.addEventListener('click',()=>vscode.postMessage({type:'logout'}));}
     document.querySelectorAll('.swatch').forEach(s=>{
       s.addEventListener('click',()=>{
         document.querySelectorAll('.swatch').forEach(x=>{x.classList.remove('active');x.style.borderColor='transparent';x.innerHTML='';});
@@ -15755,7 +15883,6 @@ function settingsHtml(autoShow, noteBgColor) {
         vscode.postMessage({type:'setSetting',key:'noteBgColor',value:s.dataset.bg,textColor:s.dataset.text});
       });
     });
-    document.getElementById('lo').addEventListener('click',()=>vscode.postMessage({type:'logout'}));
   </script></body></html>`;
 }
 function noFolderHtml() {
@@ -15779,8 +15906,33 @@ function noFolderHtml() {
   </script>
   </body></html>`;
 }
-function notesListHtml(projectName, notes, offline) {
-  const items = notes.map((n) => {
+function notesListHtml(projectName, notes, syncStatus, lastSyncAt, syncError) {
+  const syncBarContent = syncStatus === "local" ? `<span>&#9675; Local only</span><a class="sync-status-link" id="enableSyncLink">&nbsp;&middot;&nbsp; Enable cloud sync &rarr;</a>` : syncStatus === "syncing" ? `<span>&#8635; Syncing&hellip;</span>` : syncStatus === "synced" ? `<span>&#9679; Synced &middot; Last sync: ${lastSyncAt ? (() => {
+    const diff = Date.now() - new Date(lastSyncAt).getTime();
+    const m = Math.floor(diff / 6e4);
+    return m < 1 ? "just now" : m < 60 ? `${m} min ago` : `${Math.floor(m / 60)} hr ago`;
+  })() : "never"}</span>` : `<span>&#9888; Sync failed</span><a class="sync-status-link" id="retrySync">&nbsp;&middot;&nbsp; Retry &rarr;</a>`;
+  const syncBarClass = syncStatus === "error" ? "sync-status-bar error" : "sync-status-bar local";
+  const CARD_ACCENTS = [
+    { border: "rgba(108,142,245,0.5)", glow: "rgba(108,142,245,0.08)" },
+    // indigo
+    { border: "rgba(63,185,80,0.5)", glow: "rgba(63,185,80,0.08)" },
+    // green
+    { border: "rgba(251,146,60,0.5)", glow: "rgba(251,146,60,0.08)" },
+    // orange
+    { border: "rgba(232,121,249,0.5)", glow: "rgba(232,121,249,0.08)" },
+    // purple
+    { border: "rgba(251,191,36,0.5)", glow: "rgba(251,191,36,0.08)" },
+    // amber
+    { border: "rgba(34,211,238,0.5)", glow: "rgba(34,211,238,0.08)" },
+    // cyan
+    { border: "rgba(248,113,113,0.5)", glow: "rgba(248,113,113,0.08)" },
+    // red
+    { border: "rgba(52,211,153,0.5)", glow: "rgba(52,211,153,0.08)" }
+    // emerald
+  ];
+  const items = notes.map((n, i) => {
+    const accent = CARD_ACCENTS[i % CARD_ACCENTS.length];
     const date = new Date(n.updatedAt).toLocaleDateString(void 0, { month: "short", day: "numeric" });
     const safeTitle = n.title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const rawPreview = n.editorMode === "markdown" ? (n.content || "").replace(/[#*_`\[\]]/g, "").replace(/\n/g, " ") : (() => {
@@ -15797,7 +15949,7 @@ function notesListHtml(projectName, notes, offline) {
     const statusBadge = n.status === "done" ? '<span class="status-badge done"><i class="codicon codicon-check"></i> done</span>' : n.status === "passed" ? '<span class="status-badge passed"><i class="codicon codicon-pass-filled"></i> passed</span>' : "";
     const annotationCount = (n.annotations?.length ?? 0) || (n.filePath ? 1 : 0);
     const fileBadge = annotationCount > 0 ? n.annotations && n.annotations.length > 0 ? `<span class="file-badge" title="${annotationCount} code annotation(s)"><i class="codicon codicon-link"></i> ${annotationCount} annotation${annotationCount > 1 ? "s" : ""}</span>` : `<span class="file-badge" data-id="${n.id}" data-file="${n.filePath}" data-line="${n.lineStart ?? 1}" data-line-start="${n.lineStart ?? 1}" data-line-end="${n.lineEnd ?? n.lineStart ?? 1}" title="Jump to ${n.filePath}:${n.lineStart}\u2013${n.lineEnd}"><i class="codicon codicon-link"></i> ${(n.filePath ?? "").split("/").pop()}:${n.lineStart}\u2013${n.lineEnd}</span>` : "";
-    return `<div class="note-row" data-id="${n.id}">
+    return `<div class="note-row" data-id="${n.id}" style="border-left: 3px solid ${accent.border}; background: ${accent.glow};">
       <div class="note-main">
         <div class="note-header">${priorityBadge}${n.pinned ? '<i class="codicon codicon-pin pin-icon"></i>' : ""}<span class="note-title">${safeTitle}</span><span class="note-date">${date}</span></div>
         ${fileBadge ? `<div class="file-row">${fileBadge}</div>` : ""}
@@ -15826,7 +15978,7 @@ function notesListHtml(projectName, notes, offline) {
     .offline-banner{padding:6px 12px;background:var(--vscode-inputValidation-warningBackground);color:var(--vscode-inputValidation-warningForeground);font-size:11px;flex-shrink:0;display:flex;align-items:center;gap:6px}
     .notes-list{flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:8px}
     .note-row{display:flex;align-items:flex-start;padding:10px;cursor:pointer;border:1px solid var(--vscode-panel-border);border-radius:6px;background:var(--vscode-sideBar-background);transition:border-color .2s,box-shadow .2s,background .2s;position:relative;gap:8px}
-    .note-row:hover{border-color:var(--vscode-focusBorder);background:var(--vscode-list-hoverBackground);box-shadow:0 2px 8px rgba(0,0,0,.15)}
+    .note-row:hover{border-color:var(--vscode-focusBorder);filter:brightness(1.15);box-shadow:0 2px 8px rgba(0,0,0,.15)}
     .note-row.hidden{display:none}
     .note-main{flex:1;min-width:0}
     .note-header{display:flex;align-items:center;gap:6px;margin-bottom:4px}
@@ -15851,6 +16003,13 @@ function notesListHtml(projectName, notes, offline) {
     .file-row{margin-bottom:6px}
     .file-badge{font-size:11px;color:var(--vscode-textLink-foreground);cursor:pointer;opacity:.8;display:flex;align-items:center;gap:4px}
     .file-badge:hover{opacity:1;text-decoration:underline}
+    .sync-status-bar{padding:5px 12px;border-bottom:1px solid var(--vscode-panel-border);font-size:11px;flex-shrink:0;display:flex;align-items:center;gap:4px;cursor:default}
+    .sync-status-bar.local{color:var(--vscode-descriptionForeground);background:transparent}
+    .sync-status-bar.synced{color:var(--vscode-descriptionForeground);background:transparent}
+    .sync-status-bar.syncing{color:var(--vscode-descriptionForeground);background:transparent}
+    .sync-status-bar.error{background:var(--vscode-inputValidation-warningBackground);color:var(--vscode-inputValidation-warningForeground)}
+    .sync-status-link{color:var(--vscode-textLink-foreground);cursor:pointer;text-decoration:none}
+    .sync-status-link:hover{text-decoration:underline}
   </style></head><body>
   <div class="toolbar">
     <span class="project-name" title="${projectName}">${projectName}</span>
@@ -15860,7 +16019,7 @@ function notesListHtml(projectName, notes, offline) {
     </div>
   </div>
   <div class="search-bar"><input id="search" placeholder="Search notes\u2026" autocomplete="off"/></div>
-  ${offline ? `<div class="offline-banner"><i class="codicon codicon-warning"></i> Offline \u2014 changes won't save</div>` : ""}
+  <div class="${syncBarClass}">${syncBarContent}</div>
   <div class="notes-list" id="list">
     <div class="new-note-row" id="newNoteRow">
       <i class="codicon codicon-note" style="font-size:14px;opacity:.6;flex-shrink:0"></i>
@@ -15904,6 +16063,10 @@ function notesListHtml(projectName, notes, offline) {
     document.addEventListener('keydown',e=>{
       if((e.metaKey||e.ctrlKey)&&e.key==='n'){e.preventDefault();newNoteRow.classList.add('visible');newNoteInput.value='';newNoteInput.focus();}
     });
+    const enableSyncLink=document.getElementById('enableSyncLink');
+    if(enableSyncLink){enableSyncLink.addEventListener('click',()=>vscode.postMessage({type:'enableSync'}));}
+    const retrySync=document.getElementById('retrySync');
+    if(retrySync){retrySync.addEventListener('click',()=>vscode.postMessage({type:'syncNow'}));}
   </script></body></html>`;
 }
 function noteEditorHtml(note, projectName, bgColor, textColor) {
@@ -16196,49 +16359,68 @@ async function activate(context) {
     notePanel.onDidDispose(() => {
       openNotePanels.delete(id);
     }, null, context.subscriptions);
-    if (cachedNote) {
-      notePanel.webview.html = noteEditorHtml(cachedNote, projectName, bg, text);
+    const syncEnabledOpen = context.globalState.get("notenest.syncEnabled") ?? false;
+    const localNote = readLocalNote(context, id);
+    const displayNote = localNote || cachedNote;
+    if (displayNote) {
+      notePanel.webview.html = noteEditorHtml(displayNote, projectName, bg, text);
     } else {
       notePanel.webview.html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;font-family:var(--vscode-font-family);color:var(--vscode-descriptionForeground);background:var(--vscode-editor-background);font-size:13px;}</style></head><body>Loading note\u2026</body></html>`;
     }
-    try {
-      const res = await apiGet(secrets, `/notes/${id}`);
-      const freshNote = res.data.data;
-      updateNoteInCache(freshNote);
-      notePanel.title = freshNote.title || "Note";
-      notePanel.webview.html = noteEditorHtml(freshNote, projectName, bg, text);
-    } catch {
-      if (!cachedNote) {
-        notePanel.dispose();
+    if (syncEnabledOpen) {
+      try {
+        const res = await apiGet(secrets, `/notes/${id}`);
+        const freshNote = res.data.data;
+        updateNoteInCache(freshNote);
+        notePanel.title = freshNote.title || "Note";
+        notePanel.webview.html = noteEditorHtml(freshNote, projectName, bg, text);
+      } catch {
+        if (!displayNote) {
+          notePanel.dispose();
+        }
       }
     }
     notePanel.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === "saveNote") {
         const patch = { title: msg.title, content: msg.content, editorMode: msg.editorMode, pinned: msg.pinned, tags: msg.tags, priority: msg.priority, status: msg.status };
-        patchNoteInCache(msg.id, patch);
         notePanel.title = msg.title || "Note";
-        if (panel) {
-          const c2 = loadCache();
-          const fp2 = getFolderPath();
-          const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
-          if (c2) {
-            panel.webview.html = notesListHtml(pn2, c2.notes, false);
+        const syncEnabledSave = context.globalState.get("notenest.syncEnabled") ?? false;
+        const fp2 = getFolderPath();
+        const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
+        if (!syncEnabledSave) {
+          const existing = readLocalNote(context, msg.id);
+          if (existing) {
+            const updated = { ...existing, ...patch, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+            writeLocalNote(context, updated);
           }
-        }
-        try {
-          await apiPatch(secrets, `/notes/${msg.id}`, patch);
-          flushOfflineQueue().catch(() => {
-          });
+          if (panel && fp2) {
+            panel.webview.html = notesListHtml(pn2, readLocalNotes(context, fp2), "local");
+          }
           notePanel.webview.postMessage({ type: "saved" });
-        } catch (e) {
-          const err = e;
-          if (err.message === "NOT_AUTHENTICATED") {
-            if (panel) {
-              panel.webview.html = loginHtml(iconUri);
+        } else {
+          patchNoteInCache(msg.id, patch);
+          if (panel) {
+            const c2 = loadCache();
+            const ls2 = context.globalState.get("notenest.lastSyncAt") ?? null;
+            if (c2) {
+              panel.webview.html = notesListHtml(pn2, c2.notes, "synced", ls2);
             }
-          } else {
-            await enqueueOfflinePatch({ id: msg.id, patch, localUpdatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+          }
+          try {
+            await apiPatch(secrets, `/notes/${msg.id}`, patch);
+            flushOfflineQueue().catch(() => {
+            });
             notePanel.webview.postMessage({ type: "saved" });
+          } catch (e) {
+            const err = e;
+            if (err.message === "NOT_AUTHENTICATED") {
+              if (panel) {
+                panel.webview.html = loginHtml(iconUri);
+              }
+            } else {
+              await enqueueOfflinePatch({ id: msg.id, patch, localUpdatedAt: (/* @__PURE__ */ new Date()).toISOString() });
+              notePanel.webview.postMessage({ type: "saved" });
+            }
           }
         }
       }
@@ -16287,6 +16469,24 @@ async function activate(context) {
       };
       iconUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, "media", "icon.png")).toString();
       async function render() {
+        const firstRunComplete = context.globalState.get("notenest.firstRunComplete") ?? false;
+        const syncEnabled = context.globalState.get("notenest.syncEnabled") ?? false;
+        if (!firstRunComplete) {
+          const { accessToken: accessToken2 } = await getTokens(secrets);
+          webviewView.webview.html = welcomeHtml(iconUri, !!accessToken2);
+          return;
+        }
+        if (!syncEnabled) {
+          const folderPath = getFolderPath();
+          if (!folderPath) {
+            webviewView.webview.html = noFolderHtml();
+            return;
+          }
+          const notes = readLocalNotes(context, folderPath);
+          const projectName = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
+          webviewView.webview.html = notesListHtml(projectName, notes, "local");
+          return;
+        }
         const { accessToken } = await getTokens(secrets);
         if (!accessToken && !await refreshAccessToken(secrets)) {
           webviewView.webview.html = loginHtml(iconUri);
@@ -16295,20 +16495,11 @@ async function activate(context) {
         flushOfflineQueue().catch(() => {
         });
         await showNotesList();
-        const folderPath = getFolderPath();
-        if (folderPath) {
-          const cached = loadCache();
-          if (cached && cached.notes.length) {
-            const top = topPriorityNote(cached.notes);
-            if (top) {
-              openNote(top.id);
-            }
-          }
-        }
       }
       async function showNotesList() {
         const folderPath = getFolderPath();
         const projectName = folderPath?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
+        const lastSyncAt = context.globalState.get("notenest.lastSyncAt") ?? null;
         currentNoteId = null;
         if (!folderPath) {
           webviewView.webview.html = noFolderHtml();
@@ -16316,32 +16507,98 @@ async function activate(context) {
         }
         const cached = loadCache();
         if (cached) {
-          webviewView.webview.html = notesListHtml(projectName, cached.notes, false);
+          webviewView.webview.html = notesListHtml(projectName, cached.notes, "synced", lastSyncAt);
         }
         try {
           const res = await apiGet(secrets, "/notes", { folderPath });
           await saveCache(res.data.data);
           if (currentNoteId === null) {
-            webviewView.webview.html = notesListHtml(projectName, res.data.data, false);
+            webviewView.webview.html = notesListHtml(projectName, res.data.data, "synced", lastSyncAt);
           }
         } catch (e) {
           const err = e;
           if (err.message === "NOT_AUTHENTICATED") {
             webviewView.webview.html = loginHtml(iconUri);
           } else if (!cached) {
-            webviewView.webview.html = notesListHtml(projectName, [], true);
+            webviewView.webview.html = notesListHtml(projectName, [], "error", null, "Could not connect");
           } else if (currentNoteId === null) {
-            webviewView.webview.html = notesListHtml(projectName, cached.notes, true);
+            webviewView.webview.html = notesListHtml(projectName, cached.notes, "error", lastSyncAt, "Could not connect");
           }
         }
       }
       webviewView.webview.onDidReceiveMessage(async (msg) => {
         switch (msg.type) {
+          case "getStarted": {
+            await context.globalState.update("notenest.firstRunComplete", true);
+            await context.globalState.update("notenest.syncEnabled", false);
+            await render();
+            break;
+          }
+          case "enableSync": {
+            await context.globalState.update("notenest.firstRunComplete", true);
+            await context.globalState.update("notenest.syncEnabled", true);
+            webviewView.webview.html = loginHtml(iconUri);
+            break;
+          }
+          case "keepSync": {
+            await context.globalState.update("notenest.firstRunComplete", true);
+            await context.globalState.update("notenest.syncEnabled", true);
+            await render();
+            break;
+          }
+          case "goLocalOnly": {
+            await context.globalState.update("notenest.firstRunComplete", true);
+            await context.globalState.update("notenest.syncEnabled", false);
+            await clearTokens(secrets);
+            await render();
+            break;
+          }
+          case "toggleSync": {
+            if (msg.enabled) {
+              await context.globalState.update("notenest.syncEnabled", true);
+              webviewView.webview.html = loginHtml(iconUri);
+            } else {
+              const ok = await vscode.window.showWarningMessage(
+                "Disable sync? Your notes will stay on this device.",
+                { modal: true },
+                "Disable sync"
+              );
+              if (ok === "Disable sync") {
+                await context.globalState.update("notenest.syncEnabled", false);
+                await clearTokens(secrets);
+                await render();
+              } else {
+                const config = vscode.workspace.getConfiguration("notenest");
+                const lsAt = context.globalState.get("notenest.lastSyncAt") ?? null;
+                webviewView.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), true, null, lsAt);
+              }
+            }
+            break;
+          }
+          case "syncNow": {
+            const folderPath = getFolderPath();
+            if (!folderPath) break;
+            try {
+              const pnSync = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
+              webviewView.webview.html = notesListHtml(pnSync, loadCache()?.notes ?? [], "syncing");
+              await flushOfflineQueue();
+              const res = await apiGet(secrets, "/notes", { folderPath });
+              await saveCache(res.data.data);
+              await context.globalState.update("notenest.lastSyncAt", (/* @__PURE__ */ new Date()).toISOString());
+              const lsAt2 = context.globalState.get("notenest.lastSyncAt") ?? null;
+              webviewView.webview.html = notesListHtml(pnSync, res.data.data, "synced", lsAt2);
+            } catch {
+              const pnSyncErr = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
+              const lsAt3 = context.globalState.get("notenest.lastSyncAt") ?? null;
+              webviewView.webview.html = notesListHtml(pnSyncErr, loadCache()?.notes ?? [], "error", lsAt3, "Sync failed");
+            }
+            break;
+          }
           case "startLogin":
             await startLoginFlow(secrets, () => render());
             break;
           case "showList":
-            await showNotesList();
+            await render();
             break;
           case "openFolder":
             vscode.commands.executeCommand("vscode.openFolder");
@@ -16354,22 +16611,48 @@ async function activate(context) {
             }
             const projectName = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "Project";
             const title = msg.title || "Untitled";
-            try {
-              const res = await apiPost(secrets, "/notes", { folderPath, title, content: "", editorMode: "wysiwyg" });
-              const newNote = res.data.data;
-              if (memCache) {
-                memCache.notes.unshift(newNote);
-                context.globalState.update(cacheKey(), memCache);
-              } else {
-                await saveCache([newNote]);
-              }
-              const c2 = loadCache();
-              if (c2) {
-                webviewView.webview.html = notesListHtml(projectName, c2.notes, false);
-              }
+            const syncEnabled2 = context.globalState.get("notenest.syncEnabled") ?? false;
+            if (!syncEnabled2) {
+              const now = (/* @__PURE__ */ new Date()).toISOString();
+              const newNote = {
+                id: (0, import_crypto2.randomUUID)(),
+                localId: (0, import_crypto2.randomUUID)(),
+                title,
+                content: "",
+                editorMode: "wysiwyg",
+                pinned: false,
+                tags: [],
+                priority: "none",
+                status: "open",
+                createdAt: now,
+                updatedAt: now,
+                folderPath,
+                deletedAt: null,
+                syncedAt: null
+              };
+              writeLocalNote(context, newNote);
+              const localNotes = readLocalNotes(context, folderPath);
+              webviewView.webview.html = notesListHtml(projectName, localNotes, "local");
               await openNote(newNote.id);
-            } catch {
-              vscode.window.showErrorMessage("Failed to create note.");
+            } else {
+              try {
+                const res = await apiPost(secrets, "/notes", { folderPath, title, content: "", editorMode: "wysiwyg" });
+                const newNote = res.data.data;
+                if (memCache) {
+                  memCache.notes.unshift(newNote);
+                  context.globalState.update(cacheKey(), memCache);
+                } else {
+                  await saveCache([newNote]);
+                }
+                const lastSyncAt2 = context.globalState.get("notenest.lastSyncAt") ?? null;
+                const c2 = loadCache();
+                if (c2) {
+                  webviewView.webview.html = notesListHtml(projectName, c2.notes, "synced", lastSyncAt2);
+                }
+                await openNote(newNote.id);
+              } catch {
+                vscode.window.showErrorMessage("Failed to create note.");
+              }
             }
             break;
           }
@@ -16405,21 +16688,41 @@ async function activate(context) {
               if (notePanel) {
                 notePanel.dispose();
               }
-              if (memCache) {
-                memCache.notes = memCache.notes.filter((n) => n.id !== msg.id);
-                context.globalState.update(cacheKey(), memCache);
+              const syncEnabledDel = context.globalState.get("notenest.syncEnabled") ?? false;
+              if (!syncEnabledDel) {
+                deleteLocalNote(context, msg.id);
+                const folderPathDel = getFolderPath();
+                if (folderPathDel) {
+                  const pnDel = folderPathDel.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
+                  webviewView.webview.html = notesListHtml(pnDel, readLocalNotes(context, folderPathDel), "local");
+                }
+              } else {
+                if (memCache) {
+                  memCache.notes = memCache.notes.filter((n) => n.id !== msg.id);
+                  context.globalState.update(cacheKey(), memCache);
+                }
+                try {
+                  await apiDelete(secrets, `/notes/${msg.id}`);
+                } catch {
+                }
+                await showNotesList();
               }
-              try {
-                await apiDelete(secrets, `/notes/${msg.id}`);
-              } catch {
-              }
-              await showNotesList();
             }
             break;
           }
           case "openSettings": {
             const config = vscode.workspace.getConfiguration("notenest");
-            webviewView.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"));
+            const syncEnabledSettings = context.globalState.get("notenest.syncEnabled") ?? false;
+            const lastSyncAtSettings = context.globalState.get("notenest.lastSyncAt") ?? null;
+            let syncUserEmailSettings = null;
+            if (syncEnabledSettings) {
+              try {
+                const u = await secrets.get("user");
+                syncUserEmailSettings = u ? JSON.parse(u)?.email ?? null : null;
+              } catch {
+              }
+            }
+            webviewView.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings);
             break;
           }
           case "setSetting": {
@@ -16461,32 +16764,39 @@ async function activate(context) {
       return;
     }
     const relPath = editor.document.uri.fsPath.replace(folderPath + "/", "").replace(folderPath + "\\", "");
-    try {
-      const res = await apiGet(secrets, "/notes", { folderPath });
-      const notes = res.data.data;
-      const flat = [];
-      for (const note of notes) {
-        if (note.annotations && note.annotations.length > 0) {
-          for (const ann of note.annotations) {
-            if (ann.filePath === relPath && ann.lineStart != null) {
-              flat.push({ noteId: note.id, noteTitle: note.title, noteContent: note.content, editorMode: note.editorMode, priority: note.priority, status: note.status, lineStart: ann.lineStart, lineEnd: ann.lineEnd, comment: ann.comment || "" });
-            }
+    const syncEnabledRef = context.globalState.get("notenest.syncEnabled") ?? false;
+    let notes = [];
+    if (!syncEnabledRef) {
+      notes = readLocalNotes(context, folderPath);
+    } else {
+      try {
+        const res = await apiGet(secrets, "/notes", { folderPath });
+        notes = res.data.data;
+      } catch {
+        return;
+      }
+    }
+    const flat = [];
+    for (const note of notes) {
+      if (note.annotations && note.annotations.length > 0) {
+        for (const ann of note.annotations) {
+          if (ann.filePath === relPath && ann.lineStart != null) {
+            flat.push({ noteId: note.id, noteTitle: note.title, noteContent: note.content, editorMode: note.editorMode, priority: note.priority, status: note.status, lineStart: ann.lineStart, lineEnd: ann.lineEnd, comment: ann.comment || "" });
           }
         }
-        if (note.filePath === relPath && note.lineStart != null && !(note.annotations && note.annotations.length > 0)) {
-          flat.push({ noteId: note.id, noteTitle: note.title, noteContent: note.content, editorMode: note.editorMode, priority: note.priority, status: note.status, lineStart: note.lineStart, lineEnd: note.lineEnd ?? note.lineStart, comment: "" });
-        }
       }
-      annotationCache.set(relPath, flat);
-      const decorations = flat.map((ann) => {
-        const startLine = Math.max(0, ann.lineStart - 1);
-        const endLine = Math.max(0, ann.lineEnd - 1);
-        const endLineText = editor.document.lineAt(Math.min(endLine, editor.document.lineCount - 1));
-        return { range: new vscode.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length) };
-      });
-      editor.setDecorations(annotationDecoration, decorations);
-    } catch {
+      if (note.filePath === relPath && note.lineStart != null && !(note.annotations && note.annotations.length > 0)) {
+        flat.push({ noteId: note.id, noteTitle: note.title, noteContent: note.content, editorMode: note.editorMode, priority: note.priority, status: note.status, lineStart: note.lineStart, lineEnd: note.lineEnd ?? note.lineStart, comment: "" });
+      }
     }
+    annotationCache.set(relPath, flat);
+    const decorations = flat.map((ann) => {
+      const startLine = Math.max(0, ann.lineStart - 1);
+      const endLine = Math.max(0, ann.lineEnd - 1);
+      const endLineText = editor.document.lineAt(Math.min(endLine, editor.document.lineCount - 1));
+      return { range: new vscode.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length) };
+    });
+    editor.setDecorations(annotationDecoration, decorations);
   }
   context.subscriptions.push(
     vscode.languages.registerHoverProvider({ scheme: "file" }, {
@@ -16653,10 +16963,13 @@ ${preview}`);
       vscode.window.showWarningMessage("Open a folder first to use NoteNest annotations.");
       return;
     }
-    const { accessToken } = await getTokens(secrets);
-    if (!accessToken) {
-      vscode.window.showErrorMessage("Sign in to NoteNest first.");
-      return;
+    const syncEnabledAnnotate = context.globalState.get("notenest.syncEnabled") ?? false;
+    if (syncEnabledAnnotate) {
+      const { accessToken } = await getTokens(secrets);
+      if (!accessToken) {
+        vscode.window.showErrorMessage("Sign in to NoteNest first.");
+        return;
+      }
     }
     const doc = await vscode.workspace.openTextDocument(docUri);
     const codeSnippet = doc.getText(selection);
@@ -16664,8 +16977,8 @@ ${preview}`);
     const lineStart = selection.start.line + 1;
     const lineEnd = selection.end.line + 1;
     const locationLabel = `${relPath}:${lineStart}\u2013${lineEnd}`;
-    const cached = loadCache();
-    const existingNotes = cached?.notes ?? [];
+    const syncEnabledAnn = context.globalState.get("notenest.syncEnabled") ?? false;
+    const existingNotes = syncEnabledAnn ? loadCache()?.notes ?? [] : readLocalNotes(context, folderPath);
     const items = [{ label: "$(add) Create new note", description: "", detail: `New note with this annotation attached \u2014 ${locationLabel}`, noteId: void 0 }];
     if (existingNotes.length > 0) {
       items.push({ label: "Add to existing note", kind: vscode.QuickPickItemKind.Separator });
@@ -16690,6 +17003,7 @@ ${preview}`);
     if (!picked) {
       return;
     }
+    const pnAnn = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
     if (!picked.noteId) {
       const title = await vscode.window.showInputBox({ title: "Add Annotation", step: 1, totalSteps: 2, prompt: `New note for ${locationLabel}`, placeHolder: "Note title\u2026", ignoreFocusOut: true });
       if (title === void 0) {
@@ -16699,29 +17013,71 @@ ${preview}`);
       if (comment === void 0) {
         return;
       }
-      try {
-        const noteRes = await apiPost(secrets, "/notes", { folderPath, title: title || "Untitled annotation", content: "", editorMode: "wysiwyg" });
-        const newNote = noteRes.data.data;
-        const annRes = await apiPost(secrets, "/annotations", { noteId: newNote.id, filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || "", status: "open" });
-        newNote.annotations = [annRes.data.data];
-        if (memCache) {
-          memCache.notes.unshift(newNote);
-          context.globalState.update(cacheKey(), memCache);
-        } else {
-          await saveCache([newNote]);
-        }
+      if (!syncEnabledAnn) {
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const annId = (0, import_crypto2.randomUUID)();
+        const newNote = {
+          id: (0, import_crypto2.randomUUID)(),
+          localId: (0, import_crypto2.randomUUID)(),
+          title: title || "Untitled annotation",
+          content: "",
+          editorMode: "wysiwyg",
+          pinned: false,
+          tags: [],
+          priority: "none",
+          status: "open",
+          createdAt: now,
+          updatedAt: now,
+          folderPath,
+          deletedAt: null,
+          syncedAt: null,
+          annotations: [{
+            id: annId,
+            noteId: "",
+            filePath: relPath,
+            lineStart,
+            lineEnd,
+            codeSnippet: codeSnippet.slice(0, 500),
+            comment: comment || "",
+            status: "open",
+            createdAt: now,
+            updatedAt: now
+          }]
+        };
+        newNote.annotations[0].noteId = newNote.id;
+        writeLocalNote(context, newNote);
         if (panel) {
-          const c2 = loadCache();
-          const fp2 = getFolderPath();
-          const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
-          if (c2) {
-            panel.webview.html = notesListHtml(pn2, c2.notes, false);
-          }
+          panel.webview.html = notesListHtml(pnAnn, readLocalNotes(context, folderPath), "local");
+        }
+        const activeEd = vscode.window.activeTextEditor;
+        if (activeEd) {
+          await refreshAnnotations(activeEd);
         }
         vscode.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
-      } catch {
-        vscode.window.showErrorMessage("Failed to create note and annotation.");
-        return;
+      } else {
+        try {
+          const noteRes = await apiPost(secrets, "/notes", { folderPath, title: title || "Untitled annotation", content: "", editorMode: "wysiwyg" });
+          const newNote = noteRes.data.data;
+          const annRes = await apiPost(secrets, "/annotations", { noteId: newNote.id, filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || "", status: "open" });
+          newNote.annotations = [annRes.data.data];
+          if (memCache) {
+            memCache.notes.unshift(newNote);
+            context.globalState.update(cacheKey(), memCache);
+          } else {
+            await saveCache([newNote]);
+          }
+          if (panel) {
+            const c2 = loadCache();
+            const lsA = context.globalState.get("notenest.lastSyncAt") ?? null;
+            if (c2) {
+              panel.webview.html = notesListHtml(pnAnn, c2.notes, "synced", lsA);
+            }
+          }
+          vscode.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
+        } catch {
+          vscode.window.showErrorMessage("Failed to create note and annotation.");
+          return;
+        }
       }
     } else {
       const targetNote = existingNotes.find((n) => n.id === picked.noteId);
@@ -16729,42 +17085,77 @@ ${preview}`);
       if (comment === void 0) {
         return;
       }
-      try {
-        const annRes = await apiPost(secrets, "/annotations", { noteId: picked.noteId, filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || "", status: "open" });
-        const newAnnotation = annRes.data.data;
-        if (memCache) {
-          const idx = memCache.notes.findIndex((n) => n.id === picked.noteId);
-          if (idx !== -1) {
-            const note = memCache.notes[idx];
-            memCache.notes[idx] = { ...note, annotations: [...note.annotations ?? [], newAnnotation], updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
-            context.globalState.update(cacheKey(), memCache);
+      if (!syncEnabledAnn) {
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const annId = (0, import_crypto2.randomUUID)();
+        const existing = readLocalNote(context, picked.noteId);
+        if (existing) {
+          const updated = {
+            ...existing,
+            updatedAt: now,
+            annotations: [...existing.annotations ?? [], {
+              id: annId,
+              noteId: picked.noteId,
+              filePath: relPath,
+              lineStart,
+              lineEnd,
+              codeSnippet: codeSnippet.slice(0, 500),
+              comment: comment || "",
+              status: "open",
+              createdAt: now,
+              updatedAt: now
+            }]
+          };
+          writeLocalNote(context, updated);
+          if (panel) {
+            panel.webview.html = notesListHtml(pnAnn, readLocalNotes(context, folderPath), "local");
           }
-        }
-        if (panel) {
-          const c2 = loadCache();
-          const fp2 = getFolderPath();
-          const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
-          if (c2) {
-            panel.webview.html = notesListHtml(pn2, c2.notes, false);
+          const activeEd2 = vscode.window.activeTextEditor;
+          if (activeEd2) {
+            await refreshAnnotations(activeEd2);
           }
-        }
-        const existingPanel = openNotePanels.get(picked.noteId);
-        if (existingPanel) {
-          try {
-            const freshRes = await apiGet(secrets, `/notes/${picked.noteId}`);
-            const freshNote = freshRes.data.data;
-            updateNoteInCache(freshNote);
+          const existingPanel = openNotePanels.get(picked.noteId);
+          if (existingPanel) {
             const { bg, text } = getNoteColors();
-            const fp2 = getFolderPath();
-            const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
-            existingPanel.webview.html = noteEditorHtml(freshNote, pn2, bg, text);
-          } catch {
+            existingPanel.webview.html = noteEditorHtml(updated, pnAnn, bg, text);
           }
         }
         vscode.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
-      } catch {
-        vscode.window.showErrorMessage("Failed to save annotation.");
-        return;
+      } else {
+        try {
+          const annRes = await apiPost(secrets, "/annotations", { noteId: picked.noteId, filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || "", status: "open" });
+          const newAnnotation = annRes.data.data;
+          if (memCache) {
+            const idx = memCache.notes.findIndex((n) => n.id === picked.noteId);
+            if (idx !== -1) {
+              const note = memCache.notes[idx];
+              memCache.notes[idx] = { ...note, annotations: [...note.annotations ?? [], newAnnotation], updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+              context.globalState.update(cacheKey(), memCache);
+            }
+          }
+          if (panel) {
+            const c2 = loadCache();
+            const lsB = context.globalState.get("notenest.lastSyncAt") ?? null;
+            if (c2) {
+              panel.webview.html = notesListHtml(pnAnn, c2.notes, "synced", lsB);
+            }
+          }
+          const existingPanel = openNotePanels.get(picked.noteId);
+          if (existingPanel) {
+            try {
+              const freshRes = await apiGet(secrets, `/notes/${picked.noteId}`);
+              const freshNote = freshRes.data.data;
+              updateNoteInCache(freshNote);
+              const { bg, text } = getNoteColors();
+              existingPanel.webview.html = noteEditorHtml(freshNote, pnAnn, bg, text);
+            } catch {
+            }
+          }
+          vscode.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
+        } catch {
+          vscode.window.showErrorMessage("Failed to save annotation.");
+          return;
+        }
       }
     }
     const activeEditor = vscode.window.activeTextEditor;
@@ -16795,32 +17186,32 @@ ${preview}`);
     await runAnnotate(docUri, selection);
   }));
   async function installGitHook(folderPath) {
-    const fs = require("fs");
+    const fs2 = require("fs");
     const pathMod = require("path");
     const hookDir = pathMod.join(folderPath, ".git", "hooks");
     const hookPath = pathMod.join(hookDir, "pre-commit");
-    if (!fs.existsSync(pathMod.join(folderPath, ".git"))) {
+    if (!fs2.existsSync(pathMod.join(folderPath, ".git"))) {
       return;
     }
-    if (!fs.existsSync(hookDir)) {
-      fs.mkdirSync(hookDir, { recursive: true });
+    if (!fs2.existsSync(hookDir)) {
+      fs2.mkdirSync(hookDir, { recursive: true });
     }
     const hookScript = ["#!/bin/sh", "# NoteNest pre-commit check \u2014 auto-installed by NoteNest VS Code extension", "# Safe to remove if you uninstall NoteNest. Does nothing if config not found.", 'NOTENEST_PROJECT_CONFIG=".notenest/config.json"', 'NOTENEST_HOME_CONFIG="$HOME/.notenest/tokens.json"', 'if [ ! -f "$NOTENEST_PROJECT_CONFIG" ] || [ ! -f "$NOTENEST_HOME_CONFIG" ]; then exit 0; fi', "FOLDER=$(pwd)", `API=$(node -e "try{const c=require(process.env.HOME+'/.notenest/tokens.json');process.stdout.write(c.apiUrl||'https://vsnotes-backend.onrender.com');}catch(e){process.stdout.write('https://vsnotes-backend.onrender.com')}" 2>/dev/null)`, `REFRESH_TOKEN=$(node -e "try{const c=require(process.env.HOME+'/.notenest/tokens.json');process.stdout.write(c.refreshToken||'');}catch(e){}" 2>/dev/null)`, 'if [ -z "$REFRESH_TOKEN" ]; then exit 0; fi', 'TOKEN=$(REFRESH_TOKEN="$REFRESH_TOKEN" API="$API" node -e "', "const https=require('https');", "const body=JSON.stringify({refreshToken:process.env.REFRESH_TOKEN});", "const url=new URL(process.env.API+'/auth/refresh');", "const opts={hostname:url.hostname,port:url.port||443,path:url.pathname,method:'POST',headers:{'Content-Type':'application/json','Content-Length':''+ Buffer.byteLength(body)}};", "const req=https.request(opts,res=>{let d='';res.on('data',c=>d+=c);res.on('end',()=>{try{const r=JSON.parse(d);process.stdout.write(r.data&&r.data.accessToken?r.data.accessToken:'');}catch(e){}});});", "req.on('error',()=>{});req.write(body);req.end();", '" 2>/dev/null)', 'if [ -z "$TOKEN" ]; then exit 0; fi', `ENCODED_FOLDER=$(node -e "process.stdout.write(encodeURIComponent('$FOLDER'))" 2>/dev/null)`, 'RESULT=$(curl -sf -H "Authorization: Bearer $TOKEN" "$API/notes/blocking?folderPath=$ENCODED_FOLDER" 2>/dev/null)', "if [ $? -ne 0 ]; then exit 0; fi", `BLOCKED=$(node -e "try{const r=JSON.parse(process.argv[1]);if(r.blocked){console.log('BLOCKED');r.data.forEach(n=>console.log('  \u2022 '+n.title+(n.priority!=='none'?' ['+n.priority+']':'')));}}catch(e){}" "$RESULT" 2>/dev/null)`, 'if echo "$BLOCKED" | grep -q "BLOCKED"; then', '  echo ""', '  echo "\u274C NoteNest: Open notes are blocking this commit:"', '  echo "$BLOCKED" | grep -v "BLOCKED"', '  echo ""', '  echo "Mark them as done in VS Code (NoteNest sidebar \u2192 change status to Done) then try again."', '  echo ""', "  exit 1", "fi", "exit 0"].join("\n");
-    if (fs.existsSync(hookPath)) {
-      const existing = fs.readFileSync(hookPath, "utf8");
+    if (fs2.existsSync(hookPath)) {
+      const existing = fs2.readFileSync(hookPath, "utf8");
       if (existing.includes("NoteNest pre-commit check")) {
         const withoutOld = existing.replace(/\n*# NoteNest pre-commit check[\s\S]*?exit 0\s*$/, "").trimEnd();
-        fs.writeFileSync(hookPath, withoutOld ? withoutOld + "\n\n" + hookScript : hookScript);
+        fs2.writeFileSync(hookPath, withoutOld ? withoutOld + "\n\n" + hookScript : hookScript);
       } else {
-        fs.writeFileSync(hookPath, existing.trimEnd() + "\n\n" + hookScript);
+        fs2.writeFileSync(hookPath, existing.trimEnd() + "\n\n" + hookScript);
       }
     } else {
-      fs.writeFileSync(hookPath, hookScript);
+      fs2.writeFileSync(hookPath, hookScript);
     }
-    fs.chmodSync(hookPath, "755");
+    fs2.chmodSync(hookPath, "755");
   }
   async function writeNoteNestConfig(folderPath) {
-    const fs = require("fs");
+    const fs2 = require("fs");
     const pathMod = require("path");
     const os = require("os");
     const { accessToken, refreshToken } = await getTokens(secrets);
@@ -16828,23 +17219,23 @@ ${preview}`);
       return;
     }
     const homeConfigDir = pathMod.join(os.homedir(), ".notenest");
-    if (!fs.existsSync(homeConfigDir)) {
-      fs.mkdirSync(homeConfigDir, { recursive: true });
+    if (!fs2.existsSync(homeConfigDir)) {
+      fs2.mkdirSync(homeConfigDir, { recursive: true });
     }
-    fs.writeFileSync(pathMod.join(homeConfigDir, "tokens.json"), JSON.stringify({ apiUrl: getApiUrl(), refreshToken: refreshToken || "" }, null, 2), { mode: 384 });
+    fs2.writeFileSync(pathMod.join(homeConfigDir, "tokens.json"), JSON.stringify({ apiUrl: getApiUrl(), refreshToken: refreshToken || "" }, null, 2), { mode: 384 });
     const projectConfigDir = pathMod.join(folderPath, ".notenest");
-    if (!fs.existsSync(projectConfigDir)) {
-      fs.mkdirSync(projectConfigDir, { recursive: true });
+    if (!fs2.existsSync(projectConfigDir)) {
+      fs2.mkdirSync(projectConfigDir, { recursive: true });
     }
-    fs.writeFileSync(pathMod.join(projectConfigDir, "config.json"), JSON.stringify({ folderPath }, null, 2));
+    fs2.writeFileSync(pathMod.join(projectConfigDir, "config.json"), JSON.stringify({ folderPath }, null, 2));
     const gitignorePath = pathMod.join(folderPath, ".gitignore");
-    if (fs.existsSync(gitignorePath)) {
-      const gi = fs.readFileSync(gitignorePath, "utf8");
+    if (fs2.existsSync(gitignorePath)) {
+      const gi = fs2.readFileSync(gitignorePath, "utf8");
       if (!gi.includes(".notenest")) {
-        fs.appendFileSync(gitignorePath, "\n# NoteNest (local only)\n.notenest/\n");
+        fs2.appendFileSync(gitignorePath, "\n# NoteNest (local only)\n.notenest/\n");
       }
     } else {
-      fs.writeFileSync(gitignorePath, "# NoteNest (local only)\n.notenest/\n");
+      fs2.writeFileSync(gitignorePath, "# NoteNest (local only)\n.notenest/\n");
     }
   }
   const currentFolder = getFolderPath();
