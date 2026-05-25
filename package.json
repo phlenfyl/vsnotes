@@ -2,9 +2,9 @@
   "name": "notevs",
   "displayName": "NoteVs",
   "description": "Write notes for each VS Code project. Syncs to the cloud across all your machines.",
-  "version": "0.0.1",
+  "version": "0.0.5",
   "icon": "media/icon-marketplace.png",
-  "publisher": "YOUR_PUBLISHER_NAME",
+  "publisher": "MESHEmugles1",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -15,6 +15,7 @@
     "onStartupFinished"
   ],
   "main": "./dist/extension.js",
+  "license": "MIT",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -74,7 +75,7 @@
       "properties": {
         "notevs.apiUrl": {
           "type": "string",
-          "default": "http://localhost:3001",
+          "default": "https://notenest-backend.up.railway.app",
           "description": "NoteVs API URL"
         },
         "notevs.autoShow": {
@@ -98,11 +99,13 @@
   "scripts": {
     "vscode:prepublish": "npm run build",
     "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
-    "dev": "npm run build -- --watch"
+    "dev": "npm run build -- --watch",
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/notevs-extension"
+    "url": "https://github.com/MESHEmugles/vsnotes"
   },
   "dependencies": {
     "axios": "^1.6.7"
