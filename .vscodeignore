@@ -8,3 +8,4 @@ node_modules/**
 tsconfig.json
 esbuild*
 *.map
+dist/mcp-bridge.mjs
