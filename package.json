@@ -2,7 +2,7 @@
   "name": "notevs",
   "displayName": "NoteVs",
   "description": "Write notes for each VS Code project. Syncs to the cloud across all your machines.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "icon": "media/icon-marketplace.png",
   "publisher": "MESHEmugles1",
   "engines": {
