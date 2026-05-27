@@ -8877,11 +8877,11 @@ var require_mime_types = __commonJS({
       }
       return exts[0];
     }
-    function lookup(path2) {
-      if (!path2 || typeof path2 !== "string") {
+    function lookup(path3) {
+      if (!path3 || typeof path3 !== "string") {
         return false;
       }
-      var extension2 = extname("x." + path2).toLowerCase().substr(1);
+      var extension2 = extname("x." + path3).toLowerCase().substr(1);
       if (!extension2) {
         return false;
       }
@@ -9986,11 +9986,11 @@ var require_form_data = __commonJS({
     "use strict";
     var CombinedStream = require_combined_stream();
     var util3 = require("util");
-    var path2 = require("path");
-    var http3 = require("http");
+    var path3 = require("path");
+    var http4 = require("http");
     var https2 = require("https");
     var parseUrl2 = require("url").parse;
-    var fs2 = require("fs");
+    var fs3 = require("fs");
     var Stream = require("stream").Stream;
     var crypto2 = require("crypto");
     var mime = require_mime_types();
@@ -10057,7 +10057,7 @@ var require_form_data = __commonJS({
         if (value.end != void 0 && value.end != Infinity && value.start != void 0) {
           callback(null, value.end + 1 - (value.start ? value.start : 0));
         } else {
-          fs2.stat(value.path, function(err, stat) {
+          fs3.stat(value.path, function(err, stat) {
             if (err) {
               callback(err);
               return;
@@ -10114,11 +10114,11 @@ var require_form_data = __commonJS({
     FormData3.prototype._getContentDisposition = function(value, options) {
       var filename;
       if (typeof options.filepath === "string") {
-        filename = path2.normalize(options.filepath).replace(/\\/g, "/");
+        filename = path3.normalize(options.filepath).replace(/\\/g, "/");
       } else if (options.filename || value && (value.name || value.path)) {
-        filename = path2.basename(options.filename || value && (value.name || value.path));
+        filename = path3.basename(options.filename || value && (value.name || value.path));
       } else if (value && value.readable && hasOwn(value, "httpVersion")) {
-        filename = path2.basename(value.client._httpMessage.path || "");
+        filename = path3.basename(value.client._httpMessage.path || "");
       }
       if (filename) {
         return 'filename="' + filename + '"';
@@ -10259,7 +10259,7 @@ var require_form_data = __commonJS({
       if (options.protocol === "https:") {
         request = https2.request(options);
       } else {
-        request = http3.request(options);
+        request = http4.request(options);
       }
       this.getLength(function(err, length) {
         if (err && err !== "Unknown stream") {
@@ -11099,7 +11099,7 @@ var require_follow_redirects = __commonJS({
   "../node_modules/follow-redirects/index.js"(exports2, module2) {
     var url2 = require("url");
     var URL2 = url2.URL;
-    var http3 = require("http");
+    var http4 = require("http");
     var https2 = require("https");
     var Writable = require("stream").Writable;
     var assert = require("assert");
@@ -11600,7 +11600,7 @@ var require_follow_redirects = __commonJS({
     function escapeRegex(regex) {
       return regex.replace(/[\]\\/()*+?.$]/g, "\\$&");
     }
-    module2.exports = wrap({ http: http3, https: https2 });
+    module2.exports = wrap({ http: http4, https: https2 });
     module2.exports.wrap = wrap;
   }
 });
@@ -11612,7 +11612,7 @@ __export(extension_exports, {
   deactivate: () => deactivate
 });
 module.exports = __toCommonJS(extension_exports);
-var vscode = __toESM(require("vscode"));
+var vscode2 = __toESM(require("vscode"));
 
 // ../node_modules/axios/lib/helpers/bind.js
 function bind(fn, thisArg) {
@@ -12134,9 +12134,9 @@ function isVisitable(thing) {
 function removeBrackets(key) {
   return utils_default.endsWith(key, "[]") ? key.slice(0, -2) : key;
 }
-function renderKey(path2, key, dots) {
-  if (!path2) return key;
-  return path2.concat(key).map(function each(token, i) {
+function renderKey(path3, key, dots) {
+  if (!path3) return key;
+  return path3.concat(key).map(function each(token, i) {
     token = removeBrackets(token);
     return !dots && i ? "[" + token + "]" : token;
   }).join(dots ? "." : "");
@@ -12189,13 +12189,13 @@ function toFormData(obj, formData, options) {
     }
     return value;
   }
-  function defaultVisitor(value, key, path2) {
+  function defaultVisitor(value, key, path3) {
     let arr = value;
     if (utils_default.isReactNative(formData) && utils_default.isReactNativeBlob(value)) {
-      formData.append(renderKey(path2, key, dots), convertValue(value));
+      formData.append(renderKey(path3, key, dots), convertValue(value));
       return false;
     }
-    if (value && !path2 && typeof value === "object") {
+    if (value && !path3 && typeof value === "object") {
       if (utils_default.endsWith(key, "{}")) {
         key = metaTokens ? key : key.slice(0, -2);
         value = JSON.stringify(value);
@@ -12214,7 +12214,7 @@ function toFormData(obj, formData, options) {
     if (isVisitable(value)) {
       return true;
     }
-    formData.append(renderKey(path2, key, dots), convertValue(value));
+    formData.append(renderKey(path3, key, dots), convertValue(value));
     return false;
   }
   const stack = [];
@@ -12223,16 +12223,16 @@ function toFormData(obj, formData, options) {
     convertValue,
     isVisitable
   });
-  function build(value, path2) {
+  function build(value, path3) {
     if (utils_default.isUndefined(value)) return;
     if (stack.indexOf(value) !== -1) {
-      throw Error("Circular reference detected in " + path2.join("."));
+      throw Error("Circular reference detected in " + path3.join("."));
     }
     stack.push(value);
     utils_default.forEach(value, function each(el, key) {
-      const result = !(utils_default.isUndefined(el) || el === null) && visitor.call(formData, el, utils_default.isString(key) ? key.trim() : key, path2, exposedHelpers);
+      const result = !(utils_default.isUndefined(el) || el === null) && visitor.call(formData, el, utils_default.isString(key) ? key.trim() : key, path3, exposedHelpers);
       if (result === true) {
-        build(el, path2 ? path2.concat(key) : [key]);
+        build(el, path3 ? path3.concat(key) : [key]);
       }
     });
     stack.pop();
@@ -12444,7 +12444,7 @@ var platform_default = {
 // ../node_modules/axios/lib/helpers/toURLEncodedForm.js
 function toURLEncodedForm(data, options) {
   return toFormData_default(data, new platform_default.classes.URLSearchParams(), {
-    visitor: function(value, key, path2, helpers) {
+    visitor: function(value, key, path3, helpers) {
       if (platform_default.isNode && utils_default.isBuffer(value)) {
         this.append(key, value.toString("base64"));
         return false;
@@ -12474,11 +12474,11 @@ function arrayToObject(arr) {
   return obj;
 }
 function formDataToJSON(formData) {
-  function buildPath(path2, value, target, index) {
-    let name = path2[index++];
+  function buildPath(path3, value, target, index) {
+    let name = path3[index++];
     if (name === "__proto__") return true;
     const isNumericKey = Number.isFinite(+name);
-    const isLast = index >= path2.length;
+    const isLast = index >= path3.length;
     name = !name && utils_default.isArray(target) ? target.length : name;
     if (isLast) {
       if (utils_default.hasOwnProp(target, name)) {
@@ -12491,7 +12491,7 @@ function formDataToJSON(formData) {
     if (!target[name] || !utils_default.isObject(target[name])) {
       target[name] = [];
     }
-    const result = buildPath(path2, value, target[name], index);
+    const result = buildPath(path3, value, target[name], index);
     if (result && utils_default.isArray(target[name])) {
       target[name] = arrayToObject(target[name]);
     }
@@ -14045,9 +14045,9 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
       auth = urlUsername + ":" + urlPassword;
     }
     auth && headers.delete("authorization");
-    let path2;
+    let path3;
     try {
-      path2 = buildURL(
+      path3 = buildURL(
         parsed.pathname + parsed.search,
         config.params,
         config.paramsSerializer
@@ -14065,7 +14065,7 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
       false
     );
     const options = {
-      path: path2,
+      path: path3,
       method,
       headers: headers.toJSON(),
       agents: { http: config.httpAgent, https: config.httpsAgent },
@@ -14314,14 +14314,14 @@ var isURLSameOrigin_default = platform_default.hasStandardBrowserEnv ? /* @__PUR
 var cookies_default = platform_default.hasStandardBrowserEnv ? (
   // Standard browser envs support document.cookie
   {
-    write(name, value, expires, path2, domain, secure, sameSite) {
+    write(name, value, expires, path3, domain, secure, sameSite) {
       if (typeof document === "undefined") return;
       const cookie = [`${name}=${encodeURIComponent(value)}`];
       if (utils_default.isNumber(expires)) {
         cookie.push(`expires=${new Date(expires).toUTCString()}`);
       }
-      if (utils_default.isString(path2)) {
-        cookie.push(`path=${path2}`);
+      if (utils_default.isString(path3)) {
+        cookie.push(`path=${path3}`);
       }
       if (utils_default.isString(domain)) {
         cookie.push(`domain=${domain}`);
@@ -15578,14 +15578,351 @@ var {
 } = axios_default;
 
 // src/extension.ts
+var import_crypto3 = require("crypto");
+var fs2 = __toESM(require("fs"));
+var path2 = __toESM(require("path"));
+
+// src/mcpServer.ts
+var http3 = __toESM(require("http"));
+var vscode = __toESM(require("vscode"));
 var import_crypto2 = require("crypto");
 var fs = __toESM(require("fs"));
 var path = __toESM(require("path"));
+var MCP_PORT = 37491;
+function getNotesDir(storagePath) {
+  return path.join(storagePath, "notes");
+}
+function getMetaPath(storagePath) {
+  return path.join(storagePath, "meta.json");
+}
+function ensureLocalDirs(storagePath) {
+  const d = getNotesDir(storagePath);
+  if (!fs.existsSync(d)) {
+    fs.mkdirSync(d, { recursive: true });
+  }
+}
+function readLocalMeta(storagePath) {
+  try {
+    if (fs.existsSync(getMetaPath(storagePath))) {
+      return JSON.parse(fs.readFileSync(getMetaPath(storagePath), "utf8"));
+    }
+  } catch {
+  }
+  return { version: 1, noteIndex: [] };
+}
+function writeLocalMeta(storagePath, meta) {
+  fs.writeFileSync(getMetaPath(storagePath), JSON.stringify(meta, null, 2), "utf8");
+}
+function readLocalNote(storagePath, id) {
+  const p = path.join(getNotesDir(storagePath), `${id}.json`);
+  try {
+    if (fs.existsSync(p)) {
+      return JSON.parse(fs.readFileSync(p, "utf8"));
+    }
+  } catch {
+  }
+  return null;
+}
+function writeLocalNote(storagePath, note) {
+  ensureLocalDirs(storagePath);
+  fs.writeFileSync(path.join(getNotesDir(storagePath), `${note.id}.json`), JSON.stringify(note, null, 2), "utf8");
+  const meta = readLocalMeta(storagePath);
+  const entry = { id: note.id, title: note.title, updatedAt: note.updatedAt, folderPath: note.folderPath || "" };
+  const idx = meta.noteIndex.findIndex((e) => e.id === note.id);
+  if (idx !== -1) {
+    meta.noteIndex[idx] = entry;
+  } else {
+    meta.noteIndex.unshift(entry);
+  }
+  writeLocalMeta(storagePath, meta);
+}
+function deleteLocalNoteFromStorage(storagePath, id) {
+  const p = path.join(getNotesDir(storagePath), `${id}.json`);
+  if (fs.existsSync(p)) {
+    fs.unlinkSync(p);
+  }
+  const meta = readLocalMeta(storagePath);
+  meta.noteIndex = meta.noteIndex.filter((e) => e.id !== id);
+  writeLocalMeta(storagePath, meta);
+}
+function readAllNotes(storagePath, folderPath) {
+  ensureLocalDirs(storagePath);
+  const meta = readLocalMeta(storagePath);
+  const notes = [];
+  for (const entry of meta.noteIndex) {
+    if (entry.folderPath !== folderPath) {
+      continue;
+    }
+    const note = readLocalNote(storagePath, entry.id);
+    if (note && !note.deletedAt) {
+      notes.push(note);
+    }
+  }
+  return notes.sort((a, b) => {
+    if (a.pinned && !b.pinned) {
+      return -1;
+    }
+    if (!a.pinned && b.pinned) {
+      return 1;
+    }
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+}
+var FOLDER_PATH_PROP = {
+  folderPath: { type: "string", description: "Absolute path to the project folder. Pass process.cwd() from the agent. Falls back to the folder open in VS Code." }
+};
+var TOOL_DEFINITIONS = [
+  {
+    name: "notevs_list_notes",
+    description: "List all NoteVs notes for the given project folder (or the folder currently open in VS Code).",
+    inputSchema: { type: "object", properties: { ...FOLDER_PATH_PROP }, required: [] }
+  },
+  {
+    name: "notevs_get_note",
+    description: "Get the full content of a note by its id, including all annotations.",
+    inputSchema: { type: "object", properties: { id: { type: "string", description: "The note id (from notevs_list_notes)" } }, required: ["id"] }
+  },
+  {
+    name: "notevs_create_note",
+    description: "Create a new NoteVs note in the given project folder.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Note title" },
+        content: { type: "string", description: "Note content (markdown)" },
+        tags: { type: "array", items: { type: "string" }, description: "Optional tags" },
+        priority: { type: "string", enum: ["none", "low", "medium", "important", "urgent", "emergency"] },
+        status: { type: "string", enum: ["open", "done", "passed"] },
+        ...FOLDER_PATH_PROP
+      },
+      required: ["title"]
+    }
+  },
+  {
+    name: "notevs_save_note",
+    description: "Update an existing note's title, content, tags, priority, status, or pinned state.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        title: { type: "string" },
+        content: { type: "string" },
+        tags: { type: "array", items: { type: "string" } },
+        priority: { type: "string", enum: ["none", "low", "medium", "important", "urgent", "emergency"] },
+        status: { type: "string", enum: ["open", "done", "passed"] },
+        pinned: { type: "boolean" }
+      },
+      required: ["id"]
+    }
+  },
+  {
+    name: "notevs_delete_note",
+    description: "Permanently delete a note by id.",
+    inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] }
+  },
+  {
+    name: "notevs_add_annotation",
+    description: "Attach a code annotation to an existing note. Links a file + line range to the note.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        noteId: { type: "string" },
+        filePath: { type: "string", description: "Relative file path within the workspace (e.g. src/index.ts)" },
+        lineStart: { type: "number" },
+        lineEnd: { type: "number" },
+        codeSnippet: { type: "string" },
+        comment: { type: "string" }
+      },
+      required: ["noteId", "filePath", "lineStart", "lineEnd"]
+    }
+  },
+  {
+    name: "notevs_search_notes",
+    description: "Search notes by keyword across title, content, tags, and annotation comments.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        ...FOLDER_PATH_PROP
+      },
+      required: ["query"]
+    }
+  }
+];
+function handleListNotes(storagePath, folderPath) {
+  const notes = readAllNotes(storagePath, folderPath);
+  return notes.map((n) => ({ id: n.id, title: n.title, tags: n.tags, priority: n.priority, status: n.status, pinned: n.pinned, updatedAt: n.updatedAt, annotationCount: (n.annotations?.length ?? 0) + (n.filePath && !n.annotations?.length ? 1 : 0) }));
+}
+function handleGetNote(storagePath, id) {
+  const note = readLocalNote(storagePath, id);
+  if (!note) {
+    throw new Error(`Note not found: ${id}`);
+  }
+  let contentPreview = "";
+  if (note.editorMode === "markdown") {
+    contentPreview = note.content || "";
+  } else {
+    try {
+      contentPreview = (JSON.parse(note.content || "").ops ?? []).map((op) => typeof op.insert === "string" ? op.insert : "").join("");
+    } catch {
+      contentPreview = note.content || "";
+    }
+  }
+  return { id: note.id, title: note.title, content: contentPreview, editorMode: note.editorMode, tags: note.tags, priority: note.priority, status: note.status, pinned: note.pinned, updatedAt: note.updatedAt, createdAt: note.createdAt, annotations: (note.annotations ?? []).map((a) => ({ id: a.id, filePath: a.filePath, lineStart: a.lineStart, lineEnd: a.lineEnd, codeSnippet: a.codeSnippet, comment: a.comment, status: a.status })) };
+}
+function handleCreateNote(storagePath, folderPath, args) {
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  const newNote = { id: (0, import_crypto2.randomUUID)(), localId: (0, import_crypto2.randomUUID)(), title: args.title, content: args.content || "", editorMode: "markdown", pinned: false, tags: args.tags ?? [], priority: args.priority ?? "none", status: args.status ?? "open", createdAt: now, updatedAt: now, folderPath, deletedAt: null, syncedAt: null };
+  writeLocalNote(storagePath, newNote);
+  return { id: newNote.id, title: newNote.title, folderPath, status: "created" };
+}
+function handleSaveNote(storagePath, args) {
+  const existing = readLocalNote(storagePath, args.id);
+  if (!existing) {
+    throw new Error(`Note not found: ${args.id}`);
+  }
+  const updated = { ...existing, title: args.title ?? existing.title, content: args.content ?? existing.content, tags: args.tags ?? existing.tags, priority: args.priority ?? existing.priority, status: args.status ?? existing.status, pinned: args.pinned ?? existing.pinned, editorMode: args.content !== void 0 ? "markdown" : existing.editorMode, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+  writeLocalNote(storagePath, updated);
+  return { id: updated.id, title: updated.title, status: "saved" };
+}
+function handleDeleteNote(storagePath, id) {
+  if (!readLocalNote(storagePath, id)) {
+    throw new Error(`Note not found: ${id}`);
+  }
+  deleteLocalNoteFromStorage(storagePath, id);
+  return { id, status: "deleted" };
+}
+function handleAddAnnotation(storagePath, args) {
+  const existing = readLocalNote(storagePath, args.noteId);
+  if (!existing) {
+    throw new Error(`Note not found: ${args.noteId}`);
+  }
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  const newAnnotation = { id: (0, import_crypto2.randomUUID)(), noteId: args.noteId, filePath: args.filePath, lineStart: args.lineStart, lineEnd: args.lineEnd, codeSnippet: args.codeSnippet, comment: args.comment || "", status: "open", createdAt: now, updatedAt: now };
+  writeLocalNote(storagePath, { ...existing, annotations: [...existing.annotations ?? [], newAnnotation], updatedAt: now });
+  return { annotationId: newAnnotation.id, noteId: args.noteId, status: "added" };
+}
+function handleSearchNotes(storagePath, folderPath, query) {
+  const q = query.toLowerCase().trim();
+  return readAllNotes(storagePath, folderPath).filter((n) => {
+    if (n.title.toLowerCase().includes(q) || n.tags.some((t) => t.toLowerCase().includes(q))) {
+      return true;
+    }
+    let text = "";
+    if (n.editorMode === "markdown") {
+      text = n.content || "";
+    } else {
+      try {
+        text = (JSON.parse(n.content || "").ops ?? []).map((op) => typeof op.insert === "string" ? op.insert : "").join("");
+      } catch {
+        text = n.content || "";
+      }
+    }
+    return text.toLowerCase().includes(q) || (n.annotations?.some((a) => a.comment.toLowerCase().includes(q)) ?? false);
+  }).map((n) => ({ id: n.id, title: n.title, tags: n.tags, priority: n.priority, status: n.status, updatedAt: n.updatedAt }));
+}
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk.toString();
+    });
+    req.on("end", () => resolve(body));
+    req.on("error", reject);
+  });
+}
+function startMcpServer(context) {
+  const storagePath = context.globalStorageUri.fsPath;
+  function resolveFolderPath(argFolderPath) {
+    if (argFolderPath && fs.existsSync(argFolderPath)) {
+      return argFolderPath;
+    }
+    return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+  }
+  const server = http3.createServer(async (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+    const send = (status, data) => {
+      res.writeHead(status, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(data));
+    };
+    try {
+      if (req.method === "GET" && req.url === "/health") {
+        send(200, { ok: true, folderPath: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null });
+        return;
+      }
+      if (req.method === "GET" && req.url === "/tools") {
+        send(200, { tools: TOOL_DEFINITIONS });
+        return;
+      }
+      if (req.method === "POST" && req.url === "/call") {
+        const body = await readBody(req);
+        const { tool, args } = JSON.parse(body);
+        const folderPath = resolveFolderPath(args.folderPath);
+        if (!folderPath) {
+          send(400, { error: "Could not determine project folder. Pass folderPath in args or open a folder in VS Code." });
+          return;
+        }
+        let result;
+        switch (tool) {
+          case "notevs_list_notes":
+            result = handleListNotes(storagePath, folderPath);
+            break;
+          case "notevs_get_note":
+            result = handleGetNote(storagePath, args.id);
+            break;
+          case "notevs_create_note":
+            result = handleCreateNote(storagePath, folderPath, args);
+            break;
+          case "notevs_save_note":
+            result = handleSaveNote(storagePath, args);
+            break;
+          case "notevs_delete_note":
+            result = handleDeleteNote(storagePath, args.id);
+            break;
+          case "notevs_add_annotation":
+            result = handleAddAnnotation(storagePath, args);
+            break;
+          case "notevs_search_notes":
+            result = handleSearchNotes(storagePath, folderPath, args.query);
+            break;
+          default:
+            send(400, { error: `Unknown tool: ${tool}` });
+            return;
+        }
+        send(200, { result });
+        return;
+      }
+      send(404, { error: "Not found" });
+    } catch (err) {
+      send(500, { error: err instanceof Error ? err.message : String(err) });
+    }
+  });
+  server.listen(MCP_PORT, "127.0.0.1", () => {
+    console.log(`[NoteVs MCP] HTTP server running on localhost:${MCP_PORT}`);
+  });
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.warn(`[NoteVs MCP] Port ${MCP_PORT} already in use`);
+    } else {
+      console.error("[NoteVs MCP] Server error:", err);
+    }
+  });
+  return server;
+}
+
+// src/extension.ts
 function getApiUrl() {
-  return vscode.workspace.getConfiguration("notevs").get("apiUrl", "http://localhost:3001");
+  return vscode2.workspace.getConfiguration("notevs").get("apiUrl", "http://localhost:3001");
 }
 function getFolderPath() {
-  const folders = vscode.workspace.workspaceFolders;
+  const folders = vscode2.workspace.workspaceFolders;
   return folders && folders.length > 0 ? folders[0].uri.fsPath : null;
 }
 async function getTokens(s) {
@@ -15638,17 +15975,17 @@ async function makeRequest(s, fn) {
 }
 var base = () => getApiUrl();
 var hdr = (t) => ({ Authorization: `Bearer ${t}` });
-async function apiGet(s, path2, params) {
-  return makeRequest(s, (t) => axios_default.get(`${base()}${path2}`, { headers: hdr(t), params }));
+async function apiGet(s, path3, params) {
+  return makeRequest(s, (t) => axios_default.get(`${base()}${path3}`, { headers: hdr(t), params }));
 }
-async function apiPost(s, path2, body) {
-  return makeRequest(s, (t) => axios_default.post(`${base()}${path2}`, body, { headers: hdr(t) }));
+async function apiPost(s, path3, body) {
+  return makeRequest(s, (t) => axios_default.post(`${base()}${path3}`, body, { headers: hdr(t) }));
 }
-async function apiPatch(s, path2, body) {
-  return makeRequest(s, (t) => axios_default.patch(`${base()}${path2}`, body, { headers: hdr(t) }));
+async function apiPatch(s, path3, body) {
+  return makeRequest(s, (t) => axios_default.patch(`${base()}${path3}`, body, { headers: hdr(t) }));
 }
-async function apiDelete(s, path2) {
-  return makeRequest(s, (t) => axios_default.delete(`${base()}${path2}`, { headers: hdr(t) }));
+async function apiDelete(s, path3) {
+  return makeRequest(s, (t) => axios_default.delete(`${base()}${path3}`, { headers: hdr(t) }));
 }
 var PRIORITY_LABEL = {
   emergency: "Emergency",
@@ -15658,45 +15995,45 @@ var PRIORITY_LABEL = {
   low: "Low",
   none: "None"
 };
-function getNotesDir(context) {
-  return path.join(context.globalStorageUri.fsPath, "notes");
+function getNotesDir2(context) {
+  return path2.join(context.globalStorageUri.fsPath, "notes");
 }
-function getMetaPath(context) {
-  return path.join(context.globalStorageUri.fsPath, "meta.json");
+function getMetaPath2(context) {
+  return path2.join(context.globalStorageUri.fsPath, "meta.json");
 }
-function ensureLocalDirs(context) {
-  const notesDir = getNotesDir(context);
-  if (!fs.existsSync(notesDir)) {
-    fs.mkdirSync(notesDir, { recursive: true });
+function ensureLocalDirs2(context) {
+  const notesDir = getNotesDir2(context);
+  if (!fs2.existsSync(notesDir)) {
+    fs2.mkdirSync(notesDir, { recursive: true });
   }
 }
-function readLocalMeta(context) {
-  const metaPath = getMetaPath(context);
+function readLocalMeta2(context) {
+  const metaPath = getMetaPath2(context);
   try {
-    if (fs.existsSync(metaPath)) {
-      return JSON.parse(fs.readFileSync(metaPath, "utf8"));
+    if (fs2.existsSync(metaPath)) {
+      return JSON.parse(fs2.readFileSync(metaPath, "utf8"));
     }
   } catch {
   }
   return { version: 1, noteIndex: [] };
 }
-function writeLocalMeta(context, meta) {
-  fs.writeFileSync(getMetaPath(context), JSON.stringify(meta, null, 2), "utf8");
+function writeLocalMeta2(context, meta) {
+  fs2.writeFileSync(getMetaPath2(context), JSON.stringify(meta, null, 2), "utf8");
 }
-function readLocalNote(context, id) {
-  const notePath = path.join(getNotesDir(context), `${id}.json`);
+function readLocalNote2(context, id) {
+  const notePath = path2.join(getNotesDir2(context), `${id}.json`);
   try {
-    if (fs.existsSync(notePath)) {
-      return JSON.parse(fs.readFileSync(notePath, "utf8"));
+    if (fs2.existsSync(notePath)) {
+      return JSON.parse(fs2.readFileSync(notePath, "utf8"));
     }
   } catch {
   }
   return null;
 }
-function writeLocalNote(context, note) {
-  ensureLocalDirs(context);
-  fs.writeFileSync(path.join(getNotesDir(context), `${note.id}.json`), JSON.stringify(note, null, 2), "utf8");
-  const meta = readLocalMeta(context);
+function writeLocalNote2(context, note) {
+  ensureLocalDirs2(context);
+  fs2.writeFileSync(path2.join(getNotesDir2(context), `${note.id}.json`), JSON.stringify(note, null, 2), "utf8");
+  const meta = readLocalMeta2(context);
   const entry = { id: note.id, title: note.title, updatedAt: note.updatedAt, folderPath: note.folderPath || "" };
   const idx = meta.noteIndex.findIndex((e) => e.id === note.id);
   if (idx !== -1) {
@@ -15704,26 +16041,26 @@ function writeLocalNote(context, note) {
   } else {
     meta.noteIndex.unshift(entry);
   }
-  writeLocalMeta(context, meta);
+  writeLocalMeta2(context, meta);
 }
 function deleteLocalNote(context, id) {
-  const notePath = path.join(getNotesDir(context), `${id}.json`);
-  if (fs.existsSync(notePath)) {
-    fs.unlinkSync(notePath);
+  const notePath = path2.join(getNotesDir2(context), `${id}.json`);
+  if (fs2.existsSync(notePath)) {
+    fs2.unlinkSync(notePath);
   }
-  const meta = readLocalMeta(context);
+  const meta = readLocalMeta2(context);
   meta.noteIndex = meta.noteIndex.filter((e) => e.id !== id);
-  writeLocalMeta(context, meta);
+  writeLocalMeta2(context, meta);
 }
 function readLocalNotes(context, folderPath) {
-  ensureLocalDirs(context);
-  const meta = readLocalMeta(context);
+  ensureLocalDirs2(context);
+  const meta = readLocalMeta2(context);
   const notes = [];
   for (const entry of meta.noteIndex) {
     if (entry.folderPath !== folderPath) {
       continue;
     }
-    const note = readLocalNote(context, entry.id);
+    const note = readLocalNote2(context, entry.id);
     if (note && !note.deletedAt) {
       notes.push(note);
     }
@@ -15915,21 +16252,13 @@ function notesListHtml(projectName, notes, syncStatus, lastSyncAt, syncError) {
   const syncBarClass = syncStatus === "error" ? "sync-status-bar error" : "sync-status-bar local";
   const CARD_ACCENTS = [
     { border: "rgba(108,142,245,0.5)", glow: "rgba(108,142,245,0.08)" },
-    // indigo
     { border: "rgba(63,185,80,0.5)", glow: "rgba(63,185,80,0.08)" },
-    // green
     { border: "rgba(251,146,60,0.5)", glow: "rgba(251,146,60,0.08)" },
-    // orange
     { border: "rgba(232,121,249,0.5)", glow: "rgba(232,121,249,0.08)" },
-    // purple
     { border: "rgba(251,191,36,0.5)", glow: "rgba(251,191,36,0.08)" },
-    // amber
     { border: "rgba(34,211,238,0.5)", glow: "rgba(34,211,238,0.08)" },
-    // cyan
     { border: "rgba(248,113,113,0.5)", glow: "rgba(248,113,113,0.08)" },
-    // red
     { border: "rgba(52,211,153,0.5)", glow: "rgba(52,211,153,0.08)" }
-    // emerald
   ];
   const items = notes.map((n, i) => {
     const accent = CARD_ACCENTS[i % CARD_ACCENTS.length];
@@ -15975,7 +16304,6 @@ function notesListHtml(projectName, notes, syncStatus, lastSyncAt, syncError) {
     .new-note-row.visible{display:flex}
     .new-note-input{flex:1;background:transparent;border:none;color:var(--vscode-input-foreground);font-size:13px;font-weight:500;outline:none;font-family:var(--vscode-font-family);padding:2px 4px}
     .new-note-hint{font-size:10px;color:var(--vscode-descriptionForeground);white-space:nowrap;opacity:.7}
-    .offline-banner{padding:6px 12px;background:var(--vscode-inputValidation-warningBackground);color:var(--vscode-inputValidation-warningForeground);font-size:11px;flex-shrink:0;display:flex;align-items:center;gap:6px}
     .notes-list{flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:8px}
     .note-row{display:flex;align-items:flex-start;padding:10px;cursor:pointer;border:1px solid var(--vscode-panel-border);border-radius:6px;background:var(--vscode-sideBar-background);transition:border-color .2s,box-shadow .2s,background .2s;position:relative;gap:8px}
     .note-row:hover{border-color:var(--vscode-focusBorder);filter:brightness(1.15);box-shadow:0 2px 8px rgba(0,0,0,.15)}
@@ -16005,8 +16333,6 @@ function notesListHtml(projectName, notes, syncStatus, lastSyncAt, syncError) {
     .file-badge:hover{opacity:1;text-decoration:underline}
     .sync-status-bar{padding:5px 12px;border-bottom:1px solid var(--vscode-panel-border);font-size:11px;flex-shrink:0;display:flex;align-items:center;gap:4px;cursor:default}
     .sync-status-bar.local{color:var(--vscode-descriptionForeground);background:transparent}
-    .sync-status-bar.synced{color:var(--vscode-descriptionForeground);background:transparent}
-    .sync-status-bar.syncing{color:var(--vscode-descriptionForeground);background:transparent}
     .sync-status-bar.error{background:var(--vscode-inputValidation-warningBackground);color:var(--vscode-inputValidation-warningForeground)}
     .sync-status-link{color:var(--vscode-textLink-foreground);cursor:pointer;text-decoration:none}
     .sync-status-link:hover{text-decoration:underline}
@@ -16246,7 +16572,7 @@ async function activate(context) {
   const openNotePanels = /* @__PURE__ */ new Map();
   const openingNotes = /* @__PURE__ */ new Set();
   function getNoteColors() {
-    const config = vscode.workspace.getConfiguration("notevs");
+    const config = vscode2.workspace.getConfiguration("notevs");
     return { bg: config.get("noteBgColor", "#1e1e1e"), text: config.get("noteTextColor", "#d4d4d4") };
   }
   let memCache = null;
@@ -16313,7 +16639,7 @@ async function activate(context) {
         const localEdited = new Date(item.localUpdatedAt).getTime();
         const cachedAt = memCache ? new Date(memCache.cachedAt).getTime() : 0;
         if (serverUpdated > cachedAt && serverUpdated > localEdited) {
-          const choice = await vscode.window.showWarningMessage(
+          const choice = await vscode2.window.showWarningMessage(
             `"${serverNote.title}" was edited on another machine while offline. Which version to keep?`,
             { modal: true },
             "Keep my offline version",
@@ -16338,7 +16664,7 @@ async function activate(context) {
     const { bg, text } = getNoteColors();
     const existingPanel = openNotePanels.get(id);
     if (existingPanel) {
-      existingPanel.reveal(vscode.ViewColumn.Beside);
+      existingPanel.reveal(vscode2.ViewColumn.Beside);
       return;
     }
     if (openingNotes.has(id)) {
@@ -16348,10 +16674,10 @@ async function activate(context) {
     const cached = loadCache();
     const cachedNote = cached?.notes.find((n) => n.id === id);
     const noteTitle = cachedNote?.title || "Note";
-    const notePanel = vscode.window.createWebviewPanel(
+    const notePanel = vscode2.window.createWebviewPanel(
       "notenest.note",
       noteTitle,
-      vscode.ViewColumn.Beside,
+      vscode2.ViewColumn.Beside,
       { enableScripts: true, retainContextWhenHidden: true }
     );
     openNotePanels.set(id, notePanel);
@@ -16360,7 +16686,7 @@ async function activate(context) {
       openNotePanels.delete(id);
     }, null, context.subscriptions);
     const syncEnabledOpen = context.globalState.get("notevs.syncEnabled") ?? false;
-    const localNote = readLocalNote(context, id);
+    const localNote = readLocalNote2(context, id);
     const displayNote = localNote || cachedNote;
     if (displayNote) {
       notePanel.webview.html = noteEditorHtml(displayNote, projectName, bg, text);
@@ -16388,10 +16714,10 @@ async function activate(context) {
         const fp2 = getFolderPath();
         const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
         if (!syncEnabledSave) {
-          const existing = readLocalNote(context, msg.id);
+          const existing = readLocalNote2(context, msg.id);
           if (existing) {
             const updated = { ...existing, ...patch, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
-            writeLocalNote(context, updated);
+            writeLocalNote2(context, updated);
           }
           if (panel && fp2) {
             panel.webview.html = notesListHtml(pn2, readLocalNotes(context, fp2), "local");
@@ -16428,16 +16754,16 @@ async function activate(context) {
         const fp2 = getFolderPath();
         if (!fp2 || !msg.file) return;
         try {
-          const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(`${fp2}/${msg.file}`));
-          const editor = await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.One });
+          const doc = await vscode2.workspace.openTextDocument(vscode2.Uri.file(`${fp2}/${msg.file}`));
+          const editor = await vscode2.window.showTextDocument(doc, { preview: false, viewColumn: vscode2.ViewColumn.One });
           const sl = Math.max(0, (msg.lineStart || msg.line || 1) - 1);
           const el = Math.max(0, (msg.lineEnd || msg.lineStart || msg.line || 1) - 1);
           const elt = doc.lineAt(Math.min(el, doc.lineCount - 1));
-          const range = new vscode.Range(sl, 0, elt.lineNumber, elt.text.length);
-          editor.selection = new vscode.Selection(range.start, range.end);
-          editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+          const range = new vscode2.Range(sl, 0, elt.lineNumber, elt.text.length);
+          editor.selection = new vscode2.Selection(range.start, range.end);
+          editor.revealRange(range, vscode2.TextEditorRevealType.InCenter);
         } catch {
-          vscode.window.showErrorMessage(`Could not open file: ${msg.file}`);
+          vscode2.window.showErrorMessage(`Could not open file: ${msg.file}`);
         }
       }
       if (msg.type === "deleteAnnotation") {
@@ -16448,7 +16774,7 @@ async function activate(context) {
           updateNoteInCache(fn);
           notePanel.webview.html = noteEditorHtml(fn, projectName, bg, text);
         } catch {
-          vscode.window.showErrorMessage("Failed to delete annotation.");
+          vscode2.window.showErrorMessage("Failed to delete annotation.");
         }
       }
       if (msg.type === "saveAnnotation") {
@@ -16465,9 +16791,9 @@ async function activate(context) {
       panel = webviewView;
       webviewView.webview.options = {
         enableScripts: true,
-        localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "media")]
+        localResourceRoots: [vscode2.Uri.joinPath(context.extensionUri, "media")]
       };
-      iconUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, "media", "icon.png")).toString();
+      iconUri = webviewView.webview.asWebviewUri(vscode2.Uri.joinPath(context.extensionUri, "media", "icon.png")).toString();
       async function render() {
         const firstRunComplete = context.globalState.get("notevs.firstRunComplete") ?? false;
         const syncEnabled = context.globalState.get("notevs.syncEnabled") ?? false;
@@ -16558,17 +16884,13 @@ async function activate(context) {
               await context.globalState.update("notevs.syncEnabled", true);
               webviewView.webview.html = loginHtml(iconUri);
             } else {
-              const ok = await vscode.window.showWarningMessage(
-                "Disable sync? Your notes will stay on this device.",
-                { modal: true },
-                "Disable sync"
-              );
+              const ok = await vscode2.window.showWarningMessage("Disable sync? Your notes will stay on this device.", { modal: true }, "Disable sync");
               if (ok === "Disable sync") {
                 await context.globalState.update("notevs.syncEnabled", false);
                 await clearTokens(secrets);
                 await render();
               } else {
-                const config = vscode.workspace.getConfiguration("notevs");
+                const config = vscode2.workspace.getConfiguration("notevs");
                 const lsAt = context.globalState.get("notevs.lastSyncAt") ?? null;
                 webviewView.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), true, null, lsAt);
               }
@@ -16588,7 +16910,7 @@ async function activate(context) {
               const lsAt2 = context.globalState.get("notevs.lastSyncAt") ?? null;
               webviewView.webview.html = notesListHtml(pnSync, res.data.data, "synced", lsAt2);
             } catch {
-              const pnSyncErr = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
+              const pnSyncErr = getFolderPath()?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
               const lsAt3 = context.globalState.get("notevs.lastSyncAt") ?? null;
               webviewView.webview.html = notesListHtml(pnSyncErr, loadCache()?.notes ?? [], "error", lsAt3, "Sync failed");
             }
@@ -16601,12 +16923,12 @@ async function activate(context) {
             await render();
             break;
           case "openFolder":
-            vscode.commands.executeCommand("vscode.openFolder");
+            vscode2.commands.executeCommand("vscode.openFolder");
             break;
           case "newNote": {
             const folderPath = getFolderPath();
             if (!folderPath) {
-              vscode.window.showWarningMessage("Open a folder first.");
+              vscode2.window.showWarningMessage("Open a folder first.");
               break;
             }
             const projectName = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "Project";
@@ -16614,25 +16936,9 @@ async function activate(context) {
             const syncEnabled2 = context.globalState.get("notevs.syncEnabled") ?? false;
             if (!syncEnabled2) {
               const now = (/* @__PURE__ */ new Date()).toISOString();
-              const newNote = {
-                id: (0, import_crypto2.randomUUID)(),
-                localId: (0, import_crypto2.randomUUID)(),
-                title,
-                content: "",
-                editorMode: "wysiwyg",
-                pinned: false,
-                tags: [],
-                priority: "none",
-                status: "open",
-                createdAt: now,
-                updatedAt: now,
-                folderPath,
-                deletedAt: null,
-                syncedAt: null
-              };
-              writeLocalNote(context, newNote);
-              const localNotes = readLocalNotes(context, folderPath);
-              webviewView.webview.html = notesListHtml(projectName, localNotes, "local");
+              const newNote = { id: (0, import_crypto3.randomUUID)(), localId: (0, import_crypto3.randomUUID)(), title, content: "", editorMode: "wysiwyg", pinned: false, tags: [], priority: "none", status: "open", createdAt: now, updatedAt: now, folderPath, deletedAt: null, syncedAt: null };
+              writeLocalNote2(context, newNote);
+              webviewView.webview.html = notesListHtml(projectName, readLocalNotes(context, folderPath), "local");
               await openNote(newNote.id);
             } else {
               try {
@@ -16651,7 +16957,7 @@ async function activate(context) {
                 }
                 await openNote(newNote.id);
               } catch {
-                vscode.window.showErrorMessage("Failed to create note.");
+                vscode2.window.showErrorMessage("Failed to create note.");
               }
             }
             break;
@@ -16666,23 +16972,23 @@ async function activate(context) {
             const folderPath = getFolderPath();
             if (!folderPath || !msg.file) break;
             try {
-              const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(`${folderPath}/${msg.file}`));
-              const editor = await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.One });
+              const doc = await vscode2.workspace.openTextDocument(vscode2.Uri.file(`${folderPath}/${msg.file}`));
+              const editor = await vscode2.window.showTextDocument(doc, { preview: false, viewColumn: vscode2.ViewColumn.One });
               const startLine = Math.max(0, (msg.lineStart || msg.line || 1) - 1);
               const endLine = Math.max(0, (msg.lineEnd || msg.lineStart || msg.line || 1) - 1);
               const endLineText = doc.lineAt(Math.min(endLine, doc.lineCount - 1));
-              const range = new vscode.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length);
-              editor.selection = new vscode.Selection(range.start, range.end);
-              editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+              const range = new vscode2.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length);
+              editor.selection = new vscode2.Selection(range.start, range.end);
+              editor.revealRange(range, vscode2.TextEditorRevealType.InCenter);
             } catch {
-              vscode.window.showErrorMessage(`Could not open file: ${msg.file}`);
+              vscode2.window.showErrorMessage(`Could not open file: ${msg.file}`);
             }
             break;
           }
           case "saveNote":
             break;
           case "deleteNote": {
-            const ok = await vscode.window.showWarningMessage("Delete this note? This cannot be undone.", { modal: true }, "Delete");
+            const ok = await vscode2.window.showWarningMessage("Delete this note? This cannot be undone.", { modal: true }, "Delete");
             if (ok === "Delete") {
               const notePanel = openNotePanels.get(msg.id);
               if (notePanel) {
@@ -16711,7 +17017,7 @@ async function activate(context) {
             break;
           }
           case "openSettings": {
-            const config = vscode.workspace.getConfiguration("notevs");
+            const config = vscode2.workspace.getConfiguration("notevs");
             const syncEnabledSettings = context.globalState.get("notevs.syncEnabled") ?? false;
             const lastSyncAtSettings = context.globalState.get("notevs.lastSyncAt") ?? null;
             let syncUserEmailSettings = null;
@@ -16726,13 +17032,13 @@ async function activate(context) {
             break;
           }
           case "setSetting": {
-            const config = vscode.workspace.getConfiguration("notevs");
+            const config = vscode2.workspace.getConfiguration("notevs");
             if (msg.key === "autoShow") {
-              await config.update("autoShow", msg.value, vscode.ConfigurationTarget.Global);
+              await config.update("autoShow", msg.value, vscode2.ConfigurationTarget.Global);
             }
             if (msg.key === "noteBgColor") {
-              await config.update("noteBgColor", msg.value, vscode.ConfigurationTarget.Global);
-              await config.update("noteTextColor", msg.textColor, vscode.ConfigurationTarget.Global);
+              await config.update("noteBgColor", msg.value, vscode2.ConfigurationTarget.Global);
+              await config.update("noteTextColor", msg.textColor, vscode2.ConfigurationTarget.Global);
             }
             break;
           }
@@ -16745,16 +17051,16 @@ async function activate(context) {
       render();
     }
   };
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider("notevs.notesView", provider));
-  const annotationDecoration = vscode.window.createTextEditorDecorationType({
+  context.subscriptions.push(vscode2.window.registerWebviewViewProvider("notevs.notesView", provider));
+  const annotationDecoration = vscode2.window.createTextEditorDecorationType({
     borderWidth: "0 0 0 3px",
     borderStyle: "solid",
     borderColor: "rgba(108,142,245,0.7)",
     backgroundColor: "rgba(108,142,245,0.06)",
     isWholeLine: true,
     overviewRulerColor: "rgba(108,142,245,0.6)",
-    overviewRulerLane: vscode.OverviewRulerLane.Right,
-    gutterIconPath: vscode.Uri.joinPath(context.extensionUri, "media", "icon.png"),
+    overviewRulerLane: vscode2.OverviewRulerLane.Right,
+    gutterIconPath: vscode2.Uri.joinPath(context.extensionUri, "media", "icon.png"),
     gutterIconSize: "60%"
   });
   const annotationCache = /* @__PURE__ */ new Map();
@@ -16794,12 +17100,12 @@ async function activate(context) {
       const startLine = Math.max(0, ann.lineStart - 1);
       const endLine = Math.max(0, ann.lineEnd - 1);
       const endLineText = editor.document.lineAt(Math.min(endLine, editor.document.lineCount - 1));
-      return { range: new vscode.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length) };
+      return { range: new vscode2.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length) };
     });
     editor.setDecorations(annotationDecoration, decorations);
   }
   context.subscriptions.push(
-    vscode.languages.registerHoverProvider({ scheme: "file" }, {
+    vscode2.languages.registerHoverProvider({ scheme: "file" }, {
       provideHover(document2, position) {
         const folderPath = getFolderPath();
         if (!folderPath) {
@@ -16808,9 +17114,9 @@ async function activate(context) {
         const relPath = document2.uri.fsPath.replace(folderPath + "/", "").replace(folderPath + "\\", "");
         const flat = annotationCache.get(relPath) ?? [];
         const hovered = flat.find((ann) => {
-          const startLine2 = Math.max(0, ann.lineStart - 1);
-          const endLine2 = Math.max(0, ann.lineEnd - 1);
-          return position.line >= startLine2 && position.line <= endLine2;
+          const sl2 = Math.max(0, ann.lineStart - 1);
+          const el2 = Math.max(0, ann.lineEnd - 1);
+          return position.line >= sl2 && position.line <= el2;
         });
         if (!hovered) {
           return;
@@ -16828,7 +17134,7 @@ async function activate(context) {
         preview = preview.replace(/\n/g, " ").trim().slice(0, 150);
         const priorityLabel = hovered.priority !== "none" ? ` \u2022 ${hovered.priority}` : "";
         const statusLabel = hovered.status === "done" ? " \u2713 Done" : hovered.status === "passed" ? " \u2713 Passed" : " \u25CF Open";
-        const md = new vscode.MarkdownString("", true);
+        const md = new vscode2.MarkdownString("", true);
         md.isTrusted = true;
         md.appendMarkdown(`**\u{1F4CE} ${hovered.noteTitle}**`);
         md.appendMarkdown(`
@@ -16843,24 +17149,24 @@ ${hovered.comment}`);
 
 ${preview}`);
         }
-        const openCmd = vscode.Uri.parse(`command:notevs.openNoteById?${encodeURIComponent(JSON.stringify({ id: hovered.noteId }))}`);
+        const openCmd = vscode2.Uri.parse(`command:notevs.openNoteById?${encodeURIComponent(JSON.stringify({ id: hovered.noteId }))}`);
         md.appendMarkdown(`
 
 [Open note \u2192](${openCmd})`);
-        const startLine = Math.max(0, hovered.lineStart - 1);
-        const endLine = Math.max(0, hovered.lineEnd - 1);
-        const endLineText = document2.lineAt(Math.min(endLine, document2.lineCount - 1));
-        return new vscode.Hover(md, new vscode.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length));
+        const sl = Math.max(0, hovered.lineStart - 1);
+        const el = Math.max(0, hovered.lineEnd - 1);
+        const elt = document2.lineAt(Math.min(el, document2.lineCount - 1));
+        return new vscode2.Hover(md, new vscode2.Range(sl, 0, elt.lineNumber, elt.text.length));
       }
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand("notevs.openNoteById", async ({ id }) => {
+    vscode2.commands.registerCommand("notevs.openNoteById", async ({ id }) => {
       await openNote(id);
     })
   );
   context.subscriptions.push(
-    vscode.languages.registerCodeLensProvider({ scheme: "file" }, {
+    vscode2.languages.registerCodeLensProvider({ scheme: "file" }, {
       provideCodeLenses(document2) {
         const folderPath = getFolderPath();
         if (!folderPath) {
@@ -16877,28 +17183,22 @@ ${preview}`);
           }
           seen.add(key);
           const line = Math.max(0, ann.lineStart - 1);
-          const range = new vscode.Range(line, 0, line, 0);
-          lenses.push(new vscode.CodeLens(range, {
-            title: `\u{1F4CE} ${ann.noteTitle}`,
-            command: "notevs.openNoteById",
-            arguments: [{ id: ann.noteId }],
-            tooltip: "Open this NoteVs note"
-          }));
+          lenses.push(new vscode2.CodeLens(new vscode2.Range(line, 0, line, 0), { title: `\u{1F4CE} ${ann.noteTitle}`, command: "notevs.openNoteById", arguments: [{ id: ann.noteId }], tooltip: "Open this NoteVs note" }));
         }
         return lenses;
       }
     })
   );
-  context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((editor) => {
+  context.subscriptions.push(vscode2.window.onDidChangeActiveTextEditor((editor) => {
     if (editor) {
       refreshAnnotations(editor);
     }
   }));
-  if (vscode.window.activeTextEditor) {
-    refreshAnnotations(vscode.window.activeTextEditor);
+  if (vscode2.window.activeTextEditor) {
+    refreshAnnotations(vscode2.window.activeTextEditor);
   }
-  context.subscriptions.push(vscode.workspace.onDidSaveTextDocument((doc) => {
-    const editor = vscode.window.visibleTextEditors.find((e) => e.document === doc);
+  context.subscriptions.push(vscode2.workspace.onDidSaveTextDocument((doc) => {
+    const editor = vscode2.window.visibleTextEditors.find((e) => e.document === doc);
     if (editor) {
       refreshAnnotations(editor);
     }
@@ -16906,20 +17206,20 @@ ${preview}`);
   async function refreshGutterDecorations(editor) {
     await refreshAnnotations(editor);
   }
-  const selectionDecoration = vscode.window.createTextEditorDecorationType({
-    after: { contentText: "  NoteVs \u2318\u21E7N to annotate", color: new vscode.ThemeColor("editorCodeLens.foreground"), margin: "0 0 0 12px", fontStyle: "italic", fontWeight: "400" },
-    rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed
+  const selectionDecoration = vscode2.window.createTextEditorDecorationType({
+    after: { contentText: "  NoteVs \u2318\u21E7N to annotate", color: new vscode2.ThemeColor("editorCodeLens.foreground"), margin: "0 0 0 12px", fontStyle: "italic", fontWeight: "400" },
+    rangeBehavior: vscode2.DecorationRangeBehavior.ClosedClosed
   });
-  const annotateStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1e3);
+  const annotateStatusBarItem = vscode2.window.createStatusBarItem(vscode2.StatusBarAlignment.Right, 1e3);
   annotateStatusBarItem.text = "\u{1F4CE} Annotate selection";
   annotateStatusBarItem.tooltip = "Add a NoteVs note to the selected code \u2014 or press \u2318\u21E7N";
   annotateStatusBarItem.command = "notevs.annotateSelectionFromStatusBar";
-  annotateStatusBarItem.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+  annotateStatusBarItem.backgroundColor = new vscode2.ThemeColor("statusBarItem.warningBackground");
   context.subscriptions.push(annotateStatusBarItem);
   let savedEditorUri = null;
   let savedSelection = null;
   let selectionDecorationTimer = null;
-  context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection((e) => {
+  context.subscriptions.push(vscode2.window.onDidChangeTextEditorSelection((e) => {
     if (selectionDecorationTimer) {
       clearTimeout(selectionDecorationTimer);
     }
@@ -16938,40 +17238,39 @@ ${preview}`);
         savedEditorUri = null;
         return;
       }
-      savedSelection = new vscode.Selection(editor.selection.start, editor.selection.end);
+      savedSelection = new vscode2.Selection(editor.selection.start, editor.selection.end);
       savedEditorUri = editor.document.uri;
       const endPos = editor.selection.end;
       const endLine = editor.document.lineAt(endPos.line);
-      const decorationRange = new vscode.Range(endPos.line, endLine.range.end.character, endPos.line, endLine.range.end.character);
-      editor.setDecorations(selectionDecoration, [{ range: decorationRange }]);
+      editor.setDecorations(selectionDecoration, [{ range: new vscode2.Range(endPos.line, endLine.range.end.character, endPos.line, endLine.range.end.character) }]);
       annotateStatusBarItem.show();
     }, 150);
   }));
-  context.subscriptions.push(vscode.languages.registerCodeActionsProvider({ scheme: "file" }, {
+  context.subscriptions.push(vscode2.languages.registerCodeActionsProvider({ scheme: "file" }, {
     provideCodeActions(document2, range) {
       if (range.isEmpty) {
         return [];
       }
-      const action = new vscode.CodeAction("\u{1F4CE} NoteVs: Annotate this selection", vscode.CodeActionKind.Empty);
+      const action = new vscode2.CodeAction("\u{1F4CE} NoteVs: Annotate this selection", vscode2.CodeActionKind.Empty);
       action.command = { command: "notevs.annotateSelection", title: "\u{1F4CE} NoteVs: Annotate this selection" };
       return [action];
     }
-  }, { providedCodeActionKinds: [vscode.CodeActionKind.Empty] }));
+  }, { providedCodeActionKinds: [vscode2.CodeActionKind.Empty] }));
   async function runAnnotate(docUri, selection) {
     const folderPath = getFolderPath();
     if (!folderPath) {
-      vscode.window.showWarningMessage("Open a folder first to use NoteVs annotations.");
+      vscode2.window.showWarningMessage("Open a folder first to use NoteVs annotations.");
       return;
     }
     const syncEnabledAnnotate = context.globalState.get("notevs.syncEnabled") ?? false;
     if (syncEnabledAnnotate) {
       const { accessToken } = await getTokens(secrets);
       if (!accessToken) {
-        vscode.window.showErrorMessage("Sign in to NoteVs first.");
+        vscode2.window.showErrorMessage("Sign in to NoteVs first.");
         return;
       }
     }
-    const doc = await vscode.workspace.openTextDocument(docUri);
+    const doc = await vscode2.workspace.openTextDocument(docUri);
     const codeSnippet = doc.getText(selection);
     const relPath = docUri.fsPath.replace(folderPath + "/", "").replace(folderPath + "\\", "");
     const lineStart = selection.start.line + 1;
@@ -16981,7 +17280,7 @@ ${preview}`);
     const existingNotes = syncEnabledAnn ? loadCache()?.notes ?? [] : readLocalNotes(context, folderPath);
     const items = [{ label: "$(add) Create new note", description: "", detail: `New note with this annotation attached \u2014 ${locationLabel}`, noteId: void 0 }];
     if (existingNotes.length > 0) {
-      items.push({ label: "Add to existing note", kind: vscode.QuickPickItemKind.Separator });
+      items.push({ label: "Add to existing note", kind: vscode2.QuickPickItemKind.Separator });
       for (const n of existingNotes) {
         const annCount = (n.annotations?.length ?? 0) + (n.filePath ? 1 : 0);
         const annLabel = annCount > 0 ? `${annCount} annotation${annCount > 1 ? "s" : ""} \xB7 ` : "";
@@ -16999,61 +17298,34 @@ ${preview}`);
         items.push({ label: `$(note) ${n.title}`, description: `${annLabel}${date}`, detail: preview || "Empty note", noteId: n.id });
       }
     }
-    const picked = await vscode.window.showQuickPick(items, { title: "Add Annotation", placeHolder: "Create a new note or add to an existing one\u2026", matchOnDescription: true, matchOnDetail: true, ignoreFocusOut: true });
+    const picked = await vscode2.window.showQuickPick(items, { title: "Add Annotation", placeHolder: "Create a new note or add to an existing one\u2026", matchOnDescription: true, matchOnDetail: true, ignoreFocusOut: true });
     if (!picked) {
       return;
     }
     const pnAnn = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
     if (!picked.noteId) {
-      const title = await vscode.window.showInputBox({ title: "Add Annotation", step: 1, totalSteps: 2, prompt: `New note for ${locationLabel}`, placeHolder: "Note title\u2026", ignoreFocusOut: true });
+      const title = await vscode2.window.showInputBox({ title: "Add Annotation", step: 1, totalSteps: 2, prompt: `New note for ${locationLabel}`, placeHolder: "Note title\u2026", ignoreFocusOut: true });
       if (title === void 0) {
         return;
       }
-      const comment = await vscode.window.showInputBox({ title: "Add Annotation", step: 2, totalSteps: 2, prompt: "Add a comment for this annotation (optional)", placeHolder: "e.g. This needs refactoring\u2026", ignoreFocusOut: true });
+      const comment = await vscode2.window.showInputBox({ title: "Add Annotation", step: 2, totalSteps: 2, prompt: "Add a comment for this annotation (optional)", placeHolder: "e.g. This needs refactoring\u2026", ignoreFocusOut: true });
       if (comment === void 0) {
         return;
       }
       if (!syncEnabledAnn) {
         const now = (/* @__PURE__ */ new Date()).toISOString();
-        const annId = (0, import_crypto2.randomUUID)();
-        const newNote = {
-          id: (0, import_crypto2.randomUUID)(),
-          localId: (0, import_crypto2.randomUUID)(),
-          title: title || "Untitled annotation",
-          content: "",
-          editorMode: "wysiwyg",
-          pinned: false,
-          tags: [],
-          priority: "none",
-          status: "open",
-          createdAt: now,
-          updatedAt: now,
-          folderPath,
-          deletedAt: null,
-          syncedAt: null,
-          annotations: [{
-            id: annId,
-            noteId: "",
-            filePath: relPath,
-            lineStart,
-            lineEnd,
-            codeSnippet: codeSnippet.slice(0, 500),
-            comment: comment || "",
-            status: "open",
-            createdAt: now,
-            updatedAt: now
-          }]
-        };
+        const annId = (0, import_crypto3.randomUUID)();
+        const newNote = { id: (0, import_crypto3.randomUUID)(), localId: (0, import_crypto3.randomUUID)(), title: title || "Untitled annotation", content: "", editorMode: "wysiwyg", pinned: false, tags: [], priority: "none", status: "open", createdAt: now, updatedAt: now, folderPath, deletedAt: null, syncedAt: null, annotations: [{ id: annId, noteId: "", filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || "", status: "open", createdAt: now, updatedAt: now }] };
         newNote.annotations[0].noteId = newNote.id;
-        writeLocalNote(context, newNote);
+        writeLocalNote2(context, newNote);
         if (panel) {
           panel.webview.html = notesListHtml(pnAnn, readLocalNotes(context, folderPath), "local");
         }
-        const activeEd = vscode.window.activeTextEditor;
+        const activeEd = vscode2.window.activeTextEditor;
         if (activeEd) {
           await refreshAnnotations(activeEd);
         }
-        vscode.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
+        vscode2.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
       } else {
         try {
           const noteRes = await apiPost(secrets, "/notes", { folderPath, title: title || "Untitled annotation", content: "", editorMode: "wysiwyg" });
@@ -17073,44 +17345,29 @@ ${preview}`);
               panel.webview.html = notesListHtml(pnAnn, c2.notes, "synced", lsA);
             }
           }
-          vscode.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
+          vscode2.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
         } catch {
-          vscode.window.showErrorMessage("Failed to create note and annotation.");
+          vscode2.window.showErrorMessage("Failed to create note and annotation.");
           return;
         }
       }
     } else {
       const targetNote = existingNotes.find((n) => n.id === picked.noteId);
-      const comment = await vscode.window.showInputBox({ title: "Add Annotation", step: 1, totalSteps: 1, prompt: `Adding annotation to \u201C${targetNote.title}\u201D \u2014 ${locationLabel}`, placeHolder: "Comment (optional)\u2026", ignoreFocusOut: true });
+      const comment = await vscode2.window.showInputBox({ title: "Add Annotation", step: 1, totalSteps: 1, prompt: `Adding annotation to \u201C${targetNote.title}\u201D \u2014 ${locationLabel}`, placeHolder: "Comment (optional)\u2026", ignoreFocusOut: true });
       if (comment === void 0) {
         return;
       }
       if (!syncEnabledAnn) {
         const now = (/* @__PURE__ */ new Date()).toISOString();
-        const annId = (0, import_crypto2.randomUUID)();
-        const existing = readLocalNote(context, picked.noteId);
+        const annId = (0, import_crypto3.randomUUID)();
+        const existing = readLocalNote2(context, picked.noteId);
         if (existing) {
-          const updated = {
-            ...existing,
-            updatedAt: now,
-            annotations: [...existing.annotations ?? [], {
-              id: annId,
-              noteId: picked.noteId,
-              filePath: relPath,
-              lineStart,
-              lineEnd,
-              codeSnippet: codeSnippet.slice(0, 500),
-              comment: comment || "",
-              status: "open",
-              createdAt: now,
-              updatedAt: now
-            }]
-          };
-          writeLocalNote(context, updated);
+          const updated = { ...existing, updatedAt: now, annotations: [...existing.annotations ?? [], { id: annId, noteId: picked.noteId, filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || "", status: "open", createdAt: now, updatedAt: now }] };
+          writeLocalNote2(context, updated);
           if (panel) {
             panel.webview.html = notesListHtml(pnAnn, readLocalNotes(context, folderPath), "local");
           }
-          const activeEd2 = vscode.window.activeTextEditor;
+          const activeEd2 = vscode2.window.activeTextEditor;
           if (activeEd2) {
             await refreshAnnotations(activeEd2);
           }
@@ -17120,7 +17377,7 @@ ${preview}`);
             existingPanel.webview.html = noteEditorHtml(updated, pnAnn, bg, text);
           }
         }
-        vscode.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
+        vscode2.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
       } else {
         try {
           const annRes = await apiPost(secrets, "/annotations", { noteId: picked.noteId, filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || "", status: "open" });
@@ -17151,28 +17408,28 @@ ${preview}`);
             } catch {
             }
           }
-          vscode.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
+          vscode2.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
         } catch {
-          vscode.window.showErrorMessage("Failed to save annotation.");
+          vscode2.window.showErrorMessage("Failed to save annotation.");
           return;
         }
       }
     }
-    const activeEditor = vscode.window.activeTextEditor;
+    const activeEditor = vscode2.window.activeTextEditor;
     if (activeEditor) {
       refreshGutterDecorations(activeEditor);
     }
     savedSelection = null;
     savedEditorUri = null;
   }
-  context.subscriptions.push(vscode.commands.registerCommand("notevs.annotateSelectionFromStatusBar", async () => {
+  context.subscriptions.push(vscode2.commands.registerCommand("notevs.annotateSelectionFromStatusBar", async () => {
     if (!savedSelection || !savedEditorUri) {
-      vscode.window.showWarningMessage("Select some code first, then click Annotate.");
+      vscode2.window.showWarningMessage("Select some code first, then click Annotate.");
       return;
     }
     await runAnnotate(savedEditorUri, savedSelection);
   }));
-  context.subscriptions.push(vscode.commands.registerTextEditorCommand("notevs.annotateSelection", async (editor) => {
+  context.subscriptions.push(vscode2.commands.registerTextEditorCommand("notevs.annotateSelection", async (editor) => {
     let selection = editor.selection;
     let docUri = editor.document.uri;
     if (selection.isEmpty && savedSelection && savedEditorUri) {
@@ -17180,38 +17437,35 @@ ${preview}`);
       docUri = savedEditorUri;
     }
     if (selection.isEmpty) {
-      vscode.window.showWarningMessage("Select some code first, then run Annotate with NoteVs.");
+      vscode2.window.showWarningMessage("Select some code first, then run Annotate with NoteVs.");
       return;
     }
     await runAnnotate(docUri, selection);
   }));
   async function installGitHook(folderPath) {
-    const fs2 = require("fs");
+    const fs3 = require("fs");
     const pathMod = require("path");
     const hookDir = pathMod.join(folderPath, ".git", "hooks");
     const hookPath = pathMod.join(hookDir, "pre-commit");
-    if (!fs2.existsSync(pathMod.join(folderPath, ".git"))) {
+    if (!fs3.existsSync(pathMod.join(folderPath, ".git"))) {
       return;
     }
-    if (!fs2.existsSync(hookDir)) {
-      fs2.mkdirSync(hookDir, { recursive: true });
+    if (!fs3.existsSync(hookDir)) {
+      fs3.mkdirSync(hookDir, { recursive: true });
     }
-    const hookScript = ["#!/bin/sh", "# NoteNest pre-commit check \u2014 auto-installed by NoteNest VS Code extension", "# Safe to remove if you uninstall NoteNest. Does nothing if config not found.", 'NOTENEST_PROJECT_CONFIG=".notenest/config.json"', 'NOTENEST_HOME_CONFIG="$HOME/.notenest/tokens.json"', 'if [ ! -f "$NOTENEST_PROJECT_CONFIG" ] || [ ! -f "$NOTENEST_HOME_CONFIG" ]; then exit 0; fi', "FOLDER=$(pwd)", `API=$(node -e "try{const c=require(process.env.HOME+'/.notenest/tokens.json');process.stdout.write(c.apiUrl||'https://vsnotes-backend.onrender.com');}catch(e){process.stdout.write('https://vsnotes-backend.onrender.com')}" 2>/dev/null)`, `REFRESH_TOKEN=$(node -e "try{const c=require(process.env.HOME+'/.notenest/tokens.json');process.stdout.write(c.refreshToken||'');}catch(e){}" 2>/dev/null)`, 'if [ -z "$REFRESH_TOKEN" ]; then exit 0; fi', 'TOKEN=$(REFRESH_TOKEN="$REFRESH_TOKEN" API="$API" node -e "', "const https=require('https');", "const body=JSON.stringify({refreshToken:process.env.REFRESH_TOKEN});", "const url=new URL(process.env.API+'/auth/refresh');", "const opts={hostname:url.hostname,port:url.port||443,path:url.pathname,method:'POST',headers:{'Content-Type':'application/json','Content-Length':''+ Buffer.byteLength(body)}};", "const req=https.request(opts,res=>{let d='';res.on('data',c=>d+=c);res.on('end',()=>{try{const r=JSON.parse(d);process.stdout.write(r.data&&r.data.accessToken?r.data.accessToken:'');}catch(e){}});});", "req.on('error',()=>{});req.write(body);req.end();", '" 2>/dev/null)', 'if [ -z "$TOKEN" ]; then exit 0; fi', `ENCODED_FOLDER=$(node -e "process.stdout.write(encodeURIComponent('$FOLDER'))" 2>/dev/null)`, 'RESULT=$(curl -sf -H "Authorization: Bearer $TOKEN" "$API/notes/blocking?folderPath=$ENCODED_FOLDER" 2>/dev/null)', "if [ $? -ne 0 ]; then exit 0; fi", `BLOCKED=$(node -e "try{const r=JSON.parse(process.argv[1]);if(r.blocked){console.log('BLOCKED');r.data.forEach(n=>console.log('  \u2022 '+n.title+(n.priority!=='none'?' ['+n.priority+']':'')));}}catch(e){}" "$RESULT" 2>/dev/null)`, 'if echo "$BLOCKED" | grep -q "BLOCKED"; then', '  echo ""', '  echo "\u274C NoteNest: Open notes are blocking this commit:"', '  echo "$BLOCKED" | grep -v "BLOCKED"', '  echo ""', '  echo "Mark them as done in VS Code (NoteNest sidebar \u2192 change status to Done) then try again."', '  echo ""', "  exit 1", "fi", "exit 0"].join("\n");
-    if (fs2.existsSync(hookPath)) {
-      const existing = fs2.readFileSync(hookPath, "utf8");
-      if (existing.includes("NoteNest pre-commit check")) {
-        const withoutOld = existing.replace(/\n*# NoteNest pre-commit check[\s\S]*?exit 0\s*$/, "").trimEnd();
-        fs2.writeFileSync(hookPath, withoutOld ? withoutOld + "\n\n" + hookScript : hookScript);
-      } else {
-        fs2.writeFileSync(hookPath, existing.trimEnd() + "\n\n" + hookScript);
+    const hookScript = ["#!/bin/sh", "# NoteNest pre-commit check \u2014 auto-installed by NoteNest VS Code extension", 'NOTENEST_PROJECT_CONFIG=".notenest/config.json"', 'NOTENEST_HOME_CONFIG="$HOME/.notenest/tokens.json"', 'if [ ! -f "$NOTENEST_PROJECT_CONFIG" ] || [ ! -f "$NOTENEST_HOME_CONFIG" ]; then exit 0; fi', "exit 0"].join("\n");
+    if (fs3.existsSync(hookPath)) {
+      const existing = fs3.readFileSync(hookPath, "utf8");
+      if (!existing.includes("NoteNest")) {
+        fs3.writeFileSync(hookPath, existing.trimEnd() + "\n\n" + hookScript);
       }
     } else {
-      fs2.writeFileSync(hookPath, hookScript);
+      fs3.writeFileSync(hookPath, hookScript);
     }
-    fs2.chmodSync(hookPath, "755");
+    fs3.chmodSync(hookPath, "755");
   }
   async function writeNoteNestConfig(folderPath) {
-    const fs2 = require("fs");
+    const fs3 = require("fs");
     const pathMod = require("path");
     const os = require("os");
     const { accessToken, refreshToken } = await getTokens(secrets);
@@ -17219,23 +17473,23 @@ ${preview}`);
       return;
     }
     const homeConfigDir = pathMod.join(os.homedir(), ".notenest");
-    if (!fs2.existsSync(homeConfigDir)) {
-      fs2.mkdirSync(homeConfigDir, { recursive: true });
+    if (!fs3.existsSync(homeConfigDir)) {
+      fs3.mkdirSync(homeConfigDir, { recursive: true });
     }
-    fs2.writeFileSync(pathMod.join(homeConfigDir, "tokens.json"), JSON.stringify({ apiUrl: getApiUrl(), refreshToken: refreshToken || "" }, null, 2), { mode: 384 });
+    fs3.writeFileSync(pathMod.join(homeConfigDir, "tokens.json"), JSON.stringify({ apiUrl: getApiUrl(), refreshToken: refreshToken || "" }, null, 2), { mode: 384 });
     const projectConfigDir = pathMod.join(folderPath, ".notenest");
-    if (!fs2.existsSync(projectConfigDir)) {
-      fs2.mkdirSync(projectConfigDir, { recursive: true });
+    if (!fs3.existsSync(projectConfigDir)) {
+      fs3.mkdirSync(projectConfigDir, { recursive: true });
     }
-    fs2.writeFileSync(pathMod.join(projectConfigDir, "config.json"), JSON.stringify({ folderPath }, null, 2));
+    fs3.writeFileSync(pathMod.join(projectConfigDir, "config.json"), JSON.stringify({ folderPath }, null, 2));
     const gitignorePath = pathMod.join(folderPath, ".gitignore");
-    if (fs2.existsSync(gitignorePath)) {
-      const gi = fs2.readFileSync(gitignorePath, "utf8");
+    if (fs3.existsSync(gitignorePath)) {
+      const gi = fs3.readFileSync(gitignorePath, "utf8");
       if (!gi.includes(".notenest")) {
-        fs2.appendFileSync(gitignorePath, "\n# NoteNest (local only)\n.notenest/\n");
+        fs3.appendFileSync(gitignorePath, "\n# NoteNest (local only)\n.notenest/\n");
       }
     } else {
-      fs2.writeFileSync(gitignorePath, "# NoteNest (local only)\n.notenest/\n");
+      fs3.writeFileSync(gitignorePath, "# NoteNest (local only)\n.notenest/\n");
     }
   }
   const currentFolder = getFolderPath();
@@ -17243,35 +17497,37 @@ ${preview}`);
     writeNoteNestConfig(currentFolder).then(() => installGitHook(currentFolder)).catch(() => {
     });
   }
+  const mcpServer = startMcpServer(context);
+  context.subscriptions.push({ dispose: () => mcpServer.close() });
   flushOfflineQueue().catch(() => {
   });
   context.subscriptions.push(
-    vscode.commands.registerCommand("notevs.openNotes", () => vscode.commands.executeCommand("notevs.notesView.focus")),
-    vscode.commands.registerCommand("notevs.logout", async () => {
+    vscode2.commands.registerCommand("notevs.openNotes", () => vscode2.commands.executeCommand("notevs.notesView.focus")),
+    vscode2.commands.registerCommand("notevs.logout", async () => {
       await clearTokens(secrets);
       if (panel) {
         panel.webview.html = loginHtml(iconUri);
       }
     })
   );
-  context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(async () => {
-    const config = vscode.workspace.getConfiguration("projectnotes");
+  context.subscriptions.push(vscode2.workspace.onDidChangeWorkspaceFolders(async () => {
+    const config = vscode2.workspace.getConfiguration("projectnotes");
     if (config.get("autoShow", true)) {
-      vscode.commands.executeCommand("projectnotes.notesView.focus");
+      vscode2.commands.executeCommand("projectnotes.notesView.focus");
     }
   }));
 }
 async function startLoginFlow(secrets, onSuccess) {
-  const state = (0, import_crypto2.randomBytes)(16).toString("hex");
+  const state = (0, import_crypto3.randomBytes)(16).toString("hex");
   const apiUrl = getApiUrl();
   try {
     const { data } = await axios_default.get(`${apiUrl}/auth/extension/login`, { params: { state } });
     if (!data.success) {
-      vscode.window.showErrorMessage("Failed to start login.");
+      vscode2.window.showErrorMessage("Failed to start login.");
       return;
     }
-    await vscode.env.openExternal(vscode.Uri.parse(data.data.url));
-    vscode.window.showInformationMessage("Complete sign-in in your browser. Waiting\u2026");
+    await vscode2.env.openExternal(vscode2.Uri.parse(data.data.url));
+    vscode2.window.showInformationMessage("Complete sign-in in your browser. Waiting\u2026");
     for (let i = 0; i < 60; i++) {
       await new Promise((r) => setTimeout(r, 3e3));
       try {
@@ -17279,16 +17535,16 @@ async function startLoginFlow(secrets, onSuccess) {
         if (td.success && td.data.ready) {
           await setTokens(secrets, td.data.tokens.accessToken, td.data.tokens.refreshToken);
           await secrets.store("user", JSON.stringify(td.data.user));
-          vscode.window.showInformationMessage(`\u2705 Logged in as ${td.data.user.name}`);
+          vscode2.window.showInformationMessage(`\u2705 Logged in as ${td.data.user.name}`);
           onSuccess();
           return;
         }
       } catch {
       }
     }
-    vscode.window.showErrorMessage("Login timed out. Please try again.");
+    vscode2.window.showErrorMessage("Login timed out. Please try again.");
   } catch {
-    vscode.window.showErrorMessage("Could not connect to NoteNest API.");
+    vscode2.window.showErrorMessage("Could not connect to NoteNest API.");
   }
 }
 function deactivate() {
