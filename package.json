@@ -2,38 +2,97 @@
   "name": "notevs",
   "displayName": "NoteVs",
   "description": "Write notes for each VS Code project. Syncs to the cloud across all your machines.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "icon": "media/icon-marketplace.png",
   "publisher": "MESHEmugles1",
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Other"],
-  "activationEvents": ["onStartupFinished"],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "license": "MIT",
   "contributes": {
     "viewsContainers": {
-      "activitybar": [{ "id": "notevs", "title": "NoteVs", "icon": "media/icon.png" }]
+      "activitybar": [
+        {
+          "id": "notevs",
+          "title": "NoteVs",
+          "icon": "media/icon.png"
+        }
+      ]
     },
     "views": {
-      "notevs": [{ "type": "webview", "id": "notevs.notesView", "name": "Notes" }]
+      "notevs": [
+        {
+          "type": "webview",
+          "id": "notevs.notesView",
+          "name": "Notes"
+        }
+      ]
     },
     "commands": [
-      { "command": "notevs.openNotes", "title": "NoteVs: Open Notes" },
-      { "command": "notevs.logout", "title": "NoteVs: Logout" },
-      { "command": "notevs.annotateSelection", "title": "NoteVs: Annotate Selection" },
-      { "command": "notevs.openNoteById", "title": "NoteVs: Open Note" }
+      {
+        "command": "notevs.openNotes",
+        "title": "NoteVs: Open Notes"
+      },
+      {
+        "command": "notevs.logout",
+        "title": "NoteVs: Logout"
+      },
+      {
+        "command": "notevs.annotateSelection",
+        "title": "NoteVs: Annotate Selection"
+      },
+      {
+        "command": "notevs.openNoteById",
+        "title": "NoteVs: Open Note"
+      }
     ],
     "menus": {
-      "editor/context": [{ "command": "notevs.annotateSelection", "when": "editorHasSelection", "group": "notevs@1" }]
+      "editor/context": [
+        {
+          "command": "notevs.annotateSelection",
+          "when": "editorHasSelection",
+          "group": "notevs@1"
+        }
+      ]
     },
-    "keybindings": [{ "command": "notevs.annotateSelection", "key": "ctrl+shift+n", "mac": "cmd+shift+n", "when": "editorHasSelection" }],
+    "keybindings": [
+      {
+        "command": "notevs.annotateSelection",
+        "key": "ctrl+shift+n",
+        "mac": "cmd+shift+n",
+        "when": "editorHasSelection"
+      }
+    ],
     "configuration": {
       "title": "NoteVs",
       "properties": {
-        "notevs.apiUrl": { "type": "string", "default": "https://notenest-backend.up.railway.app", "description": "NoteVs API URL" },
-        "notevs.autoShow": { "type": "boolean", "default": true, "description": "Automatically show notes when opening a project" },
-        "notevs.noteBgColor": { "type": "string", "default": "#1e1e1e", "description": "Background colour for the note editor" },
-        "notevs.noteTextColor": { "type": "string", "default": "#d4d4d4", "description": "Text colour for the note editor" }
+        "notevs.apiUrl": {
+          "type": "string",
+          "default": "https://notenest-backend.up.railway.app",
+          "description": "NoteVs API URL"
+        },
+        "notevs.autoShow": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically show notes when opening a project"
+        },
+        "notevs.noteBgColor": {
+          "type": "string",
+          "default": "#1e1e1e",
+          "description": "Background colour for the note editor"
+        },
+        "notevs.noteTextColor": {
+          "type": "string",
+          "default": "#d4d4d4",
+          "description": "Text colour for the note editor"
+        }
       }
     }
   },
@@ -45,8 +104,13 @@
     "package": "vsce package --no-dependencies",
     "publish": "vsce publish --no-dependencies"
   },
-  "repository": { "type": "git", "url": "https://github.com/MESHEmugles/vsnotes" },
-  "dependencies": { "axios": "^1.6.7" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MESHEmugles/vsnotes"
+  },
+  "dependencies": {
+    "axios": "^1.6.7"
+  },
   "devDependencies": {
     "@types/node": "^20.11.5",
     "@types/vscode": "^1.85.0",
