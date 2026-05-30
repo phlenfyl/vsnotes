@@ -16180,13 +16180,34 @@ function readLocalNotesGrouped(context, workspacePath) {
   }
   const subKeys = [...map.keys()].filter((k) => k !== workspacePath).sort();
   for (const fp of subKeys) {
-    const label = fp.replace(sep, "").split(/[\/\\]/)[0];
+    const label = fp.slice(sep.length).split(/[\/\\]/)[0];
     groups.push({ label, folderPath: fp, notes: sortNotes(map.get(fp)) });
   }
   return groups;
 }
 function readLocalNotesForWorkspace(context, workspacePath) {
   return readLocalNotesGrouped(context, workspacePath).flatMap((g) => g.notes);
+}
+function getSubfolderOptions(context, workspacePath) {
+  const sep = workspacePath.endsWith("/") ? workspacePath : workspacePath + "/";
+  const seen = /* @__PURE__ */ new Set();
+  const meta = readLocalMeta2(context);
+  for (const entry of meta.noteIndex) {
+    if (entry.folderPath !== workspacePath && entry.folderPath.startsWith(sep)) {
+      const rel = entry.folderPath.slice(sep.length).split(/[\/\\]/)[0];
+      seen.add(rel);
+    }
+  }
+  try {
+    const entries = fs3.readdirSync(workspacePath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "node_modules") {
+        seen.add(entry.name);
+      }
+    }
+  } catch {
+  }
+  return [...seen].sort().map((name) => ({ label: name, folderPath: sep + name }));
 }
 var BG_COLORS = [
   { label: "Dark", bg: "#1e1e1e", text: "#d4d4d4" },
@@ -16323,7 +16344,7 @@ function noFolderHtml() {
   </script>
   </body></html>`;
 }
-function notesListHtml(projectName, groups, syncStatus, lastSyncAt, syncError) {
+function notesListHtml(projectName, groups, subfolderOptions, syncStatus, lastSyncAt, syncError) {
   const notes = groups.flatMap((g) => g.notes);
   const syncBarContent = syncStatus === "local" ? `<span>&#9675; Local only</span>` : syncStatus === "syncing" ? `<span>&#8635; Syncing&hellip;</span>` : syncStatus === "synced" ? `<span>&#9679; Synced &middot; Last sync: ${lastSyncAt ? (() => {
     const diff = Date.now() - new Date(lastSyncAt).getTime();
@@ -16450,7 +16471,8 @@ function notesListHtml(projectName, groups, syncStatus, lastSyncAt, syncError) {
     const vscode=acquireVsCodeApi();
     const newNoteRow=document.getElementById('newNoteRow');
     const newNoteInput=document.getElementById('newNoteInput');
-    const subfolders=${JSON.stringify(groups.filter((g) => g.folderPath !== groups[0]?.folderPath).map((g) => ({ label: g.label, folderPath: g.folderPath })))};
+    const workspaceRoot=${JSON.stringify(groups[0]?.folderPath ?? "")};
+    const subfolders=${JSON.stringify(subfolderOptions)};
     const rootFolder=${JSON.stringify(groups[0]?.folderPath ?? "")};
     const rootLabel=${JSON.stringify(groups[0]?.label ?? projectName)};
     document.getElementById('newBtn').addEventListener('click',()=>{
@@ -16512,7 +16534,7 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
   <div class="annotation-block" data-ann-id="${ann.id}">
     <div class="ann-header" onclick="toggleAnnotation('${ann.id}')">
       <i class="codicon codicon-chevron-right ann-chevron"></i>
-      <span class="ann-file" onclick="event.stopPropagation();vscode.postMessage({type:'jumpToFile',file:'${ann.filePath}',lineStart:${ann.lineStart},lineEnd:${ann.lineEnd},line:${ann.lineStart}})">
+      <span class="ann-file" onclick="event.stopPropagation();vscode.postMessage({type:'jumpToFile',file:'${ann.filePath}',noteFolderPath:'${note.folderPath || ""}',lineStart:${ann.lineStart},lineEnd:${ann.lineEnd},line:${ann.lineStart}})">
         <i class="codicon codicon-link"></i> ${ann.filePath}:${ann.lineStart}\u2013${ann.lineEnd}
       </span>
       ${previewText ? `<span class="ann-preview">${previewText}</span>` : ""}
@@ -16668,7 +16690,7 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     document.getElementById('tagsInput').addEventListener('input',scheduleSave);
     document.getElementById('backBtn').addEventListener('click',()=>{doSave();vscode.postMessage({type:'showList'});});
     const legacyBanner=document.getElementById('annotationBanner');
-    if(legacyBanner){legacyBanner.addEventListener('click',()=>{vscode.postMessage({type:'jumpToFile',file:"${note.filePath || ""}",line:${note.lineStart || 1},lineStart:${note.lineStart || 1},lineEnd:${note.lineEnd || note.lineStart || 1}});});}
+    if(legacyBanner){legacyBanner.addEventListener('click',()=>{vscode.postMessage({type:'jumpToFile',file:"${note.filePath || ""}",noteFolderPath:"${note.folderPath || ""}",line:${note.lineStart || 1},lineStart:${note.lineStart || 1},lineEnd:${note.lineEnd || note.lineStart || 1}});});}
     function getContent(){return mode==='wysiwyg'?JSON.stringify(quill.getContents()):document.getElementById('mdEdit').value;}
     function getTags(){return document.getElementById('tagsInput').value.split(',').map(t=>t.trim()).filter(Boolean);}
     function scheduleSave(){document.getElementById('saveStatus').textContent='Unsaved\u2026';document.getElementById('saveStatus').style.opacity='1';clearTimeout(saveTimer);saveTimer=setTimeout(doSave,1000);}
@@ -16873,7 +16895,7 @@ async function activate(context) {
         }
       }
       if (msg.type === "jumpToFile") {
-        const fp2 = getFolderPath();
+        const fp2 = msg.noteFolderPath || getFolderPath();
         if (!fp2 || !msg.file) return;
         try {
           const doc = await vscode3.workspace.openTextDocument(vscode3.Uri.file(`${fp2}/${msg.file}`));
@@ -16917,34 +16939,16 @@ async function activate(context) {
       };
       iconUri = webviewView.webview.asWebviewUri(vscode3.Uri.joinPath(context.extensionUri, "media", "icon.png")).toString();
       async function render() {
-        const firstRunComplete = context.globalState.get("notevs.firstRunComplete") ?? false;
-        let syncEnabled = context.globalState.get("notevs.syncEnabled") ?? false;
-        if (syncEnabled) {
-          await context.globalState.update("notevs.syncEnabled", false);
-          syncEnabled = false;
-        }
-        if (!firstRunComplete) {
-          await context.globalState.update("notevs.firstRunComplete", true);
-        }
-        if (!syncEnabled) {
-          const folderPath = getFolderPath();
-          if (!folderPath) {
-            webviewView.webview.html = noFolderHtml();
-            return;
-          }
-          const groups = readLocalNotesGrouped(context, folderPath);
-          const projectName = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
-          webviewView.webview.html = notesListHtml(projectName, groups, "local");
+        await context.globalState.update("notevs.syncEnabled", false);
+        await context.globalState.update("notevs.firstRunComplete", true);
+        const folderPath = getFolderPath();
+        if (!folderPath) {
+          webviewView.webview.html = noFolderHtml();
           return;
         }
-        const { accessToken } = await getTokens(secrets);
-        if (!accessToken && !await refreshAccessToken(secrets)) {
-          webviewView.webview.html = loginHtml(iconUri);
-          return;
-        }
-        flushOfflineQueue().catch(() => {
-        });
-        await showNotesList();
+        const groups = readLocalNotesGrouped(context, folderPath);
+        const projectName = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
+        webviewView.webview.html = notesListHtml(projectName, groups, getSubfolderOptions(context, folderPath), "local");
       }
       async function showNotesList() {
         const folderPath = getFolderPath();
@@ -17049,9 +17053,10 @@ async function activate(context) {
           case "chooseFolder": {
             const workspacePath = getFolderPath();
             if (!workspacePath) break;
+            const wsLabel = workspacePath.split(/[\/\\]/).filter(Boolean).pop() ?? workspacePath;
             const folderItems = [
-              { label: `$(folder-opened) ${msg.rootLabel}`, description: "workspace root", folderPath: msg.rootFolder },
-              ...msg.subfolders.map((s) => ({ label: `$(folder) ${s.label}`, description: s.folderPath.replace(msg.rootFolder + "/", ""), folderPath: s.folderPath }))
+              { label: `$(folder-opened) ${wsLabel}`, description: "workspace root", folderPath: workspacePath },
+              ...msg.subfolders.map((s) => ({ label: `$(folder) ${s.label}`, description: s.folderPath.replace(workspacePath + "/", ""), folderPath: s.folderPath }))
             ];
             const picked = await vscode3.window.showQuickPick(folderItems, { title: "Create note in\u2026", placeHolder: "Choose a folder for the new note", ignoreFocusOut: true });
             if (picked) {
@@ -17107,7 +17112,7 @@ async function activate(context) {
             await openNote(msg.id);
             break;
           case "jumpToFile": {
-            const folderPath = getFolderPath();
+            const folderPath = msg.noteFolderPath || getFolderPath();
             if (!folderPath || !msg.file) break;
             try {
               const doc = await vscode3.workspace.openTextDocument(vscode3.Uri.file(`${folderPath}/${msg.file}`));

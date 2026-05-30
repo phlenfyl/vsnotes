@@ -223,10 +223,10 @@ function readLocalNotesGrouped(context: vscode.ExtensionContext, workspacePath: 
     const label = workspacePath.split(/[\/\\]/).filter(Boolean).pop() ?? workspacePath;
     groups.push({ label, folderPath: workspacePath, notes: sortNotes(map.get(workspacePath)!) });
   }
-  // Subfolders alphabetically
+  // Subfolders alphabetically — always included even if root has no notes
   const subKeys = [...map.keys()].filter(k => k !== workspacePath).sort();
   for (const fp of subKeys) {
-    const label = fp.replace(sep, '').split(/[\/\\]/)[0];
+    const label = fp.slice(sep.length).split(/[\/\\]/)[0];
     groups.push({ label, folderPath: fp, notes: sortNotes(map.get(fp)!) });
   }
   return groups;
@@ -237,17 +237,29 @@ function readLocalNotesForWorkspace(context: vscode.ExtensionContext, workspaceP
   return readLocalNotesGrouped(context, workspacePath).flatMap(g => g.notes);
 }
 
-// Known subfolder paths derived from meta.json (no filesystem scan needed)
-function getKnownSubfolders(context: vscode.ExtensionContext, workspacePath: string): string[] {
-  const meta = readLocalMeta(context);
+// Discover subfolders for the picker: combine known ones from meta.json
+// with one-level-deep directory scan of the workspace root.
+function getSubfolderOptions(context: vscode.ExtensionContext, workspacePath: string): Array<{label: string; folderPath: string}> {
   const sep = workspacePath.endsWith('/') ? workspacePath : workspacePath + '/';
   const seen = new Set<string>();
+  // 1. From meta.json (already have notes)
+  const meta = readLocalMeta(context);
   for (const entry of meta.noteIndex) {
     if (entry.folderPath !== workspacePath && entry.folderPath.startsWith(sep)) {
-      seen.add(entry.folderPath);
+      const rel = entry.folderPath.slice(sep.length).split(/[\/\\]/)[0];
+      seen.add(rel);
     }
   }
-  return [...seen].sort();
+  // 2. From filesystem scan (one level deep, directories only, skip hidden)
+  try {
+    const entries = fs.readdirSync(workspacePath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+        seen.add(entry.name);
+      }
+    }
+  } catch { /* can't read — skip */ }
+  return [...seen].sort().map(name => ({ label: name, folderPath: sep + name }));
 }
 
 // ── Color palette ─────────────────────────────────────────────────────────────
@@ -451,6 +463,7 @@ function noFolderHtml(): string {
 function notesListHtml(
   projectName: string,
   groups: NoteGroup[],
+  subfolderOptions: Array<{label: string; folderPath: string}>,
   syncStatus: 'local' | 'syncing' | 'synced' | 'error',
   lastSyncAt?: string | null,
   syncError?: string | null,
@@ -591,7 +604,8 @@ function notesListHtml(
     const vscode=acquireVsCodeApi();
     const newNoteRow=document.getElementById('newNoteRow');
     const newNoteInput=document.getElementById('newNoteInput');
-    const subfolders=${JSON.stringify(groups.filter(g => g.folderPath !== groups[0]?.folderPath).map(g => ({label: g.label, folderPath: g.folderPath})))};
+    const workspaceRoot=${JSON.stringify(groups[0]?.folderPath ?? '')};
+    const subfolders=${JSON.stringify(subfolderOptions)};
     const rootFolder=${JSON.stringify(groups[0]?.folderPath ?? '')};
     const rootLabel=${JSON.stringify(groups[0]?.label ?? projectName)};
     document.getElementById('newBtn').addEventListener('click',()=>{
@@ -658,7 +672,7 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
   <div class="annotation-block" data-ann-id="${ann.id}">
     <div class="ann-header" onclick="toggleAnnotation('${ann.id}')">
       <i class="codicon codicon-chevron-right ann-chevron"></i>
-      <span class="ann-file" onclick="event.stopPropagation();vscode.postMessage({type:'jumpToFile',file:'${ann.filePath}',lineStart:${ann.lineStart},lineEnd:${ann.lineEnd},line:${ann.lineStart}})">
+      <span class="ann-file" onclick="event.stopPropagation();vscode.postMessage({type:'jumpToFile',file:'${ann.filePath}',noteFolderPath:'${note.folderPath||''}',lineStart:${ann.lineStart},lineEnd:${ann.lineEnd},line:${ann.lineStart}})">
         <i class="codicon codicon-link"></i> ${ann.filePath}:${ann.lineStart}\u2013${ann.lineEnd}
       </span>
       ${previewText ? `<span class="ann-preview">${previewText}</span>` : ''}
@@ -816,7 +830,7 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     document.getElementById('tagsInput').addEventListener('input',scheduleSave);
     document.getElementById('backBtn').addEventListener('click',()=>{doSave();vscode.postMessage({type:'showList'});});
     const legacyBanner=document.getElementById('annotationBanner');
-    if(legacyBanner){legacyBanner.addEventListener('click',()=>{vscode.postMessage({type:'jumpToFile',file:"${note.filePath||''}",line:${note.lineStart||1},lineStart:${note.lineStart||1},lineEnd:${note.lineEnd||note.lineStart||1}});});}
+    if(legacyBanner){legacyBanner.addEventListener('click',()=>{vscode.postMessage({type:'jumpToFile',file:"${note.filePath||''}",noteFolderPath:"${note.folderPath||''}",line:${note.lineStart||1},lineStart:${note.lineStart||1},lineEnd:${note.lineEnd||note.lineStart||1}});});}
     function getContent(){return mode==='wysiwyg'?JSON.stringify(quill.getContents()):document.getElementById('mdEdit').value;}
     function getTags(){return document.getElementById('tagsInput').value.split(',').map(t=>t.trim()).filter(Boolean);}
     function scheduleSave(){document.getElementById('saveStatus').textContent='Unsaved\u2026';document.getElementById('saveStatus').style.opacity='1';clearTimeout(saveTimer);saveTimer=setTimeout(doSave,1000);}
@@ -1000,7 +1014,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
       }
       if (msg.type === 'jumpToFile') {
-        const fp2 = getFolderPath(); if (!fp2 || !msg.file) return;
+        const fp2 = (msg.noteFolderPath || getFolderPath()); if (!fp2 || !msg.file) return;
         try {
           const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(`${fp2}/${msg.file}`));
           const editor = await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.One });
@@ -1041,26 +1055,14 @@ export async function activate(context: vscode.ExtensionContext) {
       iconUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'icon.png')).toString();
 
       async function render() {
-        const firstRunComplete = context.globalState.get<boolean>('notevs.firstRunComplete') ?? false;
-        let syncEnabled = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
-        // Cloud sync is disabled for now — force local-only mode regardless of stored state
-        if (syncEnabled) {
-          await context.globalState.update('notevs.syncEnabled', false);
-          syncEnabled = false;
-        }
-        if (!firstRunComplete) { await context.globalState.update('notevs.firstRunComplete', true); }
-        if (!syncEnabled) {
-          const folderPath = getFolderPath();
-          if (!folderPath) { webviewView.webview.html = noFolderHtml(); return; }
-          const groups = readLocalNotesGrouped(context, folderPath);
-          const projectName = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? 'No project';
-          webviewView.webview.html = notesListHtml(projectName, groups, 'local');
-          return;
-        }
-        const { accessToken } = await getTokens(secrets);
-        if (!accessToken && !(await refreshAccessToken(secrets))) { webviewView.webview.html = loginHtml(iconUri); return; }
-        flushOfflineQueue().catch(() => {});
-        await showNotesList();
+        // Always force local-only mode — cloud sync is disabled
+        await context.globalState.update('notevs.syncEnabled', false);
+        await context.globalState.update('notevs.firstRunComplete', true);
+        const folderPath = getFolderPath();
+        if (!folderPath) { webviewView.webview.html = noFolderHtml(); return; }
+        const groups = readLocalNotesGrouped(context, folderPath);
+        const projectName = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? 'No project';
+        webviewView.webview.html = notesListHtml(projectName, groups, getSubfolderOptions(context, folderPath), 'local');
       }
 
       async function showNotesList() {
@@ -1116,9 +1118,10 @@ export async function activate(context: vscode.ExtensionContext) {
           case 'showList': await render(); break;
           case 'chooseFolder': {
             const workspacePath = getFolderPath(); if (!workspacePath) break;
+            const wsLabel = workspacePath.split(/[\/\\]/).filter(Boolean).pop() ?? workspacePath;
             const folderItems = [
-              { label: `$(folder-opened) ${msg.rootLabel}`, description: 'workspace root', folderPath: msg.rootFolder },
-              ...msg.subfolders.map((s: {label: string; folderPath: string}) => ({ label: `$(folder) ${s.label}`, description: s.folderPath.replace(msg.rootFolder + '/', ''), folderPath: s.folderPath })),
+              { label: `$(folder-opened) ${wsLabel}`, description: 'workspace root', folderPath: workspacePath },
+              ...msg.subfolders.map((s: {label: string; folderPath: string}) => ({ label: `$(folder) ${s.label}`, description: s.folderPath.replace(workspacePath + '/', ''), folderPath: s.folderPath })),
             ];
             const picked = await vscode.window.showQuickPick(folderItems, { title: 'Create note in…', placeHolder: 'Choose a folder for the new note', ignoreFocusOut: true });
             if (picked) { webviewView.webview.postMessage({ type: 'showNewNoteInput', folderPath: picked.folderPath }); }
@@ -1152,7 +1155,7 @@ export async function activate(context: vscode.ExtensionContext) {
           case 'openNote': await openNote(msg.id); break;
           case 'openNoteFromHost': await openNote(msg.id); break;
           case 'jumpToFile': {
-            const folderPath = getFolderPath(); if (!folderPath || !msg.file) break;
+            const folderPath = (msg.noteFolderPath || getFolderPath()); if (!folderPath || !msg.file) break;
             try {
               const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(`${folderPath}/${msg.file}`));
               const editor = await vscode.window.showTextDocument(doc, { preview: false, viewColumn: vscode.ViewColumn.One });
