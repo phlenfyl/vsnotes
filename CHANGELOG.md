@@ -2,7 +2,17 @@
 
 All notable changes to NoteVs will be documented here.
 
-## [0.4.0] - 2026-05-30
+## [0.6.1] - 2026-05-30
+
+### Fixed
+- **Notes created by AI agents now appear in the sidebar** — path normalization via `fs.realpathSync` ensures notes written by Claude Code / Cursor (using `process.cwd()`) and notes read by VS Code (using `workspaceFolders[0].uri.fsPath`) always resolve to the same key, fixing the blank sidebar bug on macOS
+
+## [0.6.0] - 2026-05-30
+
+### Added
+- **MCP auto-registration** — on activation, NoteVs now automatically registers itself as an MCP server in `~/.claude.json`, `~/.cursor/mcp.json`, and `~/.vscode/mcp.json`; no manual setup required for Claude Code or Cursor users
+
+## [0.5.0] - 2026-05-30
 
 ### Changed
 - **Activity bar icon** — replaced the full-color NoteNest logo with a clean monochrome SVG (spiral-bound notepad + pencil). VS Code now masks it correctly with the theme foreground color so it renders consistently alongside all other activity bar icons

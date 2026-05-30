@@ -251,8 +251,11 @@ export function startMcpServer(context: vscode.ExtensionContext): http.Server {
   /** Resolve which folder to scope notes to.
    *  Priority: 1) args.folderPath from agent  2) VS Code open folder */
   function resolveFolderPath(argFolderPath?: string): string | null {
-    if (argFolderPath && fs.existsSync(argFolderPath)) { return argFolderPath; }
-    return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+    try {
+      if (argFolderPath && fs.existsSync(argFolderPath)) { return fs.realpathSync(argFolderPath); }
+      const vscodePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      return vscodePath ? fs.realpathSync(vscodePath) : null;
+    } catch { return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null; }
   }
 
   const server = http.createServer(async (req, res) => {

@@ -15884,10 +15884,15 @@ function readBody(req) {
 function startMcpServer(context) {
   const storagePath = context.globalStorageUri.fsPath;
   function resolveFolderPath(argFolderPath) {
-    if (argFolderPath && fs2.existsSync(argFolderPath)) {
-      return argFolderPath;
+    try {
+      if (argFolderPath && fs2.existsSync(argFolderPath)) {
+        return fs2.realpathSync(argFolderPath);
+      }
+      const vscodePath = vscode2.workspace.workspaceFolders?.[0]?.uri.fsPath;
+      return vscodePath ? fs2.realpathSync(vscodePath) : null;
+    } catch {
+      return vscode2.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
     }
-    return vscode2.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
   }
   const server = http3.createServer(async (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -15973,7 +15978,14 @@ function getApiUrl() {
 }
 function getFolderPath() {
   const folders = vscode3.workspace.workspaceFolders;
-  return folders && folders.length > 0 ? folders[0].uri.fsPath : null;
+  if (!folders || folders.length === 0) {
+    return null;
+  }
+  try {
+    return fs3.realpathSync(folders[0].uri.fsPath);
+  } catch {
+    return folders[0].uri.fsPath;
+  }
 }
 async function getTokens(s) {
   return { accessToken: await s.get("accessToken") || null, refreshToken: await s.get("refreshToken") || null };

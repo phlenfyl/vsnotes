@@ -13,7 +13,8 @@ function getApiUrl(): string {
 }
 function getFolderPath(): string | null {
   const folders = vscode.workspace.workspaceFolders;
-  return folders && folders.length > 0 ? folders[0].uri.fsPath : null;
+  if (!folders || folders.length === 0) { return null; }
+  try { return fs.realpathSync(folders[0].uri.fsPath); } catch { return folders[0].uri.fsPath; }
 }
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
