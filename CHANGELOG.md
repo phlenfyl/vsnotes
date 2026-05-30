@@ -2,6 +2,20 @@
 
 All notable changes to NoteVs will be documented here.
 
+## [0.2.0] - 2026-05-30
+
+### Added
+- **MCP server** — NoteVs now exposes a local MCP server on `localhost:37491` when the extension is active
+- **MCP bridge** — bundled `dist/mcp-bridge.cjs` allows Claude Code, Cursor, and other agents to talk to your notes via stdio
+- **Auto-registration** — on first activation, NoteVs automatically registers itself in `~/.claude.json`, `~/.cursor/mcp.json`, and `~/.vscode/mcp.json` — no manual setup required
+- **7 MCP tools** — `notevs_list_notes`, `notevs_get_note`, `notevs_create_note`, `notevs_save_note`, `notevs_delete_note`, `notevs_add_annotation`, `notevs_search_notes`
+- **Per-repo scoping** — MCP tools are automatically scoped to the repo the agent is running in (uses `process.cwd()`), independent of which folder VS Code has open
+
+## [0.1.0] - 2026-05-25
+
+### Added
+- Initial Marketplace release
+
 ## [0.0.5] - 2026-05-22
 
 ### Changed
@@ -19,7 +33,7 @@ All notable changes to NoteVs will be documented here.
 ## [0.0.4] - 2026-05-09
 
 ### Changed
-- Default API URL switched to `http://localhost:3001` (dev backend) for local development
+- Default API URL switched to production Railway backend
 
 ## [0.0.3] - 2026-05-01
 
@@ -38,9 +52,6 @@ All notable changes to NoteVs will be documented here.
 - **Priority system** — Emergency / Urgent / Important / Medium / Low / None
 - **Status system** — Open / Done / Passed
 - **Pin notes**, **Tags**, **Search / filter**, **Inline new-note input**
-
-### Changed
-- Extension renamed from ProjectNotes → NoteNest (now NoteVs)
 
 ## [0.0.2] - 2026-03-15
 
