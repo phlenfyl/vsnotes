@@ -4,20 +4,19 @@ Project notes and code annotations, right inside VS Code. Works fully offline �
 
 ## Features
 
-- 📝 **Multiple notes per project** — each folder gets its own notes list
+- 📝 **Multiple notes per project** — each folder gets its own isolated notes list
 - 💻 **Local-first** — works completely offline, no account or internet required
 - 🔗 **Code annotations** — select any lines in a file and attach a note to them (Cmd+Shift+N)
 - 🤖 **AI agent support** — Claude Code and Cursor can create, read, and annotate notes via MCP (auto-registered on install)
 - 🎨 **Custom backgrounds** — 12 background colours for your note editor
 - ⚡ **Auto-save** — notes save as you type
-- ☁️ **Optional cloud sync** — enable in Settings to sync across machines (requires a free account)
+- 🔒 **Project-scoped** — notes in Project A never appear in Project B, even across multiple VS Code windows
 
 ## Getting Started
 
 1. Click the **NoteVs icon** in the Activity Bar (left sidebar)
-2. Click **Get Started** — no sign-in required
-3. Open any project folder — your notes list for that project appears
-4. Press **+** to create a note and start writing
+2. Open any project folder — your notes list for that project appears automatically
+3. Press **+** to create a note and start writing
 
 ## Code Annotations
 
@@ -26,7 +25,7 @@ Select any lines in a file, then:
 - Or right-click → **NoteVs: Annotate Selection**
 - Or click the **📎 Annotate selection** status bar button
 
-Annotated lines show a blue gutter highlight. Hover over them to see the note preview.
+Annotated lines show a blue gutter highlight. Hover over them to see the note preview. Annotations are collapsible inside the note editor — click any annotation row to expand or collapse it.
 
 ## AI Agent Support (MCP)
 

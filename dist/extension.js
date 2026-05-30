@@ -16089,41 +16089,6 @@ var BG_COLORS = [
   { label: "Mint", bg: "#f0faf4", text: "#1a3d2b" },
   { label: "Lavender", bg: "#f3f0ff", text: "#2d1f6e" }
 ];
-function welcomeHtml(iconUri, existingUser) {
-  const title = existingUser ? "Welcome back" : "NoteVs";
-  const description = existingUser ? "NoteVs now works offline by default. Your existing notes are still synced. Choose how you'd like to work." : "Project notes and code annotations, right inside VS Code. No account needed.";
-  const primaryLabel = existingUser ? "&#9729;&#65039;&nbsp; Keep Cloud Sync" : "&#9654;&nbsp; Get Started";
-  const primaryMsg = existingUser ? "keepSync" : "getStarted";
-  const secondaryLabel = existingUser ? "&#128187;&nbsp; Switch to Local Only" : "&#9729;&#65039;&nbsp; Enable Cloud Sync";
-  const secondaryMsg = existingUser ? "goLocalOnly" : "enableSync";
-  const hint = existingUser ? "" : '<p class="sync-hint">Sync lets you view notes on the web and across machines. Requires a free account.</p>';
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/>
-  <style>
-    body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-sideBar-background);padding:40px 24px;margin:0;display:flex;flex-direction:column;align-items:center;text-align:center;box-sizing:border-box;min-height:100vh;justify-content:center}
-    .icon-container{position:relative;margin-bottom:32px}
-    .icon-container img{width:96px;height:96px;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.2));transition:transform 0.3s ease}
-    .icon-container:hover img{transform:scale(1.05)}
-    h1{font-size:20px;font-weight:600;margin:0 0 12px;color:var(--vscode-foreground)}
-    p{font-size:13px;color:var(--vscode-descriptionForeground);margin-bottom:32px;line-height:1.6;max-width:240px}
-    .btn{width:100%;padding:10px 16px;background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;transition:background 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box}
-    .btn:hover{background:var(--vscode-button-hoverBackground)}
-    .btn-secondary{width:100%;padding:10px 16px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;transition:background 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;box-sizing:border-box}
-    .btn-secondary:hover{background:var(--vscode-button-secondaryHoverBackground)}
-    .sync-hint{font-size:11px;color:var(--vscode-descriptionForeground);text-align:center;max-width:200px;line-height:1.5;margin-top:16px;margin-bottom:0}
-  </style></head><body>
-  <div class="icon-container"><img src="${iconUri}" alt="NoteVs"/></div>
-  <h1>${title}</h1>
-  <p>${description}</p>
-  <button class="btn" id="primary">${primaryLabel}</button>
-  <button class="btn-secondary" id="secondary">${secondaryLabel}</button>
-  ${hint}
-  <script>
-    const vscode=acquireVsCodeApi();
-    document.getElementById('primary').addEventListener('click',()=>vscode.postMessage({type:'${primaryMsg}'}));
-    document.getElementById('secondary').addEventListener('click',()=>vscode.postMessage({type:'${secondaryMsg}'}));
-  </script></body></html>`;
-}
 function loginHtml(iconUri) {
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/>
@@ -16181,7 +16146,7 @@ function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyn
     .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
     .row label{font-size:13px}
     .back-btn{background:none;border:none;color:var(--vscode-textLink-foreground);cursor:pointer;font-size:12px;padding:0;margin-bottom:16px;display:flex;align-items:center;gap:4px}
-    .back-btn:hover{text-decoration:underline}
+    .back-btn:hover{text-decoration:none;opacity:0.8}
     .swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
     .swatch{width:100%;aspect-ratio:1;border-radius:4px;cursor:pointer;border:2px solid transparent;position:relative;display:flex;align-items:center;justify-content:center;transition:transform 0.1s,border-color 0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.1)}
     .swatch:hover{transform:scale(1.05)}
@@ -16198,9 +16163,11 @@ function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyn
   <button class="back-btn" id="bk"><i class="codicon codicon-arrow-left"></i> Back</button>
   <h2>Settings</h2>
   <div class="row"><label>Auto-show on project open</label><input type="checkbox" id="as" ${autoShow ? "checked" : ""}/></div>
+  <!-- Cloud Sync section hidden until feature is ready
   <div class="label">Cloud Sync</div>
   <div class="row"><label>Sync to web &amp; across machines</label><input type="checkbox" id="syncToggle" ${syncEnabled ? "checked" : ""}/></div>
   ${syncStatusHtml}
+  -->
   <div class="label">Note background colour</div>
   <div class="swatches">${swatches}</div>
   ${logoutHtml}
@@ -16208,7 +16175,7 @@ function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyn
     const vscode=acquireVsCodeApi();
     document.getElementById('bk').addEventListener('click',()=>vscode.postMessage({type:'showList'}));
     document.getElementById('as').addEventListener('change',e=>vscode.postMessage({type:'setSetting',key:'autoShow',value:e.target.checked}));
-    document.getElementById('syncToggle').addEventListener('change',e=>vscode.postMessage({type:'toggleSync',enabled:e.target.checked}));
+    // document.getElementById('syncToggle').addEventListener('change',e=>vscode.postMessage({type:'toggleSync',enabled:e.target.checked})); // hidden until sync is ready
     const syncNowBtn=document.getElementById('syncNowBtn');
     if(syncNowBtn){syncNowBtn.addEventListener('click',()=>vscode.postMessage({type:'syncNow'}));}
     const loBtn=document.getElementById('lo');
@@ -16244,7 +16211,7 @@ function noFolderHtml() {
   </body></html>`;
 }
 function notesListHtml(projectName, notes, syncStatus, lastSyncAt, syncError) {
-  const syncBarContent = syncStatus === "local" ? `<span>&#9675; Local only</span><a class="sync-status-link" id="enableSyncLink">&nbsp;&middot;&nbsp; Enable cloud sync &rarr;</a>` : syncStatus === "syncing" ? `<span>&#8635; Syncing&hellip;</span>` : syncStatus === "synced" ? `<span>&#9679; Synced &middot; Last sync: ${lastSyncAt ? (() => {
+  const syncBarContent = syncStatus === "local" ? `<span>&#9675; Local only</span>` : syncStatus === "syncing" ? `<span>&#8635; Syncing&hellip;</span>` : syncStatus === "synced" ? `<span>&#9679; Synced &middot; Last sync: ${lastSyncAt ? (() => {
     const diff = Date.now() - new Date(lastSyncAt).getTime();
     const m = Math.floor(diff / 6e4);
     return m < 1 ? "just now" : m < 60 ? `${m} min ago` : `${Math.floor(m / 60)} hr ago`;
@@ -16389,8 +16356,8 @@ function notesListHtml(projectName, notes, syncStatus, lastSyncAt, syncError) {
     document.addEventListener('keydown',e=>{
       if((e.metaKey||e.ctrlKey)&&e.key==='n'){e.preventDefault();newNoteRow.classList.add('visible');newNoteInput.value='';newNoteInput.focus();}
     });
-    const enableSyncLink=document.getElementById('enableSyncLink');
-    if(enableSyncLink){enableSyncLink.addEventListener('click',()=>vscode.postMessage({type:'enableSync'}));}
+    // const enableSyncLink=document.getElementById('enableSyncLink');
+    // if(enableSyncLink){enableSyncLink.addEventListener('click',()=>vscode.postMessage({type:'enableSync'}));}
     const retrySync=document.getElementById('retrySync');
     if(retrySync){retrySync.addEventListener('click',()=>vscode.postMessage({type:'syncNow'}));}
   </script></body></html>`;
@@ -16399,22 +16366,30 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
   const safeTitle = (note.title || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const isMarkdown = note.editorMode === "markdown";
   const contentJson = JSON.stringify(note.content || "");
-  const annotationsHtml = note.annotations && note.annotations.length > 0 ? note.annotations.map((ann) => `
+  const annotationsHtml = note.annotations && note.annotations.length > 0 ? note.annotations.map((ann) => {
+    const commentPreview = (ann.comment || "").trim().slice(0, 60).replace(/</g, "&lt;");
+    const previewText = commentPreview || (ann.codeSnippet ? ann.codeSnippet.trim().replace(/\n/g, " ").slice(0, 60).replace(/</g, "&lt;") : "");
+    return `
   <div class="annotation-block" data-ann-id="${ann.id}">
-    <div class="ann-header">
-      <span class="ann-file" onclick="vscode.postMessage({type:'jumpToFile',file:'${ann.filePath}',lineStart:${ann.lineStart},lineEnd:${ann.lineEnd},line:${ann.lineStart}})">
+    <div class="ann-header" onclick="toggleAnnotation('${ann.id}')">
+      <i class="codicon codicon-chevron-right ann-chevron"></i>
+      <span class="ann-file" onclick="event.stopPropagation();vscode.postMessage({type:'jumpToFile',file:'${ann.filePath}',lineStart:${ann.lineStart},lineEnd:${ann.lineEnd},line:${ann.lineStart}})">
         <i class="codicon codicon-link"></i> ${ann.filePath}:${ann.lineStart}\u2013${ann.lineEnd}
       </span>
-      <select class="ann-status styled-select ${ann.status}" data-ann-id="${ann.id}" onchange="saveAnnotation('${ann.id}')">
+      ${previewText ? `<span class="ann-preview">${previewText}</span>` : ""}
+      <select class="ann-status styled-select ${ann.status}" data-ann-id="${ann.id}" onclick="event.stopPropagation()" onchange="saveAnnotation('${ann.id}')">
         <option value="open"${ann.status === "open" ? " selected" : ""}>Open</option>
         <option value="done"${ann.status === "done" ? " selected" : ""}>Done</option>
         <option value="closed"${ann.status === "closed" ? " selected" : ""}>Closed</option>
       </select>
-      <button class="ann-del-btn" onclick="deleteAnnotation('${ann.id}')" title="Remove annotation"><i class="codicon codicon-trash"></i></button>
+      <button class="ann-del-btn" onclick="event.stopPropagation();deleteAnnotation('${ann.id}')" title="Remove annotation"><i class="codicon codicon-trash"></i></button>
     </div>
-    ${ann.codeSnippet ? `<pre class="ann-snippet">${ann.codeSnippet.replace(/</g, "&lt;").slice(0, 300)}</pre>` : ""}
-    <textarea class="ann-comment" data-ann-id="${ann.id}" placeholder="Comment on this code\u2026" oninput="scheduleAnnotationSave('${ann.id}')">${(ann.comment || "").replace(/</g, "&lt;")}</textarea>
-  </div>`).join("") : note.filePath ? `
+    <div class="ann-body">
+      ${ann.codeSnippet ? `<pre class="ann-snippet">${ann.codeSnippet.replace(/</g, "&lt;").slice(0, 300)}</pre>` : ""}
+      <textarea class="ann-comment" data-ann-id="${ann.id}" placeholder="Comment on this code\u2026" oninput="scheduleAnnotationSave('${ann.id}')">${(ann.comment || "").replace(/</g, "&lt;")}</textarea>
+    </div>
+  </div>`;
+  }).join("") : note.filePath ? `
   <div class="annotation-banner" id="annotationBanner" style="cursor:pointer" title="Jump to this location">
     <span><i class="codicon codicon-link"></i> ${note.filePath}:${note.lineStart}\u2013${note.lineEnd}</span>
     <span class="code-snippet">${(note.codeSnippet || "").replace(/</g, "&lt;").slice(0, 80)}</span>
@@ -16463,8 +16438,14 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     .md-tab.active{color:var(--vscode-foreground);border-bottom-color:var(--vscode-focusBorder)}
     .annotation-banner{padding:8px 12px;background:rgba(108,142,245,.1);border-bottom:1px solid var(--vscode-panel-border);font-size:11px;color:var(--vscode-textLink-foreground);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px;cursor:pointer}
     .code-snippet{opacity:.7;font-family:var(--vscode-editor-font-family,monospace);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
-    .annotation-block{border-left:3px solid rgba(108,142,245,.6);background:rgba(108,142,245,.05);margin:0;padding:8px 12px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0}
-    .ann-header{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+    .annotation-block{border-left:3px solid rgba(108,142,245,.6);background:rgba(108,142,245,.05);margin:0;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0}
+    .ann-header{display:flex;align-items:center;gap:6px;padding:7px 12px;cursor:pointer;user-select:none}
+    .ann-header:hover{background:rgba(108,142,245,.08)}
+    .ann-chevron{font-size:10px;color:var(--vscode-descriptionForeground);flex-shrink:0;transition:transform .2s;opacity:.7}
+    .annotation-block.expanded .ann-chevron{transform:rotate(90deg)}
+    .ann-preview{font-size:11px;color:var(--vscode-descriptionForeground);opacity:.7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;font-style:italic}
+    .ann-body{display:none;padding:0 12px 8px 12px}
+    .annotation-block.expanded .ann-body{display:block}
     .ann-file{font-size:11px;color:var(--vscode-textLink-foreground);cursor:pointer;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:4px}
     .ann-file:hover{text-decoration:underline}
     .ann-status.open{color:#f87171}.ann-status.done{color:#3fb950}.ann-status.closed{color:var(--vscode-descriptionForeground)}
@@ -16556,6 +16537,7 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     function scheduleAnnotationSave(annId){clearTimeout(annSaveTimers[annId]);annSaveTimers[annId]=setTimeout(()=>saveAnnotation(annId),1000);}
     function saveAnnotation(annId){const comment=document.querySelector('.ann-comment[data-ann-id="'+annId+'"]')?.value||'';const status=document.querySelector('.ann-status[data-ann-id="'+annId+'"]')?.value||'open';vscode.postMessage({type:'saveAnnotation',annotationId:annId,comment,status});}
     function deleteAnnotation(annId){vscode.postMessage({type:'deleteAnnotation',annotationId:annId});}
+    function toggleAnnotation(annId){const block=document.querySelector('.annotation-block[data-ann-id="'+annId+'"]');if(block){block.classList.toggle('expanded');}}
     document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();clearTimeout(saveTimer);doSave();}});
     const titleEl=document.getElementById('titleInput');
     if(titleEl.value==='Untitled'){titleEl.focus();titleEl.select();}
@@ -16796,11 +16778,13 @@ async function activate(context) {
       iconUri = webviewView.webview.asWebviewUri(vscode2.Uri.joinPath(context.extensionUri, "media", "icon.png")).toString();
       async function render() {
         const firstRunComplete = context.globalState.get("notevs.firstRunComplete") ?? false;
-        const syncEnabled = context.globalState.get("notevs.syncEnabled") ?? false;
+        let syncEnabled = context.globalState.get("notevs.syncEnabled") ?? false;
+        if (syncEnabled) {
+          await context.globalState.update("notevs.syncEnabled", false);
+          syncEnabled = false;
+        }
         if (!firstRunComplete) {
-          const { accessToken: accessToken2 } = await getTokens(secrets);
-          webviewView.webview.html = welcomeHtml(iconUri, !!accessToken2);
-          return;
+          await context.globalState.update("notevs.firstRunComplete", true);
         }
         if (!syncEnabled) {
           const folderPath = getFolderPath();
@@ -16998,6 +16982,10 @@ async function activate(context) {
               if (!syncEnabledDel) {
                 deleteLocalNote(context, msg.id);
                 const folderPathDel = getFolderPath();
+                const activeEdDel = vscode2.window.activeTextEditor;
+                if (activeEdDel) {
+                  refreshAnnotations(activeEdDel);
+                }
                 if (folderPathDel) {
                   const pnDel = folderPathDel.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
                   webviewView.webview.html = notesListHtml(pnDel, readLocalNotes(context, folderPathDel), "local");
@@ -17059,9 +17047,8 @@ async function activate(context) {
     backgroundColor: "rgba(108,142,245,0.06)",
     isWholeLine: true,
     overviewRulerColor: "rgba(108,142,245,0.6)",
-    overviewRulerLane: vscode2.OverviewRulerLane.Right,
-    gutterIconPath: vscode2.Uri.joinPath(context.extensionUri, "media", "icon.png"),
-    gutterIconSize: "60%"
+    overviewRulerLane: vscode2.OverviewRulerLane.Right
+    // gutterIconPath removed — logo should not appear on annotation highlights
   });
   const annotationCache = /* @__PURE__ */ new Map();
   async function refreshAnnotations(editor) {
@@ -17263,13 +17250,6 @@ ${preview}`);
       return;
     }
     const syncEnabledAnnotate = context.globalState.get("notevs.syncEnabled") ?? false;
-    if (syncEnabledAnnotate) {
-      const { accessToken } = await getTokens(secrets);
-      if (!accessToken) {
-        vscode2.window.showErrorMessage("Sign in to NoteVs first.");
-        return;
-      }
-    }
     const doc = await vscode2.workspace.openTextDocument(docUri);
     const codeSnippet = doc.getText(selection);
     const relPath = docUri.fsPath.replace(folderPath + "/", "").replace(folderPath + "\\", "");

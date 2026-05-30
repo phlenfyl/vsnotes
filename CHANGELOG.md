@@ -2,6 +2,21 @@
 
 All notable changes to NoteVs will be documented here.
 
+## [0.4.0] - 2026-05-30
+
+### Changed
+- **Activity bar icon** — replaced the full-color NoteNest logo with a clean monochrome SVG (spiral-bound notepad + pencil). VS Code now masks it correctly with the theme foreground color so it renders consistently alongside all other activity bar icons
+- **Annotations are now collapsible** — each annotation in the note editor is collapsed by default, showing a one-line summary (file/line link + comment preview). Click the row to expand/collapse. Saves significant vertical space when a note has multiple annotations
+- **Cloud sync section hidden in Settings** — the sync toggle and related UI are commented out until the feature is production-ready; Settings now only shows auto-show and background colour options
+- **"Back" button no longer underlines on hover** — subtle opacity change instead
+
+### Fixed
+- **Annotation gutter decorations now clear immediately on note deletion** — previously the blue line highlights would persist in the editor after a note was deleted until the next file switch
+- **Extension no longer shows login/welcome screen on startup** — stale `syncEnabled: true` state from previous sessions no longer causes the sign-in page to appear; the extension always boots directly into the notes list
+- **NoteNest logo removed from annotation gutter** — the extension logo no longer appeared as a gutter icon next to annotated lines
+- **"Sign in to NoteVs first" error removed** — annotating code no longer requires authentication; works fully in local-only mode
+- **"Enable cloud sync" link removed from notes list bar** — the clickable link that appeared next to "Local only" no longer shows; the bar is display-only until sync is ready
+
 ## [0.2.0] - 2026-05-30
 
 ### Added

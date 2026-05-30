@@ -1,7 +1,7 @@
 {
   "name": "notevs",
   "displayName": "NoteVs",
-  "description": "Write notes for each VS Code project. Syncs to the cloud across all your machines.",
+  "description": "A simple extension for notes and annotations",
   "version": "0.4.0",
   "icon": "media/icon-marketplace.png",
   "publisher": "MESHEmugles1",
@@ -22,7 +22,7 @@
         {
           "id": "notevs",
           "title": "NoteVs",
-          "icon": "media/icon.png"
+          "icon": "media/icon.svg"
         }
       ]
     },
