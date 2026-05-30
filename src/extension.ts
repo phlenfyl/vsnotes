@@ -3,6 +3,7 @@ import axios from 'axios';
 import { randomBytes, randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { installMcpBridge } from './mcpInstaller';
 import { startMcpServer } from './mcpServer';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -756,6 +757,7 @@ export async function activate(context: vscode.ExtensionContext) {
   let panel: vscode.WebviewView | undefined;
   let currentNoteId: string | null = null;
   let iconUri = '';
+  installMcpBridge(context);
 
   const openNotePanels = new Map<string, vscode.WebviewPanel>();
   const openingNotes = new Set<string>();
