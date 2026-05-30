@@ -2,7 +2,10 @@
 
 All notable changes to NoteVs will be documented here.
 
-## [0.6.1] - 2026-05-30
+## [0.8.0] - 2026-05-30
+
+### Added
+- **Windsurf and Antigravity MCP support** — NoteVs now auto-registers in `~/.codeium/windsurf/mcp_config.json` and `~/.gemini/antigravity/mcp_config.json` on activation, alongside the existing Claude Code, Cursor, and VS Code Copilot registrations
 
 ### Fixed
 - **Notes created by AI agents now appear in the sidebar** — path normalization via `fs.realpathSync` ensures notes written by Claude Code / Cursor (using `process.cwd()`) and notes read by VS Code (using `workspaceFolders[0].uri.fsPath`) always resolve to the same key, fixing the blank sidebar bug on macOS

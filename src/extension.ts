@@ -196,6 +196,60 @@ function readLocalNotes(context: vscode.ExtensionContext, folderPath: string): N
   });
 }
 
+// Returns notes grouped by folderPath for monorepo workspaces.
+// Root notes (folderPath === workspacePath) come first, then subfolders alphabetically.
+export interface NoteGroup { label: string; folderPath: string; notes: NoteItem[]; }
+function readLocalNotesGrouped(context: vscode.ExtensionContext, workspacePath: string): NoteGroup[] {
+  ensureLocalDirs(context);
+  const meta = readLocalMeta(context);
+  const sep = workspacePath.endsWith('/') ? workspacePath : workspacePath + '/';
+  const map = new Map<string, NoteItem[]>();
+  for (const entry of meta.noteIndex) {
+    const fp = entry.folderPath;
+    if (fp !== workspacePath && !fp.startsWith(sep)) { continue; }
+    const note = readLocalNote(context, entry.id);
+    if (!note || note.deletedAt) { continue; }
+    if (!map.has(fp)) { map.set(fp, []); }
+    map.get(fp)!.push(note);
+  }
+  const sortNotes = (arr: NoteItem[]) => arr.sort((a, b) => {
+    if (a.pinned && !b.pinned) { return -1; }
+    if (!a.pinned && b.pinned) { return 1; }
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
+  const groups: NoteGroup[] = [];
+  // Root group first
+  if (map.has(workspacePath)) {
+    const label = workspacePath.split(/[\/\\]/).filter(Boolean).pop() ?? workspacePath;
+    groups.push({ label, folderPath: workspacePath, notes: sortNotes(map.get(workspacePath)!) });
+  }
+  // Subfolders alphabetically
+  const subKeys = [...map.keys()].filter(k => k !== workspacePath).sort();
+  for (const fp of subKeys) {
+    const label = fp.replace(sep, '').split(/[\/\\]/)[0];
+    groups.push({ label, folderPath: fp, notes: sortNotes(map.get(fp)!) });
+  }
+  return groups;
+}
+
+// All notes under workspace (flat), used for annotations/gutter
+function readLocalNotesForWorkspace(context: vscode.ExtensionContext, workspacePath: string): NoteItem[] {
+  return readLocalNotesGrouped(context, workspacePath).flatMap(g => g.notes);
+}
+
+// Known subfolder paths derived from meta.json (no filesystem scan needed)
+function getKnownSubfolders(context: vscode.ExtensionContext, workspacePath: string): string[] {
+  const meta = readLocalMeta(context);
+  const sep = workspacePath.endsWith('/') ? workspacePath : workspacePath + '/';
+  const seen = new Set<string>();
+  for (const entry of meta.noteIndex) {
+    if (entry.folderPath !== workspacePath && entry.folderPath.startsWith(sep)) {
+      seen.add(entry.folderPath);
+    }
+  }
+  return [...seen].sort();
+}
+
 // ── Color palette ─────────────────────────────────────────────────────────────
 
 const BG_COLORS = [
@@ -396,11 +450,12 @@ function noFolderHtml(): string {
 
 function notesListHtml(
   projectName: string,
-  notes: NoteItem[],
+  groups: NoteGroup[],
   syncStatus: 'local' | 'syncing' | 'synced' | 'error',
   lastSyncAt?: string | null,
   syncError?: string | null,
 ): string {
+  const notes = groups.flatMap(g => g.notes); // for empty check & search
   const syncBarContent = syncStatus === 'local'
     ? `<span>&#9675; Local only</span>` // Enable cloud sync link hidden until feature is ready
     : syncStatus === 'syncing'
@@ -422,7 +477,9 @@ function notesListHtml(
     { border: 'rgba(52,211,153,0.5)',  glow: 'rgba(52,211,153,0.08)' },
   ];
 
-  const items = notes.map((n, i) => {
+  let globalIdx = 0;
+  const renderNote = (n: NoteItem) => {
+    const i = globalIdx++;
     const accent = CARD_ACCENTS[i % CARD_ACCENTS.length];
     const date = new Date(n.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     const safeTitle = n.title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -450,6 +507,15 @@ function notesListHtml(
       </div>
       <button class="del-btn" data-id="${n.id}" title="Delete"><i class="codicon codicon-trash"></i></button>
     </div>`;
+  };
+
+  const isMonorepo = groups.length > 1 || (groups.length === 1 && groups[0].folderPath !== groups[0].folderPath);
+  const showHeaders = groups.length > 1;
+  const items = groups.map(group => {
+    const header = showHeaders
+      ? `<div class="group-header"><i class="codicon codicon-folder"></i> ${group.label}</div>`
+      : '';
+    return header + group.notes.map(renderNote).join('');
   }).join('');
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
@@ -469,6 +535,8 @@ function notesListHtml(
     .new-note-input{flex:1;background:transparent;border:none;color:var(--vscode-input-foreground);font-size:13px;font-weight:500;outline:none;font-family:var(--vscode-font-family);padding:2px 4px}
     .new-note-hint{font-size:10px;color:var(--vscode-descriptionForeground);white-space:nowrap;opacity:.7}
     .notes-list{flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:8px}
+    .group-header{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--vscode-descriptionForeground);padding:12px 2px 6px;display:flex;align-items:center;gap:5px;opacity:.7}
+    .group-header:first-child{padding-top:4px}
     .note-row{display:flex;align-items:flex-start;padding:10px;cursor:pointer;border:1px solid var(--vscode-panel-border);border-radius:6px;background:var(--vscode-sideBar-background);transition:border-color .2s,box-shadow .2s,background .2s;position:relative;gap:8px}
     .note-row:hover{border-color:var(--vscode-focusBorder);filter:brightness(1.15);box-shadow:0 2px 8px rgba(0,0,0,.15)}
     .note-row.hidden{display:none}
@@ -523,12 +591,27 @@ function notesListHtml(
     const vscode=acquireVsCodeApi();
     const newNoteRow=document.getElementById('newNoteRow');
     const newNoteInput=document.getElementById('newNoteInput');
-    document.getElementById('newBtn').addEventListener('click',()=>{newNoteRow.classList.add('visible');newNoteInput.value='';newNoteInput.focus();});
+    const subfolders=${JSON.stringify(groups.filter(g => g.folderPath !== groups[0]?.folderPath).map(g => ({label: g.label, folderPath: g.folderPath})))};
+    const rootFolder=${JSON.stringify(groups[0]?.folderPath ?? '')};
+    const rootLabel=${JSON.stringify(groups[0]?.label ?? projectName)};
+    document.getElementById('newBtn').addEventListener('click',()=>{
+      if(subfolders.length > 0){
+        vscode.postMessage({type:'chooseFolder', subfolders, rootFolder, rootLabel});
+      } else {
+        newNoteRow.classList.add('visible');newNoteInput.value='';newNoteInput.focus();
+      }
+    });
     newNoteInput.addEventListener('keydown',e=>{
-      if(e.key==='Enter'){e.preventDefault();const t=newNoteInput.value.trim();if(t){vscode.postMessage({type:'newNote',title:t});}newNoteRow.classList.remove('visible');}
+      if(e.key==='Enter'){e.preventDefault();const t=newNoteInput.value.trim();if(t){vscode.postMessage({type:'newNote',title:t,targetFolder:newNoteRow.dataset.folder||rootFolder});}newNoteRow.classList.remove('visible');}
       if(e.key==='Escape'){newNoteRow.classList.remove('visible');}
     });
     newNoteInput.addEventListener('blur',()=>{setTimeout(()=>{newNoteRow.classList.remove('visible');},150);});
+    window.addEventListener('message',e=>{
+      if(e.data.type==='showNewNoteInput'){
+        newNoteRow.dataset.folder=e.data.folderPath;
+        newNoteRow.classList.add('visible');newNoteInput.value='';newNoteInput.focus();
+      }
+    });
     document.getElementById('settingsBtn').addEventListener('click',()=>vscode.postMessage({type:'openSettings'}));
     document.querySelectorAll('.note-row').forEach(row=>{
       row.addEventListener('click',e=>{if(e.target.closest('.del-btn'))return;vscode.postMessage({type:'openNote',id:row.dataset.id});});
@@ -551,7 +634,7 @@ function notesListHtml(
       });
     });
     document.addEventListener('keydown',e=>{
-      if((e.metaKey||e.ctrlKey)&&e.key==='n'){e.preventDefault();newNoteRow.classList.add('visible');newNoteInput.value='';newNoteInput.focus();}
+      if((e.metaKey||e.ctrlKey)&&e.key==='n'){e.preventDefault();if(subfolders.length>0){vscode.postMessage({type:'chooseFolder',subfolders,rootFolder,rootLabel});}else{newNoteRow.classList.add('visible');newNoteInput.value='';newNoteInput.focus();}}
     });
     // const enableSyncLink=document.getElementById('enableSyncLink');
     // if(enableSyncLink){enableSyncLink.addEventListener('click',()=>vscode.postMessage({type:'enableSync'}));}
@@ -900,7 +983,7 @@ export async function activate(context: vscode.ExtensionContext) {
             const updated: NoteItem = { ...existing, ...patch, updatedAt: new Date().toISOString() };
             writeLocalNote(context, updated);
           }
-          if (panel && fp2) { panel.webview.html = notesListHtml(pn2, readLocalNotes(context, fp2), 'local'); }
+          if (panel && fp2) { panel.webview.html = notesListHtml(pn2, readLocalNotesGrouped(context, fp2), 'local'); }
           notePanel.webview.postMessage({ type: 'saved' });
         } else {
           patchNoteInCache(msg.id, patch);
@@ -969,9 +1052,9 @@ export async function activate(context: vscode.ExtensionContext) {
         if (!syncEnabled) {
           const folderPath = getFolderPath();
           if (!folderPath) { webviewView.webview.html = noFolderHtml(); return; }
-          const notes = readLocalNotes(context, folderPath);
+          const groups = readLocalNotesGrouped(context, folderPath);
           const projectName = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? 'No project';
-          webviewView.webview.html = notesListHtml(projectName, notes, 'local');
+          webviewView.webview.html = notesListHtml(projectName, groups, 'local');
           return;
         }
         const { accessToken } = await getTokens(secrets);
@@ -1031,17 +1114,28 @@ export async function activate(context: vscode.ExtensionContext) {
           }
           case 'startLogin': await startLoginFlow(secrets, () => render()); break;
           case 'showList': await render(); break;
+          case 'chooseFolder': {
+            const workspacePath = getFolderPath(); if (!workspacePath) break;
+            const folderItems = [
+              { label: `$(folder-opened) ${msg.rootLabel}`, description: 'workspace root', folderPath: msg.rootFolder },
+              ...msg.subfolders.map((s: {label: string; folderPath: string}) => ({ label: `$(folder) ${s.label}`, description: s.folderPath.replace(msg.rootFolder + '/', ''), folderPath: s.folderPath })),
+            ];
+            const picked = await vscode.window.showQuickPick(folderItems, { title: 'Create note in…', placeHolder: 'Choose a folder for the new note', ignoreFocusOut: true });
+            if (picked) { webviewView.webview.postMessage({ type: 'showNewNoteInput', folderPath: picked.folderPath }); }
+            break;
+          }
           case 'openFolder': vscode.commands.executeCommand('vscode.openFolder'); break;
           case 'newNote': {
             const folderPath = getFolderPath(); if (!folderPath) { vscode.window.showWarningMessage('Open a folder first.'); break; }
+            const targetFolder: string = msg.targetFolder || folderPath;
             const projectName = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? 'Project';
             const title = msg.title || 'Untitled';
             const syncEnabled2 = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
             if (!syncEnabled2) {
               const now = new Date().toISOString();
-              const newNote: NoteItem = { id: randomUUID(), localId: randomUUID(), title, content: '', editorMode: 'wysiwyg', pinned: false, tags: [], priority: 'none', status: 'open', createdAt: now, updatedAt: now, folderPath, deletedAt: null, syncedAt: null };
+              const newNote: NoteItem = { id: randomUUID(), localId: randomUUID(), title, content: '', editorMode: 'wysiwyg', pinned: false, tags: [], priority: 'none', status: 'open', createdAt: now, updatedAt: now, folderPath: targetFolder, deletedAt: null, syncedAt: null };
               writeLocalNote(context, newNote);
-              webviewView.webview.html = notesListHtml(projectName, readLocalNotes(context, folderPath), 'local');
+              webviewView.webview.html = notesListHtml(projectName, readLocalNotesGrouped(context, folderPath), 'local');
               await openNote(newNote.id);
             } else {
               try {
@@ -1079,9 +1173,8 @@ export async function activate(context: vscode.ExtensionContext) {
               if (!syncEnabledDel) {
                 deleteLocalNote(context, msg.id);
                 const folderPathDel = getFolderPath();
-                // Refresh gutter decorations so annotation highlights clear immediately
                 const activeEdDel = vscode.window.activeTextEditor; if (activeEdDel) { refreshAnnotations(activeEdDel); }
-                if (folderPathDel) { const pnDel = folderPathDel.split(/[\/\\]/).filter(Boolean).pop() ?? 'No project'; webviewView.webview.html = notesListHtml(pnDel, readLocalNotes(context, folderPathDel), 'local'); }
+                if (folderPathDel) { const pnDel = folderPathDel.split(/[\/\\]/).filter(Boolean).pop() ?? 'No project'; webviewView.webview.html = notesListHtml(pnDel, readLocalNotesGrouped(context, folderPathDel), 'local'); }
               } else {
                 if (memCache) { memCache.notes = memCache.notes.filter(n => n.id !== msg.id); context.globalState.update(cacheKey(), memCache); }
                 try { await apiDelete(secrets, `/notes/${msg.id}`); } catch { /* ignore */ }
@@ -1134,7 +1227,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const relPath = editor.document.uri.fsPath.replace(folderPath + '/', '').replace(folderPath + '\\', '');
     const syncEnabledRef = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
     let notes: NoteItem[] = [];
-    if (!syncEnabledRef) { notes = readLocalNotes(context, folderPath); }
+    if (!syncEnabledRef) { notes = readLocalNotesForWorkspace(context, folderPath); }
     else { try { const res = await apiGet(secrets, '/notes', { folderPath }); notes = res.data.data; } catch { return; } }
     const flat: FlatAnnotation[] = [];
     for (const note of notes) {
@@ -1291,7 +1384,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const newNote: NoteItem = { id: randomUUID(), localId: randomUUID(), title: title || 'Untitled annotation', content: '', editorMode: 'wysiwyg', pinned: false, tags: [], priority: 'none', status: 'open', createdAt: now, updatedAt: now, folderPath, deletedAt: null, syncedAt: null, annotations: [{ id: annId, noteId: '', filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || '', status: 'open', createdAt: now, updatedAt: now }] };
         newNote.annotations![0].noteId = newNote.id;
         writeLocalNote(context, newNote);
-        if (panel) { panel.webview.html = notesListHtml(pnAnn, readLocalNotes(context, folderPath), 'local'); }
+        if (panel) { panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), 'local'); }
         const activeEd = vscode.window.activeTextEditor; if (activeEd) { await refreshAnnotations(activeEd); }
         vscode.window.showInformationMessage(`\ud83d\udcce Annotation added to new note \u201c${newNote.title}\u201d`);
       } else {
@@ -1315,7 +1408,7 @@ export async function activate(context: vscode.ExtensionContext) {
         if (existing) {
           const updated: NoteItem = { ...existing, updatedAt: now, annotations: [...(existing.annotations ?? []), { id: annId, noteId: picked.noteId!, filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || '', status: 'open', createdAt: now, updatedAt: now }] };
           writeLocalNote(context, updated);
-          if (panel) { panel.webview.html = notesListHtml(pnAnn, readLocalNotes(context, folderPath), 'local'); }
+          if (panel) { panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), 'local'); }
           const activeEd2 = vscode.window.activeTextEditor; if (activeEd2) { await refreshAnnotations(activeEd2); }
           const existingPanel = openNotePanels.get(picked.noteId!);
           if (existingPanel) { const { bg, text } = getNoteColors(); existingPanel.webview.html = noteEditorHtml(updated, pnAnn, bg, text); }

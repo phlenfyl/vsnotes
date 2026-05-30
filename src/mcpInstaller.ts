@@ -35,5 +35,9 @@ export function installMcpBridge(context: vscode.ExtensionContext): void {
     try { upsertMcpConfig(path.join(os.homedir(), '.cursor', 'mcp.json')); } catch { /* skip */ }
     // VS Code Copilot agent mode
     try { upsertMcpConfig(path.join(os.homedir(), '.vscode', 'mcp.json')); } catch { /* skip */ }
+    // Antigravity (Google)
+    try { upsertMcpConfig(path.join(os.homedir(), '.gemini', 'antigravity', 'mcp_config.json')); } catch { /* skip */ }
+    // Windsurf
+    try { upsertMcpConfig(path.join(os.homedir(), '.codeium', 'windsurf', 'mcp_config.json')); } catch { /* skip */ }
   } catch { /* never crash the extension */ }
 }
