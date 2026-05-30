@@ -523,7 +523,7 @@ function notesListHtml(
   };
 
   const isMonorepo = groups.length > 1 || (groups.length === 1 && groups[0].folderPath !== groups[0].folderPath);
-  const showHeaders = groups.length > 1;
+  const showHeaders = groups.length > 1 || (groups.length === 1 && subfolderOptions.length > 0);
   const items = groups.map(group => {
     const header = showHeaders
       ? `<div class="group-header"><i class="codicon codicon-folder"></i> ${group.label}</div>`
@@ -1359,7 +1359,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const lineStart = selection.start.line + 1; const lineEnd = selection.end.line + 1;
     const locationLabel = `${relPath}:${lineStart}\u2013${lineEnd}`;
     const syncEnabledAnn = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
-    const existingNotes: NoteItem[] = syncEnabledAnn ? (loadCache()?.notes ?? []) : readLocalNotes(context, folderPath);
+    const existingNotes: NoteItem[] = syncEnabledAnn ? (loadCache()?.notes ?? []) : readLocalNotesForWorkspace(context, folderPath);
     interface AnnotatePickItem extends vscode.QuickPickItem { noteId?: string; }
     const items: AnnotatePickItem[] = [{ label: '$(add) Create new note', description: '', detail: `New note with this annotation attached \u2014 ${locationLabel}`, noteId: undefined }];
     if (existingNotes.length > 0) {

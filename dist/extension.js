@@ -16122,29 +16122,6 @@ function deleteLocalNote(context, id) {
   meta.noteIndex = meta.noteIndex.filter((e) => e.id !== id);
   writeLocalMeta2(context, meta);
 }
-function readLocalNotes(context, folderPath) {
-  ensureLocalDirs2(context);
-  const meta = readLocalMeta2(context);
-  const notes = [];
-  for (const entry of meta.noteIndex) {
-    if (entry.folderPath !== folderPath) {
-      continue;
-    }
-    const note = readLocalNote2(context, entry.id);
-    if (note && !note.deletedAt) {
-      notes.push(note);
-    }
-  }
-  return notes.sort((a, b) => {
-    if (a.pinned && !b.pinned) {
-      return -1;
-    }
-    if (!a.pinned && b.pinned) {
-      return 1;
-    }
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-  });
-}
 function readLocalNotesGrouped(context, workspacePath) {
   ensureLocalDirs2(context);
   const meta = readLocalMeta2(context);
@@ -16393,7 +16370,7 @@ function notesListHtml(projectName, groups, subfolderOptions, syncStatus, lastSy
     </div>`;
   };
   const isMonorepo = groups.length > 1 || groups.length === 1 && groups[0].folderPath !== groups[0].folderPath;
-  const showHeaders = groups.length > 1;
+  const showHeaders = groups.length > 1 || groups.length === 1 && subfolderOptions.length > 0;
   const items = groups.map((group) => {
     const header = showHeaders ? `<div class="group-header"><i class="codicon codicon-folder"></i> ${group.label}</div>` : "";
     return header + group.notes.map(renderNote).join("");
@@ -17416,7 +17393,7 @@ ${preview}`);
     const lineEnd = selection.end.line + 1;
     const locationLabel = `${relPath}:${lineStart}\u2013${lineEnd}`;
     const syncEnabledAnn = context.globalState.get("notevs.syncEnabled") ?? false;
-    const existingNotes = syncEnabledAnn ? loadCache()?.notes ?? [] : readLocalNotes(context, folderPath);
+    const existingNotes = syncEnabledAnn ? loadCache()?.notes ?? [] : readLocalNotesForWorkspace(context, folderPath);
     const items = [{ label: "$(add) Create new note", description: "", detail: `New note with this annotation attached \u2014 ${locationLabel}`, noteId: void 0 }];
     if (existingNotes.length > 0) {
       items.push({ label: "Add to existing note", kind: vscode3.QuickPickItemKind.Separator });
