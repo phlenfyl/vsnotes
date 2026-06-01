@@ -16841,17 +16841,13 @@ async function activate(context) {
             writeLocalNote2(context, updated);
           }
           if (panel && fp2) {
-            panel.webview.html = notesListHtml(pn2, readLocalNotesGrouped(context, fp2), "local");
+            panel.webview.html = notesListHtml(pn2, readLocalNotesGrouped(context, fp2), getSubfolderOptions(context, fp2), "local");
           }
           notePanel.webview.postMessage({ type: "saved" });
         } else {
           patchNoteInCache(msg.id, patch);
-          if (panel) {
-            const c2 = loadCache();
-            const ls2 = context.globalState.get("notevs.lastSyncAt") ?? null;
-            if (c2) {
-              panel.webview.html = notesListHtml(pn2, c2.notes, "synced", ls2);
-            }
+          if (panel && fp2) {
+            panel.webview.html = notesListHtml(pn2, readLocalNotesGrouped(context, fp2), getSubfolderOptions(context, fp2), "local");
           }
           try {
             await apiPatch(secrets, `/notes/${msg.id}`, patch);
@@ -16928,34 +16924,7 @@ async function activate(context) {
         webviewView.webview.html = notesListHtml(projectName, groups, getSubfolderOptions(context, folderPath), "local");
       }
       async function showNotesList() {
-        const folderPath = getFolderPath();
-        const projectName = folderPath?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
-        const lastSyncAt = context.globalState.get("notevs.lastSyncAt") ?? null;
-        currentNoteId = null;
-        if (!folderPath) {
-          webviewView.webview.html = noFolderHtml();
-          return;
-        }
-        const cached = loadCache();
-        if (cached) {
-          webviewView.webview.html = notesListHtml(projectName, cached.notes, "synced", lastSyncAt);
-        }
-        try {
-          const res = await apiGet(secrets, "/notes", { folderPath });
-          await saveCache(res.data.data);
-          if (currentNoteId === null) {
-            webviewView.webview.html = notesListHtml(projectName, res.data.data, "synced", lastSyncAt);
-          }
-        } catch (e) {
-          const err = e;
-          if (err.message === "NOT_AUTHENTICATED") {
-            webviewView.webview.html = loginHtml(iconUri);
-          } else if (!cached) {
-            webviewView.webview.html = notesListHtml(projectName, [], "error", null, "Could not connect");
-          } else if (currentNoteId === null) {
-            webviewView.webview.html = notesListHtml(projectName, cached.notes, "error", lastSyncAt, "Could not connect");
-          }
-        }
+        await render();
       }
       webviewView.webview.onDidReceiveMessage(async (msg) => {
         switch (msg.type) {
@@ -17003,22 +16972,7 @@ async function activate(context) {
             break;
           }
           case "syncNow": {
-            const folderPath = getFolderPath();
-            if (!folderPath) break;
-            try {
-              const pnSync = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
-              webviewView.webview.html = notesListHtml(pnSync, loadCache()?.notes ?? [], "syncing");
-              await flushOfflineQueue();
-              const res = await apiGet(secrets, "/notes", { folderPath });
-              await saveCache(res.data.data);
-              await context.globalState.update("notevs.lastSyncAt", (/* @__PURE__ */ new Date()).toISOString());
-              const lsAt2 = context.globalState.get("notevs.lastSyncAt") ?? null;
-              webviewView.webview.html = notesListHtml(pnSync, res.data.data, "synced", lsAt2);
-            } catch {
-              const pnSyncErr = getFolderPath()?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
-              const lsAt3 = context.globalState.get("notevs.lastSyncAt") ?? null;
-              webviewView.webview.html = notesListHtml(pnSyncErr, loadCache()?.notes ?? [], "error", lsAt3, "Sync failed");
-            }
+            await render();
             break;
           }
           case "startLogin":
@@ -17058,7 +17012,7 @@ async function activate(context) {
               const now = (/* @__PURE__ */ new Date()).toISOString();
               const newNote = { id: (0, import_crypto3.randomUUID)(), localId: (0, import_crypto3.randomUUID)(), title, content: "", editorMode: "wysiwyg", pinned: false, tags: [], priority: "none", status: "open", createdAt: now, updatedAt: now, folderPath: targetFolder, deletedAt: null, syncedAt: null };
               writeLocalNote2(context, newNote);
-              webviewView.webview.html = notesListHtml(projectName, readLocalNotesGrouped(context, folderPath), "local");
+              webviewView.webview.html = notesListHtml(projectName, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
               await openNote(newNote.id);
             } else {
               try {
@@ -17070,11 +17024,7 @@ async function activate(context) {
                 } else {
                   await saveCache([newNote]);
                 }
-                const lastSyncAt2 = context.globalState.get("notevs.lastSyncAt") ?? null;
-                const c2 = loadCache();
-                if (c2) {
-                  webviewView.webview.html = notesListHtml(projectName, c2.notes, "synced", lastSyncAt2);
-                }
+                webviewView.webview.html = notesListHtml(projectName, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
                 await openNote(newNote.id);
               } catch {
                 vscode3.window.showErrorMessage("Failed to create note.");
@@ -17124,7 +17074,7 @@ async function activate(context) {
                 }
                 if (folderPathDel) {
                   const pnDel = folderPathDel.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
-                  webviewView.webview.html = notesListHtml(pnDel, readLocalNotesGrouped(context, folderPathDel), "local");
+                  webviewView.webview.html = notesListHtml(pnDel, readLocalNotesGrouped(context, folderPathDel), getSubfolderOptions(context, folderPathDel), "local");
                 }
               } else {
                 if (memCache) {
@@ -17135,7 +17085,7 @@ async function activate(context) {
                   await apiDelete(secrets, `/notes/${msg.id}`);
                 } catch {
                 }
-                await showNotesList();
+                await render();
               }
             }
             break;
@@ -17435,7 +17385,7 @@ ${preview}`);
         newNote.annotations[0].noteId = newNote.id;
         writeLocalNote2(context, newNote);
         if (panel) {
-          panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), "local");
+          panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
         }
         const activeEd = vscode3.window.activeTextEditor;
         if (activeEd) {
@@ -17455,11 +17405,7 @@ ${preview}`);
             await saveCache([newNote]);
           }
           if (panel) {
-            const c2 = loadCache();
-            const lsA = context.globalState.get("notevs.lastSyncAt") ?? null;
-            if (c2) {
-              panel.webview.html = notesListHtml(pnAnn, c2.notes, "synced", lsA);
-            }
+            panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
           }
           vscode3.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
         } catch {
@@ -17481,7 +17427,7 @@ ${preview}`);
           const updated = { ...existing, updatedAt: now, annotations: [...existing.annotations ?? [], { id: annId, noteId: picked.noteId, filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || "", status: "open", createdAt: now, updatedAt: now }] };
           writeLocalNote2(context, updated);
           if (panel) {
-            panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), "local");
+            panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
           }
           const activeEd2 = vscode3.window.activeTextEditor;
           if (activeEd2) {
@@ -17507,11 +17453,7 @@ ${preview}`);
             }
           }
           if (panel) {
-            const c2 = loadCache();
-            const lsB = context.globalState.get("notevs.lastSyncAt") ?? null;
-            if (c2) {
-              panel.webview.html = notesListHtml(pnAnn, c2.notes, "synced", lsB);
-            }
+            panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
           }
           const existingPanel = openNotePanels.get(picked.noteId);
           if (existingPanel) {
