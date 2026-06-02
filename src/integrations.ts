@@ -14,6 +14,7 @@ export interface NoteItem {
   annotations?: unknown[];
   localId?: string; createdAt?: string; folderPath?: string;
   deletedAt?: string | null; syncedAt?: string | null;
+  exports?: { notion?: { ts: string; pageId: string; pageUrl: string }; obsidian?: string };
 }
 
 // ── Content helpers ────────────────────────────────────────────────────────────
@@ -137,17 +138,18 @@ async function fetchNotionPages(token: string): Promise<Array<{ id: string; titl
 export async function sendToNotion(
   secrets: vscode.SecretStorage,
   globalState: vscode.Memento,
-  note: NoteItem
+  note: NoteItem,
+  onExported: (destination: 'notion' | 'obsidian', ts: string, pageId?: string, pageUrl?: string) => void
 ): Promise<void> {
   // 1. Get or prompt for token
   let token = await secrets.get('notionToken');
   if (!token) {
     const entered = await vscode.window.showInputBox({
       title: 'Connect Notion',
-      prompt: 'Paste your Notion integration token (starts with "secret_" or "ntn_")',
+      prompt: 'Paste your token below. To get one: go to app.notion.com/developers/connections → New connection → Access token → Create → copy the token.',
       password: true,
       ignoreFocusOut: true,
-      placeHolder: 'secret_... or ntn_...',
+      placeHolder: 'ntn_... or secret_...',
       validateInput: v => (v && (v.startsWith('secret_') || v.startsWith('ntn_'))) ? undefined : 'Token must start with "secret_" or "ntn_"',
     });
     if (!entered) { return; }
@@ -194,58 +196,95 @@ export async function sendToNotion(
   const plainText = extractPlainText(note);
   const blocks = convertToNotionBlocks(plainText);
   const MAX_BLOCKS = 100;
-  const firstBatch = blocks.slice(0, MAX_BLOCKS);
 
-  const payload = {
-    parent: { page_id: parentPageId },
-    properties: {
-      title: {
-        title: [{ type: 'text', text: { content: note.title || 'Untitled' } }],
-      },
-    },
-    children: firstBatch,
-  };
-
-  // 5. Create the page
   let createdPageId = '';
   let pageUrl = '';
-  try {
-    const res = await axios.post(`${NOTION_API}/pages`, payload, { headers: notionHeaders(token) });
-    createdPageId = res.data?.id ?? '';
-    pageUrl = res.data?.url ?? '';
-  } catch (e: unknown) {
-    const status = (e as { response?: { status?: number } })?.response?.status;
-    if (status === 401) {
-      await secrets.delete('notionToken');
-      vscode.window.showErrorMessage('Notion token is invalid. Cleared — please export again.');
-    } else if (status === 404) {
-      await globalState.update('notevs.notionParentPageId', '');
-      vscode.window.showErrorMessage('Parent page not found. It may have been deleted or unshared. Please export again to pick a new page.');
-    } else if (status === 403) {
-      vscode.window.showErrorMessage('Access denied. Share the parent page with your NoteNest integration via "..." -> Add connections.');
-    } else {
-      vscode.window.showErrorMessage('Failed to create Notion page. Check your internet connection.');
+  const existingPageId = note.exports?.notion?.pageId;
+
+  if (existingPageId) {
+    // ── Re-export: clear existing content then re-append ──
+    try {
+      // Get current block children so we can delete them
+      const childRes = await axios.get(`${NOTION_API}/blocks/${existingPageId}/children`, { headers: notionHeaders(token) });
+      const childIds: string[] = (childRes.data?.results ?? []).map((b: { id: string }) => b.id);
+      for (const cid of childIds) {
+        try { await axios.delete(`${NOTION_API}/blocks/${cid}`, { headers: notionHeaders(token) }); } catch { /* ignore individual block delete errors */ }
+      }
+      // Update the page title
+      await axios.patch(`${NOTION_API}/pages/${existingPageId}`, {
+        properties: { title: { title: [{ type: 'text', text: { content: note.title || 'Untitled' } }] } }
+      }, { headers: notionHeaders(token) });
+      // Append new content
+      for (let i = 0; i < blocks.length; i += MAX_BLOCKS) {
+        await axios.patch(`${NOTION_API}/blocks/${existingPageId}/children`, { children: blocks.slice(i, i + MAX_BLOCKS) }, { headers: notionHeaders(token) });
+      }
+      createdPageId = existingPageId;
+      pageUrl = note.exports.notion!.pageUrl;
+    } catch (e: unknown) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 404) {
+        // Page was deleted in Notion — fall through to create a new one
+        await globalState.update('notevs.notionParentPageId', '');
+      } else {
+        vscode.window.showErrorMessage('Failed to update Notion page. Check your connection.');
+        return;
+      }
     }
-    return;
   }
 
-  // 6. Append remaining blocks for very long notes (>100 blocks = >200,000 chars)
-  if (blocks.length > MAX_BLOCKS && createdPageId) {
-    const remaining = blocks.slice(MAX_BLOCKS);
-    for (let i = 0; i < remaining.length; i += MAX_BLOCKS) {
-      try {
-        await axios.patch(
-          `${NOTION_API}/blocks/${createdPageId}/children`,
-          { children: remaining.slice(i, i + MAX_BLOCKS) },
-          { headers: notionHeaders(token) }
-        );
-      } catch { break; }
+  if (!createdPageId) {
+    // ── First export: pick parent page and create ──
+    if (!parentPageId) {
+      const picked = await vscode.window.showQuickPick(
+        pages.map(p => ({ label: p.title, description: p.id, id: p.id })),
+        { title: 'Choose a Notion page to export into', ignoreFocusOut: true }
+      );
+      if (!picked) { return; }
+      parentPageId = picked.id;
+      await globalState.update('notevs.notionParentPageId', parentPageId);
+    }
+
+    const payload = {
+      parent: { page_id: parentPageId },
+      properties: { title: { title: [{ type: 'text', text: { content: note.title || 'Untitled' } }] } },
+      children: blocks.slice(0, MAX_BLOCKS),
+    };
+
+    try {
+      const res = await axios.post(`${NOTION_API}/pages`, payload, { headers: notionHeaders(token) });
+      createdPageId = res.data?.id ?? '';
+      pageUrl = res.data?.url ?? '';
+    } catch (e: unknown) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 401) {
+        await secrets.delete('notionToken');
+        vscode.window.showErrorMessage('Notion token is invalid. Cleared — please export again.');
+      } else if (status === 404) {
+        await globalState.update('notevs.notionParentPageId', '');
+        vscode.window.showErrorMessage('Parent page not found. Please export again to pick a new page.');
+      } else if (status === 403) {
+        vscode.window.showErrorMessage('Access denied. Share the parent page with your NoteVs integration via "..." → Add connections.');
+      } else {
+        vscode.window.showErrorMessage('Failed to create Notion page. Check your internet connection.');
+      }
+      return;
+    }
+
+    // Append overflow blocks for very long notes
+    if (blocks.length > MAX_BLOCKS && createdPageId) {
+      for (let i = MAX_BLOCKS; i < blocks.length; i += MAX_BLOCKS) {
+        try {
+          await axios.patch(`${NOTION_API}/blocks/${createdPageId}/children`, { children: blocks.slice(i, i + MAX_BLOCKS) }, { headers: notionHeaders(token) });
+        } catch { break; }
+      }
     }
   }
 
-  // 7. Success toast
+  // 7. Record export and show success toast
+  onExported('notion', new Date().toISOString(), createdPageId, pageUrl);
+  const isReExport = !!note.exports?.notion?.pageId;
   const choice = await vscode.window.showInformationMessage(
-    `Exported "${note.title || 'Note'}" to Notion`,
+    isReExport ? `Updated "${note.title || 'Note'}" in Notion` : `Exported "${note.title || 'Note'}" to Notion`,
     'Open in Notion'
   );
   if (choice === 'Open in Notion' && pageUrl) {
@@ -322,7 +361,8 @@ function writeToObsidianFilesystem(vaultPath: string, filename: string, content:
 export async function sendToObsidian(
   secrets: vscode.SecretStorage,
   globalState: vscode.Memento,
-  note: NoteItem
+  note: NoteItem,
+  onExported: (destination: 'notion' | 'obsidian', ts: string, pageId?: string, pageUrl?: string) => void
 ): Promise<void> {
   const apiKey    = await secrets.get('obsidianApiKey') || '';
   const vaultPath = globalState.get<string>('notevs.obsidianVaultPath', '');
@@ -368,6 +408,7 @@ export async function sendToObsidian(
     if (baseUrl) {
       try {
         await writeToObsidianApi(baseUrl, apiKey, filename, content);
+        onExported('obsidian', new Date().toISOString());
         vscode.window.showInformationMessage(
           `Saved "${note.title || 'Note'}" to Obsidian (NoteNest/${filename}.md)`
         );
@@ -399,6 +440,7 @@ export async function sendToObsidian(
     }
     try {
       writeToObsidianFilesystem(vaultPath, filename, content);
+      onExported('obsidian', new Date().toISOString());
       vscode.window.showInformationMessage(
         `Saved "${note.title || 'Note'}" to Obsidian vault (NoteNest/${filename}.md)`
       );

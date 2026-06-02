@@ -16058,15 +16058,15 @@ async function fetchNotionPages(token) {
     title: p.properties?.title?.title?.[0]?.plain_text || "(untitled page)"
   })).sort((a, b) => a.title.localeCompare(b.title));
 }
-async function sendToNotion(secrets, globalState, note) {
+async function sendToNotion(secrets, globalState, note, onExported) {
   let token = await secrets.get("notionToken");
   if (!token) {
     const entered = await vscode3.window.showInputBox({
       title: "Connect Notion",
-      prompt: 'Paste your Notion integration token (starts with "secret_" or "ntn_")',
+      prompt: "Paste your token below. To get one: go to app.notion.com/developers/connections \u2192 New connection \u2192 Access token \u2192 Create \u2192 copy the token.",
       password: true,
       ignoreFocusOut: true,
-      placeHolder: "secret_... or ntn_...",
+      placeHolder: "ntn_... or secret_...",
       validateInput: (v) => v && (v.startsWith("secret_") || v.startsWith("ntn_")) ? void 0 : 'Token must start with "secret_" or "ntn_"'
     });
     if (!entered) {
@@ -16110,53 +16110,87 @@ async function sendToNotion(secrets, globalState, note) {
   const plainText = extractPlainText(note);
   const blocks = convertToNotionBlocks(plainText);
   const MAX_BLOCKS = 100;
-  const firstBatch = blocks.slice(0, MAX_BLOCKS);
-  const payload = {
-    parent: { page_id: parentPageId },
-    properties: {
-      title: {
-        title: [{ type: "text", text: { content: note.title || "Untitled" } }]
-      }
-    },
-    children: firstBatch
-  };
   let createdPageId = "";
   let pageUrl = "";
-  try {
-    const res = await axios_default.post(`${NOTION_API}/pages`, payload, { headers: notionHeaders(token) });
-    createdPageId = res.data?.id ?? "";
-    pageUrl = res.data?.url ?? "";
-  } catch (e) {
-    const status = e?.response?.status;
-    if (status === 401) {
-      await secrets.delete("notionToken");
-      vscode3.window.showErrorMessage("Notion token is invalid. Cleared \u2014 please export again.");
-    } else if (status === 404) {
-      await globalState.update("notevs.notionParentPageId", "");
-      vscode3.window.showErrorMessage("Parent page not found. It may have been deleted or unshared. Please export again to pick a new page.");
-    } else if (status === 403) {
-      vscode3.window.showErrorMessage('Access denied. Share the parent page with your NoteNest integration via "..." -> Add connections.');
-    } else {
-      vscode3.window.showErrorMessage("Failed to create Notion page. Check your internet connection.");
-    }
-    return;
-  }
-  if (blocks.length > MAX_BLOCKS && createdPageId) {
-    const remaining = blocks.slice(MAX_BLOCKS);
-    for (let i = 0; i < remaining.length; i += MAX_BLOCKS) {
-      try {
-        await axios_default.patch(
-          `${NOTION_API}/blocks/${createdPageId}/children`,
-          { children: remaining.slice(i, i + MAX_BLOCKS) },
-          { headers: notionHeaders(token) }
-        );
-      } catch {
-        break;
+  const existingPageId = note.exports?.notion?.pageId;
+  if (existingPageId) {
+    try {
+      const childRes = await axios_default.get(`${NOTION_API}/blocks/${existingPageId}/children`, { headers: notionHeaders(token) });
+      const childIds = (childRes.data?.results ?? []).map((b) => b.id);
+      for (const cid of childIds) {
+        try {
+          await axios_default.delete(`${NOTION_API}/blocks/${cid}`, { headers: notionHeaders(token) });
+        } catch {
+        }
+      }
+      await axios_default.patch(`${NOTION_API}/pages/${existingPageId}`, {
+        properties: { title: { title: [{ type: "text", text: { content: note.title || "Untitled" } }] } }
+      }, { headers: notionHeaders(token) });
+      for (let i = 0; i < blocks.length; i += MAX_BLOCKS) {
+        await axios_default.patch(`${NOTION_API}/blocks/${existingPageId}/children`, { children: blocks.slice(i, i + MAX_BLOCKS) }, { headers: notionHeaders(token) });
+      }
+      createdPageId = existingPageId;
+      pageUrl = note.exports.notion.pageUrl;
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status === 404) {
+        await globalState.update("notevs.notionParentPageId", "");
+      } else {
+        vscode3.window.showErrorMessage("Failed to update Notion page. Check your connection.");
+        return;
       }
     }
   }
+  if (!createdPageId) {
+    if (!parentPageId) {
+      const picked = await vscode3.window.showQuickPick(
+        pages.map((p) => ({ label: p.title, description: p.id, id: p.id })),
+        { title: "Choose a Notion page to export into", ignoreFocusOut: true }
+      );
+      if (!picked) {
+        return;
+      }
+      parentPageId = picked.id;
+      await globalState.update("notevs.notionParentPageId", parentPageId);
+    }
+    const payload = {
+      parent: { page_id: parentPageId },
+      properties: { title: { title: [{ type: "text", text: { content: note.title || "Untitled" } }] } },
+      children: blocks.slice(0, MAX_BLOCKS)
+    };
+    try {
+      const res = await axios_default.post(`${NOTION_API}/pages`, payload, { headers: notionHeaders(token) });
+      createdPageId = res.data?.id ?? "";
+      pageUrl = res.data?.url ?? "";
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status === 401) {
+        await secrets.delete("notionToken");
+        vscode3.window.showErrorMessage("Notion token is invalid. Cleared \u2014 please export again.");
+      } else if (status === 404) {
+        await globalState.update("notevs.notionParentPageId", "");
+        vscode3.window.showErrorMessage("Parent page not found. Please export again to pick a new page.");
+      } else if (status === 403) {
+        vscode3.window.showErrorMessage('Access denied. Share the parent page with your NoteVs integration via "..." \u2192 Add connections.');
+      } else {
+        vscode3.window.showErrorMessage("Failed to create Notion page. Check your internet connection.");
+      }
+      return;
+    }
+    if (blocks.length > MAX_BLOCKS && createdPageId) {
+      for (let i = MAX_BLOCKS; i < blocks.length; i += MAX_BLOCKS) {
+        try {
+          await axios_default.patch(`${NOTION_API}/blocks/${createdPageId}/children`, { children: blocks.slice(i, i + MAX_BLOCKS) }, { headers: notionHeaders(token) });
+        } catch {
+          break;
+        }
+      }
+    }
+  }
+  onExported("notion", (/* @__PURE__ */ new Date()).toISOString(), createdPageId, pageUrl);
+  const isReExport = !!note.exports?.notion?.pageId;
   const choice = await vscode3.window.showInformationMessage(
-    `Exported "${note.title || "Note"}" to Notion`,
+    isReExport ? `Updated "${note.title || "Note"}" in Notion` : `Exported "${note.title || "Note"}" to Notion`,
     "Open in Notion"
   );
   if (choice === "Open in Notion" && pageUrl) {
@@ -16216,7 +16250,7 @@ function writeToObsidianFilesystem(vaultPath, filename, content) {
   }
   fs3.writeFileSync(path3.join(subdir, `${filename}.md`), content, "utf8");
 }
-async function sendToObsidian(secrets, globalState, note) {
+async function sendToObsidian(secrets, globalState, note, onExported) {
   const apiKey = await secrets.get("obsidianApiKey") || "";
   const vaultPath = globalState.get("notevs.obsidianVaultPath", "");
   if (!apiKey && !vaultPath) {
@@ -16262,6 +16296,7 @@ async function sendToObsidian(secrets, globalState, note) {
     if (baseUrl) {
       try {
         await writeToObsidianApi(baseUrl, apiKey, filename, content);
+        onExported("obsidian", (/* @__PURE__ */ new Date()).toISOString());
         vscode3.window.showInformationMessage(
           `Saved "${note.title || "Note"}" to Obsidian (NoteNest/${filename}.md)`
         );
@@ -16292,6 +16327,7 @@ Update it in NoteNest Settings -> Integrations.`
     }
     try {
       writeToObsidianFilesystem(vaultPath, filename, content);
+      onExported("obsidian", (/* @__PURE__ */ new Date()).toISOString());
       vscode3.window.showInformationMessage(
         `Saved "${note.title || "Note"}" to Obsidian vault (NoteNest/${filename}.md)`
       );
@@ -16594,6 +16630,20 @@ function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyn
     .swatch{width:100%;aspect-ratio:1;border-radius:4px;cursor:pointer;border:2px solid transparent;position:relative;display:flex;align-items:center;justify-content:center;transition:transform 0.1s,border-color 0.2s;box-shadow:0 2px 4px rgba(0,0,0,0.1)}
     .swatch:hover{transform:scale(1.05)}
     .swatch.active{border-color:var(--vscode-focusBorder)!important}
+    .collapse-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;padding:4px 0;margin:20px 0 0}
+    .collapse-header:hover .collapse-label{color:var(--vscode-foreground)}
+    .collapse-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--vscode-descriptionForeground)}
+    .collapse-chevron{font-size:12px;color:var(--vscode-descriptionForeground);transition:transform .2s}
+    .collapse-chevron.open{transform:rotate(90deg)}
+    .collapse-body{display:none;margin-top:10px}
+    .collapse-body.open{display:block}
+    .steps-box{background:var(--vscode-input-background);border:1px solid var(--vscode-panel-border);border-radius:6px;padding:10px 12px;margin:-4px 0 10px}
+    .steps-box ol{margin:0;padding-left:16px}
+    .steps-box li{font-size:11px;color:var(--vscode-foreground);line-height:1.8}
+    .steps-box a{color:var(--vscode-textLink-foreground);text-decoration:none}
+    .steps-box a:hover{text-decoration:underline}
+    .steps-toggle{background:none;border:none;cursor:pointer;color:var(--vscode-textLink-foreground);font-size:10px;padding:0;display:inline-flex;align-items:center;gap:3px;margin-bottom:6px;font-family:var(--vscode-font-family)}
+    .steps-toggle:hover{text-decoration:underline}
     .check{font-size:16px;color:var(--vscode-focusBorder);filter:drop-shadow(0 0 2px rgba(0,0,0,0.3))}
     .logout-btn{margin-top:32px;width:100%;padding:8px;background:var(--vscode-inputValidation-errorBackground);color:var(--vscode-errorForeground);border:1px solid var(--vscode-inputValidation-errorBorder);border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;transition:opacity 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box}
     .logout-btn:hover{opacity:0.9}
@@ -16619,14 +16669,29 @@ function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyn
   <div class="row"><label>Sync to web &amp; across machines</label><input type="checkbox" id="syncToggle" ${syncEnabled ? "checked" : ""}/></div>
   ${syncStatusHtml}
   -->
-  <div class="label">Note background colour</div>
-  <div class="swatches">${swatches}</div>
+  <div class="collapse-header" id="colourToggle">
+    <span class="collapse-label">Note background colour</span>
+    <i class="codicon codicon-chevron-right collapse-chevron" id="colourChevron"></i>
+  </div>
+  <div class="collapse-body" id="colourBody">
+    <div class="swatches">${swatches}</div>
+  </div>
   <div class="label">Integrations</div>
   <div class="int-hint">Export notes to your favourite tools</div>
 
   <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--vscode-foreground)">Notion</div>
   ${notionConnected ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Token saved</span><button class="int-btn danger" id="notionClear">Disconnect</button><button class="int-btn" id="notionChangePage">Change page</button></div>` : `<div class="int-row"><input class="int-input" id="notionTokenInput" type="password" placeholder="Paste token (secret_\u2026 or ntn_\u2026)"/><button class="int-btn" id="notionSave">Save</button></div>`}
-  <div class="int-hint">Create a token at notion.so/my-integrations, then share a page with the integration</div>
+  <button class="steps-toggle" id="notionStepsToggle"><i class="codicon codicon-info"></i> How to get your token</button>
+  <div class="steps-box" id="notionStepsBox" style="display:none">
+    <ol>
+      <li>Go to <a href="https://app.notion.com/developers/connections" id="notionLink">app.notion.com/developers/connections</a></li>
+      <li>Click <strong>+ New connection</strong></li>
+      <li>Name it <strong>NoteVs</strong>, keep <strong>Access token</strong> selected, click <strong>Create connection</strong></li>
+      <li>Copy the token shown (starts with <code>ntn_</code> or <code>secret_</code>)</li>
+      <li>Paste it in the field above and click <strong>Save</strong></li>
+      <li>Finally, open any Notion page you want notes to land in &rarr; click <strong>&middot;&middot;&middot;</strong> &rarr; <strong>Connections</strong> &rarr; select <strong>NoteVs</strong></li>
+    </ol>
+  </div>
 
   <div style="font-size:12px;font-weight:600;margin:12px 0 6px;color:var(--vscode-foreground)">Obsidian</div>
   ${obsidianApiKey ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> REST API key saved</span><button class="int-btn danger" id="obsApiClear">Clear key</button></div>` : `<div class="int-row"><input class="int-input" id="obsApiInput" type="password" placeholder="Local REST API key\u2026"/><button class="int-btn" id="obsApiSave">Save key</button></div>`}
@@ -16666,6 +16731,25 @@ function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyn
     document.getElementById('obsBrowse').addEventListener('click',()=>vscode.postMessage({type:'browseObsidianVault'}));
     const obsPathClearBtn=document.getElementById('obsPathClear');
     if(obsPathClearBtn){obsPathClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearObsidianVaultPath'}));}
+    // Colour section collapse
+    document.getElementById('colourToggle').addEventListener('click',()=>{
+      const body=document.getElementById('colourBody');
+      const chevron=document.getElementById('colourChevron');
+      const open=body.classList.toggle('open');
+      chevron.classList.toggle('open',open);
+    });
+    // Notion steps toggle
+    document.getElementById('notionStepsToggle').addEventListener('click',()=>{
+      const box=document.getElementById('notionStepsBox');
+      const toggle=document.getElementById('notionStepsToggle');
+      const visible=box.style.display==='none';
+      box.style.display=visible?'block':'none';
+      toggle.innerHTML=visible?'<i class="codicon codicon-chevron-up"></i> Hide steps':'<i class="codicon codicon-info"></i> How to get your token';
+    });
+    document.getElementById('notionLink').addEventListener('click',(e)=>{
+      e.preventDefault();
+      vscode.postMessage({type:'openExternal',url:'https://app.notion.com/developers/connections'});
+    });
   </script></body></html>`;
 }
 function noFolderHtml() {
@@ -16727,11 +16811,22 @@ function notesListHtml(projectName, groups, subfolderOptions, syncStatus, lastSy
     const statusBadge = n.status === "done" ? '<span class="status-badge done"><i class="codicon codicon-check"></i> done</span>' : n.status === "passed" ? '<span class="status-badge passed"><i class="codicon codicon-pass-filled"></i> passed</span>' : "";
     const annotationCount = (n.annotations?.length ?? 0) || (n.filePath ? 1 : 0);
     const fileBadge = annotationCount > 0 ? n.annotations && n.annotations.length > 0 ? `<span class="file-badge" title="${annotationCount} code annotation(s)"><i class="codicon codicon-link"></i> ${annotationCount} annotation${annotationCount > 1 ? "s" : ""}</span>` : `<span class="file-badge" data-id="${n.id}" data-file="${n.filePath}" data-line="${n.lineStart ?? 1}" data-line-start="${n.lineStart ?? 1}" data-line-end="${n.lineEnd ?? n.lineStart ?? 1}" title="Jump to ${n.filePath}:${n.lineStart}\u2013${n.lineEnd}"><i class="codicon codicon-link"></i> ${(n.filePath ?? "").split("/").pop()}:${n.lineStart}\u2013${n.lineEnd}</span>` : "";
+    const exportBadges = (() => {
+      const badges = [];
+      if (n.exports?.notion) {
+        badges.push(`<span class="export-badge" title="Exported to Notion on ${new Date(n.exports.notion.ts).toLocaleString()}">&#10003; Notion</span>`);
+      }
+      if (n.exports?.obsidian) {
+        badges.push(`<span class="export-badge" title="Saved to Obsidian on ${new Date(n.exports.obsidian).toLocaleString()}">&#10003; Obsidian</span>`);
+      }
+      return badges.length ? `<div class="export-badges">${badges.join("")}</div>` : "";
+    })();
     return `<div class="note-row" data-id="${n.id}" style="border-left: 3px solid ${accent.border}; background: ${accent.glow};">
       <div class="note-main">
         <div class="note-header">${priorityBadge}${n.pinned ? '<i class="codicon codicon-pin pin-icon"></i>' : ""}<span class="note-title">${safeTitle}</span><span class="note-date">${date}</span></div>
         ${fileBadge ? `<div class="file-row">${fileBadge}</div>` : ""}
         <div class="note-preview">${preview || '<span class="dim">Empty note</span>'}</div>
+        ${exportBadges}
         <div class="note-footer">${tagBadges ? `<div class="tags">${tagBadges}</div>` : "<div></div>"}${statusBadge}</div>
       </div>
       <button class="del-btn" data-id="${n.id}" title="Delete"><i class="codicon codicon-trash"></i></button>
@@ -16783,6 +16878,8 @@ function notesListHtml(projectName, groups, subfolderOptions, syncStatus, lastSy
     .status-badge{font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600;flex-shrink:0;display:flex;align-items:center;gap:4px}
     .status-badge.done{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3)}
     .status-badge.passed{background:rgba(108,142,245,.15);color:#6c8ef5;border:1px solid rgba(108,142,245,.3)}
+    .export-badge{font-size:10px;padding:1px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(128,128,128,.2);color:var(--vscode-descriptionForeground);background:transparent;opacity:.75}
+    .export-badges{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px}
     .priority-indicator{font-size:10px;flex-shrink:0;display:flex;align-items:center}
     .priority-indicator.p-emergency{color:#f87171}.priority-indicator.p-urgent{color:#fb923c}.priority-indicator.p-important{color:#fbbf24}.priority-indicator.p-medium{color:#84cc16}.priority-indicator.p-low{color:#22c55e}
     .file-row{margin-bottom:6px}
@@ -16872,6 +16969,16 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
   const safeTitle = (note.title || "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const isMarkdown = note.editorMode === "markdown";
   const contentJson = JSON.stringify(note.content || "");
+  const exportHistoryBar = (() => {
+    const chips = [];
+    if (note.exports?.notion) {
+      chips.push(`<span class="export-chip" title="Last exported ${new Date(note.exports.notion.ts).toLocaleString()}">&#10003; Exported to Notion</span>`);
+    }
+    if (note.exports?.obsidian) {
+      chips.push(`<span class="export-chip" title="Last saved ${new Date(note.exports.obsidian).toLocaleString()}">&#10003; Saved to Obsidian</span>`);
+    }
+    return chips.length ? `<div class="export-history-bar">${chips.join("")}</div>` : "";
+  })();
   const annotationsHtml = note.annotations && note.annotations.length > 0 ? note.annotations.map((ann) => {
     const commentPreview = (ann.comment || "").trim().slice(0, 60).replace(/</g, "&lt;");
     const previewText = commentPreview || (ann.codeSnippet ? ann.codeSnippet.trim().replace(/\n/g, " ").slice(0, 60).replace(/</g, "&lt;") : "");
@@ -16926,6 +17033,8 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     .word-count{padding:4px 12px;font-size:10px;color:var(--vscode-descriptionForeground);flex-shrink:0;border-top:1px solid var(--vscode-panel-border);background:var(--vscode-sideBar-background);display:flex;justify-content:space-between;align-items:center}
     .export-btn{background:none;border:1px solid var(--vscode-panel-border);cursor:pointer;color:var(--vscode-descriptionForeground);font-size:11px;padding:3px 7px;border-radius:4px;display:flex;align-items:center;gap:3px;transition:background .15s,color .15s,border-color .15s;white-space:nowrap;font-family:var(--vscode-font-family);flex-shrink:0}
     .export-btn:hover{background:var(--vscode-toolbar-hoverBackground);color:var(--vscode-foreground);border-color:var(--vscode-focusBorder)}
+    .export-history-bar{display:flex;align-items:center;gap:6px;padding:3px 12px;background:var(--vscode-sideBar-background);border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0;flex-wrap:wrap}
+    .export-chip{font-size:10px;padding:1px 7px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(128,128,128,.2);color:var(--vscode-descriptionForeground);background:transparent;opacity:.75}
     .editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;background:${bgColor};color:${textColor}}
     .ql-toolbar{background:rgba(128,128,128,.05)!important;border:none!important;border-bottom:1px solid var(--vscode-panel-border)!important;flex-shrink:0;padding:6px!important}
     .ql-toolbar .ql-stroke{stroke:${textColor}!important;opacity:.8}.ql-toolbar .ql-fill{fill:${textColor}!important;opacity:.8}.ql-toolbar .ql-picker{color:${textColor}!important}
@@ -16968,8 +17077,8 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     <button class="back-btn" id="backBtn"><i class="codicon codicon-arrow-left"></i> Notes</button>
     <input class="title-input" id="titleInput" value="${safeTitle}" placeholder="Note title\u2026"/>
     <span class="status" id="status"></span>
-    <button class="export-btn" id="notionBtn" title="Export to Notion"><i class="codicon codicon-cloud-upload"></i> Notion</button>
-    <button class="export-btn" id="obsidianBtn" title="Save to Obsidian vault"><i class="codicon codicon-file"></i> Obsidian</button>
+    <button class="export-btn" id="notionBtn" title="${note.exports?.notion ? "Re-export to Notion (updates existing page)" : "Export to Notion"}">${note.exports?.notion ? "&#8635; Re-export" : '<i class="codicon codicon-cloud-upload"></i> Notion'}</button>
+    <button class="export-btn" id="obsidianBtn" title="${note.exports?.obsidian ? "Re-save to Obsidian (overwrites existing file)" : "Save to Obsidian vault"}">${note.exports?.obsidian ? "&#8635; Re-save" : '<i class="codicon codicon-file"></i> Obsidian'}</button>
   </div>
   <div class="meta-bar">
     <button class="pin-btn${note.pinned ? " active" : ""}" id="pinBtn" title="${note.pinned ? "Unpin" : "Pin note"}"><i class="codicon codicon-pin"></i></button>
@@ -16995,6 +17104,7 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     </div>
   </div>
   ${annotationsHtml}
+  ${exportHistoryBar}
   <div class="editor-wrap" id="wysiwygWrap" style="display:${isMarkdown ? "none" : "flex"}">
     <div id="quillEditor"></div>
   </div>
@@ -17289,7 +17399,25 @@ async function activate(context) {
           vscode4.window.showErrorMessage("Note not found.");
           return;
         }
-        await sendToNotion(secrets, context.globalState, note);
+        await sendToNotion(secrets, context.globalState, note, (dest, ts, pageId, pageUrl) => {
+          const latest = readLocalNote2(context, id);
+          if (latest) {
+            if (dest === "notion" && pageId) {
+              latest.exports = { ...latest.exports, notion: { ts, pageId, pageUrl: pageUrl || "" } };
+            } else {
+              latest.exports = { ...latest.exports, [dest]: ts };
+            }
+            writeLocalNote2(context, latest);
+            notePanel.webview.html = noteEditorHtml(latest, projectName, bg, text);
+            if (panel) {
+              const fp2 = getFolderPath();
+              if (fp2) {
+                const pn2 = fp2.split(/[\/\\]/).filter(Boolean).pop() ?? "Project";
+                panel.webview.html = notesListHtml(pn2, readLocalNotesGrouped(context, fp2), getSubfolderOptions(context, fp2), "local");
+              }
+            }
+          }
+        });
       }
       if (msg.type === "exportToObsidian") {
         const note = readLocalNote2(context, id);
@@ -17297,7 +17425,21 @@ async function activate(context) {
           vscode4.window.showErrorMessage("Note not found.");
           return;
         }
-        await sendToObsidian(secrets, context.globalState, note);
+        await sendToObsidian(secrets, context.globalState, note, (dest, ts) => {
+          const latest = readLocalNote2(context, id);
+          if (latest) {
+            latest.exports = { ...latest.exports, [dest]: ts };
+            writeLocalNote2(context, latest);
+            notePanel.webview.html = noteEditorHtml(latest, projectName, bg, text);
+            if (panel) {
+              const fp2 = getFolderPath();
+              if (fp2) {
+                const pn2 = fp2.split(/[\/\\]/).filter(Boolean).pop() ?? "Project";
+                panel.webview.html = notesListHtml(pn2, readLocalNotesGrouped(context, fp2), getSubfolderOptions(context, fp2), "local");
+              }
+            }
+          }
+        });
       }
     }, null, context.subscriptions);
   }
@@ -17567,6 +17709,12 @@ async function activate(context) {
             const cfgO4 = vscode4.workspace.getConfiguration("notevs");
             webviewView.webview.html = settingsHtml(cfgO4.get("autoShow", true), cfgO4.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), !!await secrets.get("obsidianApiKey"), "");
             vscode4.window.showInformationMessage("Obsidian vault path cleared.");
+            break;
+          }
+          case "openExternal": {
+            if (msg.url) {
+              vscode4.env.openExternal(vscode4.Uri.parse(msg.url));
+            }
             break;
           }
           case "setSetting": {
