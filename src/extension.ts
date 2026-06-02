@@ -5,6 +5,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { installMcpBridge } from './mcpInstaller';
 import { startMcpServer } from './mcpServer';
+import {
+  sendToNotion, clearNotionToken, resetNotionPage, hasNotionToken,
+  sendToObsidian, clearObsidianApiKey, clearObsidianVaultPath, getObsidianStatus,
+} from './integrations';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -354,6 +358,9 @@ function settingsHtml(
   syncEnabled: boolean,
   syncUserEmail?: string | null,
   lastSyncAt?: string | null,
+  notionConnected?: boolean,
+  obsidianApiKey?: boolean,
+  obsidianVaultPath?: string,
 ): string {
   const swatches = BG_COLORS.map(c => `
     <div class="swatch${c.bg === noteBgColor ? ' active' : ''}" data-bg="${c.bg}" data-text="${c.text}"
@@ -405,6 +412,14 @@ function settingsHtml(
     .sync-last{font-size:11px;color:var(--vscode-descriptionForeground);margin-bottom:10px}
     .sync-now-btn{padding:5px 12px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;margin-bottom:16px;display:inline-flex;align-items:center;gap:6px}
     .sync-now-btn:hover{background:var(--vscode-button-secondaryHoverBackground)}
+    .int-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+    .int-input{flex:1;background:var(--vscode-input-background);border:1px solid var(--vscode-input-border);color:var(--vscode-foreground);font-size:11px;padding:4px 8px;border-radius:4px;font-family:var(--vscode-font-family);outline:none}
+    .int-input:focus{border-color:var(--vscode-focusBorder)}
+    .int-btn{padding:4px 10px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0;font-family:var(--vscode-font-family)}
+    .int-btn:hover{background:var(--vscode-button-secondaryHoverBackground)}
+    .int-btn.danger{background:var(--vscode-inputValidation-errorBackground);color:var(--vscode-errorForeground)}
+    .int-hint{font-size:10px;color:var(--vscode-descriptionForeground);margin:-4px 0 10px;line-height:1.5}
+    .int-status{font-size:11px;color:#3fb950;display:flex;align-items:center;gap:4px}
   </style></head><body>
   <button class="back-btn" id="bk"><i class="codicon codicon-arrow-left"></i> Back</button>
   <h2>Settings</h2>
@@ -416,12 +431,33 @@ function settingsHtml(
   -->
   <div class="label">Note background colour</div>
   <div class="swatches">${swatches}</div>
+  <div class="label">Integrations</div>
+  <div class="int-hint">Export notes to your favourite tools</div>
+
+  <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--vscode-foreground)">Notion</div>
+  ${notionConnected
+    ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Token saved</span><button class="int-btn danger" id="notionClear">Disconnect</button><button class="int-btn" id="notionChangePage">Change page</button></div>`
+    : `<div class="int-row"><input class="int-input" id="notionTokenInput" type="password" placeholder="Paste token (secret_\u2026 or ntn_\u2026)"/><button class="int-btn" id="notionSave">Save</button></div>`
+  }
+  <div class="int-hint">Create a token at notion.so/my-integrations, then share a page with the integration</div>
+
+  <div style="font-size:12px;font-weight:600;margin:12px 0 6px;color:var(--vscode-foreground)">Obsidian</div>
+  ${obsidianApiKey
+    ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> REST API key saved</span><button class="int-btn danger" id="obsApiClear">Clear key</button></div>`
+    : `<div class="int-row"><input class="int-input" id="obsApiInput" type="password" placeholder="Local REST API key\u2026"/><button class="int-btn" id="obsApiSave">Save key</button></div>`
+  }
+  <div class="int-row">
+    <span style="font-size:11px;color:var(--vscode-descriptionForeground);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${obsidianVaultPath ? obsidianVaultPath : 'No vault folder set'}</span>
+    <button class="int-btn" id="obsBrowse">Browse vault</button>
+    ${obsidianVaultPath ? '<button class="int-btn danger" id="obsPathClear">Clear</button>' : ''}
+  </div>
+  <div class="int-hint">REST API: install "Local REST API" plugin in Obsidian. Vault folder: works without the plugin.</div>
+
   ${logoutHtml}
   <script>
     const vscode=acquireVsCodeApi();
     document.getElementById('bk').addEventListener('click',()=>vscode.postMessage({type:'showList'}));
     document.getElementById('as').addEventListener('change',e=>vscode.postMessage({type:'setSetting',key:'autoShow',value:e.target.checked}));
-    // document.getElementById('syncToggle').addEventListener('change',e=>vscode.postMessage({type:'toggleSync',enabled:e.target.checked})); // hidden until sync is ready
     const syncNowBtn=document.getElementById('syncNowBtn');
     if(syncNowBtn){syncNowBtn.addEventListener('click',()=>vscode.postMessage({type:'syncNow'}));}
     const loBtn=document.getElementById('lo');
@@ -433,6 +469,19 @@ function settingsHtml(
         vscode.postMessage({type:'setSetting',key:'noteBgColor',value:s.dataset.bg,textColor:s.dataset.text});
       });
     });
+    const notionSaveBtn=document.getElementById('notionSave');
+    if(notionSaveBtn){notionSaveBtn.addEventListener('click',()=>{const v=document.getElementById('notionTokenInput').value.trim();if(v){vscode.postMessage({type:'saveNotionToken',token:v});}});}
+    const notionClearBtn=document.getElementById('notionClear');
+    if(notionClearBtn){notionClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearNotionToken'}));}
+    const notionChangePageBtn=document.getElementById('notionChangePage');
+    if(notionChangePageBtn){notionChangePageBtn.addEventListener('click',()=>vscode.postMessage({type:'changeNotionPage'}));}
+    const obsApiSaveBtn=document.getElementById('obsApiSave');
+    if(obsApiSaveBtn){obsApiSaveBtn.addEventListener('click',()=>{const v=document.getElementById('obsApiInput').value.trim();if(v){vscode.postMessage({type:'saveObsidianApiKey',key:v});}});}
+    const obsApiClearBtn=document.getElementById('obsApiClear');
+    if(obsApiClearBtn){obsApiClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearObsidianApiKey'}));}
+    document.getElementById('obsBrowse').addEventListener('click',()=>vscode.postMessage({type:'browseObsidianVault'}));
+    const obsPathClearBtn=document.getElementById('obsPathClear');
+    if(obsPathClearBtn){obsPathClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearObsidianVaultPath'}));}
   <\/script></body></html>`;
 }
 
@@ -719,6 +768,8 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     .styled-select{background:var(--vscode-input-background);border:1px solid var(--vscode-input-border);color:var(--vscode-foreground);font-size:11px;padding:3px 6px;border-radius:4px;cursor:pointer;font-family:var(--vscode-font-family);outline:none}
     .status-select.open{color:#f87171}.status-select.done{color:#3fb950}.status-select.passed{color:#6c8ef5}
     .word-count{padding:4px 12px;font-size:10px;color:var(--vscode-descriptionForeground);flex-shrink:0;border-top:1px solid var(--vscode-panel-border);background:var(--vscode-sideBar-background);display:flex;justify-content:space-between;align-items:center}
+    .export-btn{background:none;border:1px solid var(--vscode-panel-border);cursor:pointer;color:var(--vscode-descriptionForeground);font-size:11px;padding:3px 7px;border-radius:4px;display:flex;align-items:center;gap:3px;transition:background .15s,color .15s,border-color .15s;white-space:nowrap;font-family:var(--vscode-font-family);flex-shrink:0}
+    .export-btn:hover{background:var(--vscode-toolbar-hoverBackground);color:var(--vscode-foreground);border-color:var(--vscode-focusBorder)}
     .editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;background:${bgColor};color:${textColor}}
     .ql-toolbar{background:rgba(128,128,128,.05)!important;border:none!important;border-bottom:1px solid var(--vscode-panel-border)!important;flex-shrink:0;padding:6px!important}
     .ql-toolbar .ql-stroke{stroke:${textColor}!important;opacity:.8}.ql-toolbar .ql-fill{fill:${textColor}!important;opacity:.8}.ql-toolbar .ql-picker{color:${textColor}!important}
@@ -755,11 +806,14 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     .ann-snippet{font-family:var(--vscode-editor-font-family,monospace);font-size:10px;background:rgba(0,0,0,.15);padding:4px 6px;border-radius:3px;margin:0 0 6px;overflow-x:auto;white-space:pre;color:${textColor};opacity:.8;max-height:60px}
     .ann-comment{width:100%;background:var(--vscode-input-background);border:1px solid var(--vscode-input-border);color:var(--vscode-foreground);font-size:11px;font-family:var(--vscode-font-family);border-radius:3px;padding:4px 6px;outline:none;resize:vertical;min-height:40px;box-sizing:border-box}
     .ann-comment:focus{border-color:var(--vscode-focusBorder)}
+
   </style></head><body>
   <div class="toolbar">
     <button class="back-btn" id="backBtn"><i class="codicon codicon-arrow-left"></i> Notes</button>
     <input class="title-input" id="titleInput" value="${safeTitle}" placeholder="Note title\u2026"/>
     <span class="status" id="status"></span>
+    <button class="export-btn" id="notionBtn" title="Export to Notion"><i class="codicon codicon-cloud-upload"></i> Notion</button>
+    <button class="export-btn" id="obsidianBtn" title="Save to Obsidian vault"><i class="codicon codicon-file"></i> Obsidian</button>
   </div>
   <div class="meta-bar">
     <button class="pin-btn${note.pinned ? ' active' : ''}" id="pinBtn" title="${note.pinned ? 'Unpin' : 'Pin note'}"><i class="codicon codicon-pin"></i></button>
@@ -802,6 +856,7 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     <span id="wordCount">0 words \u00b7 0 chars</span>
     <span id="saveStatus" style="opacity:.6;font-style:italic">Saved</span>
   </div>
+
   <script>
     const vscode=acquireVsCodeApi();
     const noteId="${note.id}";
@@ -844,6 +899,14 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     if(titleEl.value==='Untitled'){titleEl.focus();titleEl.select();}
     window.addEventListener('message',e=>{
       if(e.data.type==='saved'){document.getElementById('saveStatus').textContent='Saved';document.getElementById('saveStatus').style.opacity='.6';const s=document.getElementById('status');s.textContent='\u2713 Saved';setTimeout(()=>{s.textContent='';},2000);}
+    });
+    document.getElementById('notionBtn').addEventListener('click',()=>{
+      doSave();
+      vscode.postMessage({type:'exportToNotion',id:noteId});
+    });
+    document.getElementById('obsidianBtn').addEventListener('click',()=>{
+      doSave();
+      vscode.postMessage({type:'exportToObsidian',id:noteId});
     });
   <\/script></body></html>`;
 }
@@ -1041,6 +1104,16 @@ export async function activate(context: vscode.ExtensionContext) {
           notePanel.webview.postMessage({ type: 'annotationSaved', annotationId: msg.annotationId });
         } catch { /* offline */ }
       }
+      if (msg.type === 'exportToNotion') {
+        const note = readLocalNote(context, id);
+        if (!note) { vscode.window.showErrorMessage('Note not found.'); return; }
+        await sendToNotion(secrets, context.globalState, note);
+      }
+      if (msg.type === 'exportToObsidian') {
+        const note = readLocalNote(context, id);
+        if (!note) { vscode.window.showErrorMessage('Note not found.'); return; }
+        await sendToObsidian(secrets, context.globalState, note);
+      }
     }, null, context.subscriptions);
   }
 
@@ -1165,7 +1238,66 @@ export async function activate(context: vscode.ExtensionContext) {
             const lastSyncAtSettings = context.globalState.get<string | null>('notevs.lastSyncAt') ?? null;
             let syncUserEmailSettings: string | null = null;
             if (syncEnabledSettings) { try { const u = await secrets.get('user'); syncUserEmailSettings = u ? JSON.parse(u)?.email ?? null : null; } catch { /* no user stored */ } }
-            webviewView.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings);
+            const notionConnectedSettings = await hasNotionToken(secrets);
+            const obsStatus = await getObsidianStatus(secrets, context.globalState);
+            webviewView.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath);
+            break;
+          }
+          case 'saveNotionToken': {
+            if (msg.token) { await secrets.store('notionToken', msg.token); }
+            const cfgN1 = vscode.workspace.getConfiguration('notevs');
+            const obsN1 = await getObsidianStatus(secrets, context.globalState);
+            webviewView.webview.html = settingsHtml(cfgN1.get('autoShow', true), cfgN1.get('noteBgColor', '#1e1e1e'), false, null, null, true, obsN1.apiKey, obsN1.vaultPath);
+            vscode.window.showInformationMessage('Notion token saved.');
+            break;
+          }
+          case 'clearNotionToken': {
+            await clearNotionToken(secrets, context.globalState);
+            const cfgN2 = vscode.workspace.getConfiguration('notevs');
+            const obsN2 = await getObsidianStatus(secrets, context.globalState);
+            webviewView.webview.html = settingsHtml(cfgN2.get('autoShow', true), cfgN2.get('noteBgColor', '#1e1e1e'), false, null, null, false, obsN2.apiKey, obsN2.vaultPath);
+            vscode.window.showInformationMessage('Notion disconnected.');
+            break;
+          }
+          case 'changeNotionPage': {
+            await resetNotionPage(context.globalState);
+            vscode.window.showInformationMessage('Notion parent page cleared. It will be picked on next export.');
+            break;
+          }
+          case 'saveObsidianApiKey': {
+            if (msg.key) { await secrets.store('obsidianApiKey', msg.key); }
+            const cfgO1 = vscode.workspace.getConfiguration('notevs');
+            const vpO1 = context.globalState.get<string>('notevs.obsidianVaultPath', '');
+            webviewView.webview.html = settingsHtml(cfgO1.get('autoShow', true), cfgO1.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), true, vpO1);
+            vscode.window.showInformationMessage('Obsidian API key saved.');
+            break;
+          }
+          case 'clearObsidianApiKey': {
+            await clearObsidianApiKey(secrets);
+            const cfgO2 = vscode.workspace.getConfiguration('notevs');
+            const vpO2 = context.globalState.get<string>('notevs.obsidianVaultPath', '');
+            webviewView.webview.html = settingsHtml(cfgO2.get('autoShow', true), cfgO2.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), false, vpO2);
+            vscode.window.showInformationMessage('Obsidian API key cleared.');
+            break;
+          }
+          case 'browseObsidianVault': {
+            const picked = await vscode.window.showOpenDialog({
+              canSelectFolders: true, canSelectFiles: false, canSelectMany: false,
+              title: 'Select your Obsidian vault folder', openLabel: 'Use this vault',
+            });
+            if (picked && picked.length > 0) {
+              await context.globalState.update('notevs.obsidianVaultPath', picked[0].fsPath);
+              const cfgO3 = vscode.workspace.getConfiguration('notevs');
+              webviewView.webview.html = settingsHtml(cfgO3.get('autoShow', true), cfgO3.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), !!(await secrets.get('obsidianApiKey')), picked[0].fsPath);
+              vscode.window.showInformationMessage(`Obsidian vault set to: ${picked[0].fsPath}`);
+            }
+            break;
+          }
+          case 'clearObsidianVaultPath': {
+            await clearObsidianVaultPath(context.globalState);
+            const cfgO4 = vscode.workspace.getConfiguration('notevs');
+            webviewView.webview.html = settingsHtml(cfgO4.get('autoShow', true), cfgO4.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), !!(await secrets.get('obsidianApiKey')), '');
+            vscode.window.showInformationMessage('Obsidian vault path cleared.');
             break;
           }
           case 'setSetting': {
