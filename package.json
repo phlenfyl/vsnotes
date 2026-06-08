@@ -92,6 +92,11 @@
           "type": "string",
           "default": "#d4d4d4",
           "description": "Text colour for the note editor"
+        },
+        "notevs.notionAutoSync": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically push note updates to Notion 60s after you stop typing (only for notes already exported to Notion)"
         }
       }
     }

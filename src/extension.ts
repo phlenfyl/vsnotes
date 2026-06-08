@@ -363,6 +363,7 @@ function settingsHtml(
   notionConnected?: boolean,
   obsidianApiKey?: boolean,
   obsidianVaultPath?: string,
+  notionAutoSync?: boolean,
 ): string {
   const swatches = BG_COLORS.map(c => `
     <div class="swatch${c.bg === noteBgColor ? ' active' : ''}" data-bg="${c.bg}" data-text="${c.text}"
@@ -471,6 +472,10 @@ function settingsHtml(
       <li>Finally, open any Notion page you want notes to land in &rarr; click <strong>&middot;&middot;&middot;</strong> &rarr; <strong>Connections</strong> &rarr; select <strong>NoteVs</strong></li>
     </ol>
   </div>
+  <div class="row" style="margin-top:10px">
+    <label style="font-size:12px">Auto-sync on save <span style="font-size:10px;color:var(--vscode-descriptionForeground);display:block;margin-top:2px">Push updates to Notion 60s after you stop typing (notes already exported only)</span></label>
+    <input type="checkbox" id="notionAutoSync" ${notionAutoSync ? 'checked' : ''}/>
+  </div>
 
   <div style="font-size:12px;font-weight:600;margin:12px 0 6px;color:var(--vscode-foreground)">Obsidian</div>
   ${obsidianApiKey
@@ -489,6 +494,8 @@ function settingsHtml(
     const vscode=acquireVsCodeApi();
     document.getElementById('bk').addEventListener('click',()=>vscode.postMessage({type:'showList'}));
     document.getElementById('as').addEventListener('change',e=>vscode.postMessage({type:'setSetting',key:'autoShow',value:e.target.checked}));
+    const notionAutoSyncEl=document.getElementById('notionAutoSync');
+    if(notionAutoSyncEl){notionAutoSyncEl.addEventListener('change',e=>vscode.postMessage({type:'setSetting',key:'notionAutoSync',value:e.target.checked}));}
     const syncNowBtn=document.getElementById('syncNowBtn');
     if(syncNowBtn){syncNowBtn.addEventListener('click',()=>vscode.postMessage({type:'syncNow'}));}
     const loBtn=document.getElementById('lo');
@@ -774,9 +781,9 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
 
   const exportHistoryBar = (() => {
     const chips: string[] = [];
-    if (note.exports?.notion) { chips.push(`<span class="export-chip" title="Last exported ${new Date(note.exports.notion.ts).toLocaleString()}">&#10003; Exported to Notion</span>`); }
-    if (note.exports?.obsidian) { chips.push(`<span class="export-chip" title="Last saved ${new Date(note.exports.obsidian).toLocaleString()}">&#10003; Saved to Obsidian</span>`); }
-    return chips.length ? `<div class="export-history-bar">${chips.join('')}</div>` : '';
+    if (note.exports?.notion) { chips.push(`<span class="export-chip" data-dest="notion" title="Last exported ${new Date(note.exports.notion.ts).toLocaleString()}">&#10003; Exported to Notion</span>`); }
+    if (note.exports?.obsidian) { chips.push(`<span class="export-chip" data-dest="obsidian" title="Last saved ${new Date(note.exports.obsidian).toLocaleString()}">&#10003; Saved to Obsidian</span>`); }
+    return chips.length ? `<div class="export-history-bar" id="exportHistoryBar">${chips.join('')}</div>` : '';
   })();
 
   const annotationsHtml = (note.annotations && note.annotations.length > 0)
@@ -968,6 +975,10 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     if(titleEl.value==='Untitled'){titleEl.focus();titleEl.select();}
     window.addEventListener('message',e=>{
       if(e.data.type==='saved'){document.getElementById('saveStatus').textContent='Saved';document.getElementById('saveStatus').style.opacity='.6';const s=document.getElementById('status');s.textContent='\u2713 Saved';setTimeout(()=>{s.textContent='';},2000);}
+      if(e.data.type==='notionSynced'){
+        const bar=document.getElementById('exportHistoryBar');
+        if(bar){const chip=bar.querySelector('.export-chip[data-dest="notion"]');if(chip){const d=new Date(e.data.ts);chip.title='Last auto-synced '+d.toLocaleString();}}
+      }
     });
     document.getElementById('notionBtn').addEventListener('click',()=>{
       doSave();
@@ -991,6 +1002,12 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const openNotePanels = new Map<string, vscode.WebviewPanel>();
   const openingNotes = new Set<string>();
+
+  // ── Notion auto-sync state ────────────────────────────────────────────────────
+  const SYNC_DEBOUNCE_MS  = 60_000;  // wait 60s of idle before syncing
+  const SYNC_COOLDOWN_MS  = 300_000; // minimum 5min between syncs per note
+  const notionSyncTimers    = new Map<string, ReturnType<typeof setTimeout>>();
+  const notionSyncCooldowns = new Map<string, number>(); // noteId → last sync epoch ms
 
   function getNoteColors(): { bg: string; text: string } {
     const config = vscode.workspace.getConfiguration('notevs');
@@ -1092,7 +1109,12 @@ export async function activate(context: vscode.ExtensionContext) {
     );
     openNotePanels.set(id, notePanel);
     openingNotes.delete(id);
-    notePanel.onDidDispose(() => { openNotePanels.delete(id); }, null, context.subscriptions);
+    notePanel.onDidDispose(() => {
+      openNotePanels.delete(id);
+      // Cancel any pending auto-sync timer for this note
+      const t = notionSyncTimers.get(id);
+      if (t) { clearTimeout(t); notionSyncTimers.delete(id); }
+    }, null, context.subscriptions);
 
     const syncEnabledOpen = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
 
@@ -1128,6 +1150,38 @@ export async function activate(context: vscode.ExtensionContext) {
           if (existing) {
             const updated: NoteItem = { ...existing, ...patch, updatedAt: new Date().toISOString() };
             writeLocalNote(context, updated);
+
+            // ── Notion auto-sync ──
+            const autoSync = vscode.workspace.getConfiguration('notevs').get<boolean>('notionAutoSync', false);
+            if (autoSync && updated.exports?.notion?.pageId) {
+              // Reset debounce timer
+              const prev = notionSyncTimers.get(msg.id);
+              if (prev) { clearTimeout(prev); }
+              const timer = setTimeout(async () => {
+                notionSyncTimers.delete(msg.id);
+                // Enforce cooldown
+                const lastSync = notionSyncCooldowns.get(msg.id) ?? 0;
+                if (Date.now() - lastSync < SYNC_COOLDOWN_MS) { return; }
+                notionSyncCooldowns.set(msg.id, Date.now());
+                // Read the freshest version of the note before syncing
+                const fresh = readLocalNote(context, msg.id);
+                if (!fresh?.exports?.notion?.pageId) { return; }
+                await sendToNotion(secrets, context.globalState, fresh, (dest, ts, pgId, pgUrl) => {
+                  const afterSync = readLocalNote(context, msg.id);
+                  if (afterSync && pgId) {
+                    afterSync.exports = { ...afterSync.exports, notion: { ts, pageId: pgId, pageUrl: pgUrl || '' } };
+                    writeLocalNote(context, afterSync);
+                    // Update the chip in the open panel without re-rendering the full editor
+                    notePanel.webview.postMessage({ type: 'notionSynced', ts });
+                    // Refresh sidebar list quietly
+                    const fp3 = getFolderPath();
+                    if (panel && fp3) { const pn3 = fp3.split(/[\/\\]/).filter(Boolean).pop() ?? 'Project'; panel.webview.html = notesListHtml(pn3, readLocalNotesGrouped(context, fp3), getSubfolderOptions(context, fp3), 'local'); }
+                  }
+                }, { silent: true });
+              }, SYNC_DEBOUNCE_MS);
+              notionSyncTimers.set(msg.id, timer);
+            }
+            // ── end auto-sync ──
           }
           if (panel && fp2) { panel.webview.html = notesListHtml(pn2, readLocalNotesGrouped(context, fp2), getSubfolderOptions(context, fp2), 'local'); }
           notePanel.webview.postMessage({ type: 'saved' });
@@ -1242,7 +1296,7 @@ export async function activate(context: vscode.ExtensionContext) {
             else {
               const ok = await vscode.window.showWarningMessage('Disable sync? Your notes will stay on this device.', { modal: true }, 'Disable sync');
               if (ok === 'Disable sync') { await context.globalState.update('notevs.syncEnabled', false); await clearTokens(secrets); await render(); }
-              else { const config = vscode.workspace.getConfiguration('notevs'); const lsAt = context.globalState.get<string | null>('notevs.lastSyncAt') ?? null; webviewView.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), true, null, lsAt); }
+              else { const config = vscode.workspace.getConfiguration('notevs'); const lsAt = context.globalState.get<string | null>('notevs.lastSyncAt') ?? null; webviewView.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), true, null, lsAt, false, false, '', false); }
             }
             break;
           }
@@ -1329,14 +1383,14 @@ export async function activate(context: vscode.ExtensionContext) {
             if (syncEnabledSettings) { try { const u = await secrets.get('user'); syncUserEmailSettings = u ? JSON.parse(u)?.email ?? null : null; } catch { /* no user stored */ } }
             const notionConnectedSettings = await hasNotionToken(secrets);
             const obsStatus = await getObsidianStatus(secrets, context.globalState);
-            webviewView.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath);
+            webviewView.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath, config.get('notionAutoSync', false));
             break;
           }
           case 'saveNotionToken': {
             if (msg.token) { await secrets.store('notionToken', msg.token); }
             const cfgN1 = vscode.workspace.getConfiguration('notevs');
             const obsN1 = await getObsidianStatus(secrets, context.globalState);
-            webviewView.webview.html = settingsHtml(cfgN1.get('autoShow', true), cfgN1.get('noteBgColor', '#1e1e1e'), false, null, null, true, obsN1.apiKey, obsN1.vaultPath);
+            webviewView.webview.html = settingsHtml(cfgN1.get('autoShow', true), cfgN1.get('noteBgColor', '#1e1e1e'), false, null, null, true, obsN1.apiKey, obsN1.vaultPath, cfgN1.get('notionAutoSync', false));
             vscode.window.showInformationMessage('Notion token saved.');
             break;
           }
@@ -1344,7 +1398,7 @@ export async function activate(context: vscode.ExtensionContext) {
             await clearNotionToken(secrets, context.globalState);
             const cfgN2 = vscode.workspace.getConfiguration('notevs');
             const obsN2 = await getObsidianStatus(secrets, context.globalState);
-            webviewView.webview.html = settingsHtml(cfgN2.get('autoShow', true), cfgN2.get('noteBgColor', '#1e1e1e'), false, null, null, false, obsN2.apiKey, obsN2.vaultPath);
+            webviewView.webview.html = settingsHtml(cfgN2.get('autoShow', true), cfgN2.get('noteBgColor', '#1e1e1e'), false, null, null, false, obsN2.apiKey, obsN2.vaultPath, cfgN2.get('notionAutoSync', false));
             vscode.window.showInformationMessage('Notion disconnected.');
             break;
           }
@@ -1357,7 +1411,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (msg.key) { await secrets.store('obsidianApiKey', msg.key); }
             const cfgO1 = vscode.workspace.getConfiguration('notevs');
             const vpO1 = context.globalState.get<string>('notevs.obsidianVaultPath', '');
-            webviewView.webview.html = settingsHtml(cfgO1.get('autoShow', true), cfgO1.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), true, vpO1);
+            webviewView.webview.html = settingsHtml(cfgO1.get('autoShow', true), cfgO1.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), true, vpO1, cfgO1.get('notionAutoSync', false));
             vscode.window.showInformationMessage('Obsidian API key saved.');
             break;
           }
@@ -1365,7 +1419,7 @@ export async function activate(context: vscode.ExtensionContext) {
             await clearObsidianApiKey(secrets);
             const cfgO2 = vscode.workspace.getConfiguration('notevs');
             const vpO2 = context.globalState.get<string>('notevs.obsidianVaultPath', '');
-            webviewView.webview.html = settingsHtml(cfgO2.get('autoShow', true), cfgO2.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), false, vpO2);
+            webviewView.webview.html = settingsHtml(cfgO2.get('autoShow', true), cfgO2.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), false, vpO2, cfgO2.get('notionAutoSync', false));
             vscode.window.showInformationMessage('Obsidian API key cleared.');
             break;
           }
@@ -1377,7 +1431,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (picked && picked.length > 0) {
               await context.globalState.update('notevs.obsidianVaultPath', picked[0].fsPath);
               const cfgO3 = vscode.workspace.getConfiguration('notevs');
-              webviewView.webview.html = settingsHtml(cfgO3.get('autoShow', true), cfgO3.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), !!(await secrets.get('obsidianApiKey')), picked[0].fsPath);
+              webviewView.webview.html = settingsHtml(cfgO3.get('autoShow', true), cfgO3.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), !!(await secrets.get('obsidianApiKey')), picked[0].fsPath, cfgO3.get('notionAutoSync', false));
               vscode.window.showInformationMessage(`Obsidian vault set to: ${picked[0].fsPath}`);
             }
             break;
@@ -1385,7 +1439,7 @@ export async function activate(context: vscode.ExtensionContext) {
           case 'clearObsidianVaultPath': {
             await clearObsidianVaultPath(context.globalState);
             const cfgO4 = vscode.workspace.getConfiguration('notevs');
-            webviewView.webview.html = settingsHtml(cfgO4.get('autoShow', true), cfgO4.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), !!(await secrets.get('obsidianApiKey')), '');
+            webviewView.webview.html = settingsHtml(cfgO4.get('autoShow', true), cfgO4.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), !!(await secrets.get('obsidianApiKey')), '', cfgO4.get('notionAutoSync', false));
             vscode.window.showInformationMessage('Obsidian vault path cleared.');
             break;
           }
@@ -1397,6 +1451,7 @@ export async function activate(context: vscode.ExtensionContext) {
             const config = vscode.workspace.getConfiguration('notevs');
             if (msg.key === 'autoShow') { await config.update('autoShow', msg.value, vscode.ConfigurationTarget.Global); }
             if (msg.key === 'noteBgColor') { await config.update('noteBgColor', msg.value, vscode.ConfigurationTarget.Global); await config.update('noteTextColor', msg.textColor, vscode.ConfigurationTarget.Global); }
+            if (msg.key === 'notionAutoSync') { await config.update('notionAutoSync', msg.value, vscode.ConfigurationTarget.Global); }
             break;
           }
           case 'logout': await clearTokens(secrets); webviewView.webview.html = loginHtml(iconUri); break;

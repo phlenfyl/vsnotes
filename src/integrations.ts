@@ -139,11 +139,15 @@ export async function sendToNotion(
   secrets: vscode.SecretStorage,
   globalState: vscode.Memento,
   note: NoteItem,
-  onExported: (destination: 'notion' | 'obsidian', ts: string, pageId?: string, pageUrl?: string) => void
+  onExported: (destination: 'notion' | 'obsidian', ts: string, pageId?: string, pageUrl?: string) => void,
+  options: { silent?: boolean } = {}
 ): Promise<void> {
-  // 1. Get or prompt for token
+  const { silent = false } = options;
+
+  // 1. Get or prompt for token — never silent (we need the token to proceed)
   let token = await secrets.get('notionToken');
   if (!token) {
+    if (silent) { return; } // can't prompt in silent mode
     const entered = await vscode.window.showInputBox({
       title: 'Connect Notion',
       prompt: 'Paste your token below. To get one: go to app.notion.com/developers/connections → New connection → Access token → Create → copy the token.',
@@ -166,23 +170,26 @@ export async function sendToNotion(
     const status = (e as { response?: { status?: number } })?.response?.status;
     if (status === 401 || status === 403) {
       await secrets.delete('notionToken');
-      vscode.window.showErrorMessage('Notion token is invalid. Cleared — please export again to re-enter it.');
+      if (!silent) { vscode.window.showErrorMessage('Notion token is invalid. Cleared — please export again to re-enter it.'); }
     } else {
-      vscode.window.showErrorMessage('Could not reach Notion. Check your internet connection.');
+      if (!silent) { vscode.window.showErrorMessage('Could not reach Notion. Check your internet connection.'); }
     }
     return;
   }
 
   if (pages.length === 0) {
-    vscode.window.showWarningMessage(
-      'No accessible pages found. Share a Notion page with your integration via "..." menu -> Add connections.'
-    );
+    if (!silent) {
+      vscode.window.showWarningMessage(
+        'No accessible pages found. Share a Notion page with your integration via "..." menu -> Add connections.'
+      );
+    }
     return;
   }
 
-  // 3. Get or pick parent page
+  // 3. Get or pick parent page — never pick interactively in silent mode
   let parentPageId = globalState.get<string>('notevs.notionParentPageId', '');
   if (!parentPageId) {
+    if (silent) { return; } // no parent page configured, can't sync silently
     const picked = await vscode.window.showQuickPick(
       pages.map(p => ({ label: p.title, description: p.id, id: p.id })),
       { title: 'Choose a Notion page to export into', ignoreFocusOut: true }
@@ -204,17 +211,14 @@ export async function sendToNotion(
   if (existingPageId) {
     // ── Re-export: clear existing content then re-append ──
     try {
-      // Get current block children so we can delete them
       const childRes = await axios.get(`${NOTION_API}/blocks/${existingPageId}/children`, { headers: notionHeaders(token) });
       const childIds: string[] = (childRes.data?.results ?? []).map((b: { id: string }) => b.id);
       for (const cid of childIds) {
-        try { await axios.delete(`${NOTION_API}/blocks/${cid}`, { headers: notionHeaders(token) }); } catch { /* ignore individual block delete errors */ }
+        try { await axios.delete(`${NOTION_API}/blocks/${cid}`, { headers: notionHeaders(token) }); } catch { /* ignore */ }
       }
-      // Update the page title
       await axios.patch(`${NOTION_API}/pages/${existingPageId}`, {
         properties: { title: { title: [{ type: 'text', text: { content: note.title || 'Untitled' } }] } }
       }, { headers: notionHeaders(token) });
-      // Append new content
       for (let i = 0; i < blocks.length; i += MAX_BLOCKS) {
         await axios.patch(`${NOTION_API}/blocks/${existingPageId}/children`, { children: blocks.slice(i, i + MAX_BLOCKS) }, { headers: notionHeaders(token) });
       }
@@ -223,10 +227,11 @@ export async function sendToNotion(
     } catch (e: unknown) {
       const status = (e as { response?: { status?: number } })?.response?.status;
       if (status === 404) {
-        // Page was deleted in Notion — fall through to create a new one
         await globalState.update('notevs.notionParentPageId', '');
+        // Page deleted in Notion — fall through to create new (only in non-silent mode)
+        if (silent) { return; }
       } else {
-        vscode.window.showErrorMessage('Failed to update Notion page. Check your connection.');
+        if (!silent) { vscode.window.showErrorMessage('Failed to update Notion page. Check your connection.'); }
         return;
       }
     }
@@ -234,6 +239,7 @@ export async function sendToNotion(
 
   if (!createdPageId) {
     // ── First export: pick parent page and create ──
+    if (silent) { return; } // never create a new page silently
     if (!parentPageId) {
       const picked = await vscode.window.showQuickPick(
         pages.map(p => ({ label: p.title, description: p.id, id: p.id })),
@@ -270,7 +276,6 @@ export async function sendToNotion(
       return;
     }
 
-    // Append overflow blocks for very long notes
     if (blocks.length > MAX_BLOCKS && createdPageId) {
       for (let i = MAX_BLOCKS; i < blocks.length; i += MAX_BLOCKS) {
         try {
@@ -280,15 +285,19 @@ export async function sendToNotion(
     }
   }
 
-  // 7. Record export and show success toast
+  // 7. Record export timestamp
   onExported('notion', new Date().toISOString(), createdPageId, pageUrl);
-  const isReExport = !!note.exports?.notion?.pageId;
-  const choice = await vscode.window.showInformationMessage(
-    isReExport ? `Updated "${note.title || 'Note'}" in Notion` : `Exported "${note.title || 'Note'}" to Notion`,
-    'Open in Notion'
-  );
-  if (choice === 'Open in Notion' && pageUrl) {
-    vscode.env.openExternal(vscode.Uri.parse(pageUrl));
+
+  // 8. Success toast — skipped in silent mode
+  if (!silent) {
+    const isReExport = !!note.exports?.notion?.pageId;
+    const choice = await vscode.window.showInformationMessage(
+      isReExport ? `Updated "${note.title || 'Note'}" in Notion` : `Exported "${note.title || 'Note'}" to Notion`,
+      'Open in Notion'
+    );
+    if (choice === 'Open in Notion' && pageUrl) {
+      vscode.env.openExternal(vscode.Uri.parse(pageUrl));
+    }
   }
 }
 
