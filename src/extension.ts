@@ -9,6 +9,13 @@ import {
   sendToNotion, clearNotionToken, resetNotionPage, hasNotionToken,
   sendToObsidian, clearObsidianApiKey, clearObsidianVaultPath, getObsidianStatus,
 } from './integrations';
+import {
+  sendToTodoist, hasTodoistToken, clearTodoistToken,
+  sendToGoogleTasks, isGoogleTasksConnected, disconnectGoogleTasks, connectGoogleTasks,
+  sendToTaskProvider, clearTaskProviderPreference,
+  manageExistingReminder,
+  type OnRemindedCallback,
+} from './taskIntegrations';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -92,6 +99,8 @@ interface NoteItem {
   syncedAt?: string | null;
   // export tracking
   exports?: { notion?: { ts: string; pageId: string; pageUrl: string }; obsidian?: string };
+  // task reminder tracking
+  reminders?: { todoist?: { ts: string; due: string; taskId?: string; recurrence?: string }; googleTasks?: { ts: string; due: string; taskId?: string; taskListId?: string } };
 }
 
 interface NotesCacheEntry {
@@ -364,6 +373,8 @@ function settingsHtml(
   obsidianApiKey?: boolean,
   obsidianVaultPath?: string,
   notionAutoSync?: boolean,
+  todoistConnected?: boolean,
+  googleTasksConnected?: boolean,
 ): string {
   const swatches = BG_COLORS.map(c => `
     <div class="swatch${c.bg === noteBgColor ? ' active' : ''}" data-bg="${c.bg}" data-text="${c.text}"
@@ -454,40 +465,86 @@ function settingsHtml(
     <div class="swatches">${swatches}</div>
   </div>
   <div class="label">Integrations</div>
-  <div class="int-hint">Export notes to your favourite tools</div>
 
-  <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--vscode-foreground)">Notion</div>
-  ${notionConnected
-    ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Token saved</span><button class="int-btn danger" id="notionClear">Disconnect</button><button class="int-btn" id="notionChangePage">Change page</button></div>`
-    : `<div class="int-row"><input class="int-input" id="notionTokenInput" type="password" placeholder="Paste token (secret_\u2026 or ntn_\u2026)"/><button class="int-btn" id="notionSave">Save</button></div>`
-  }
-  <button class="steps-toggle" id="notionStepsToggle"><i class="codicon codicon-info"></i> How to get your token</button>
-  <div class="steps-box" id="notionStepsBox" style="display:none">
-    <ol>
-      <li>Go to <a href="https://app.notion.com/developers/connections" id="notionLink">app.notion.com/developers/connections</a></li>
-      <li>Click <strong>+ New connection</strong></li>
-      <li>Name it <strong>NoteVs</strong>, keep <strong>Access token</strong> selected, click <strong>Create connection</strong></li>
-      <li>Copy the token shown (starts with <code>ntn_</code> or <code>secret_</code>)</li>
-      <li>Paste it in the field above and click <strong>Save</strong></li>
-      <li>Finally, open any Notion page you want notes to land in &rarr; click <strong>&middot;&middot;&middot;</strong> &rarr; <strong>Connections</strong> &rarr; select <strong>NoteVs</strong></li>
-    </ol>
+  <div class="collapse-header" id="exportingToggle">
+    <span class="collapse-label">Exporting</span>
+    <i class="codicon codicon-chevron-right collapse-chevron" id="exportingChevron"></i>
   </div>
-  <div class="row" style="margin-top:10px">
-    <label style="font-size:12px">Auto-sync on save <span style="font-size:10px;color:var(--vscode-descriptionForeground);display:block;margin-top:2px">Push updates to Notion 60s after you stop typing (notes already exported only)</span></label>
-    <input type="checkbox" id="notionAutoSync" ${notionAutoSync ? 'checked' : ''}/>
+  <div class="collapse-body" id="exportingBody">
+    <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--vscode-foreground)">Notion</div>
+    ${notionConnected
+      ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Token saved</span><button class="int-btn danger" id="notionClear">Disconnect</button><button class="int-btn" id="notionChangePage">Change page</button></div>`
+      : `<div class="int-row"><input class="int-input" id="notionTokenInput" type="password" placeholder="Paste token (secret_\u2026 or ntn_\u2026)"/><button class="int-btn" id="notionSave">Save</button></div>`
+    }
+    <button class="steps-toggle" id="notionStepsToggle"><i class="codicon codicon-info"></i> How to get your token</button>
+    <div class="steps-box" id="notionStepsBox" style="display:none">
+      <ol>
+        <li>Go to <a href="https://app.notion.com/developers/connections" id="notionLink">app.notion.com/developers/connections</a></li>
+        <li>Click <strong>+ New connection</strong></li>
+        <li>Name it <strong>NoteVs</strong>, keep <strong>Access token</strong> selected, click <strong>Create connection</strong></li>
+        <li>Copy the token shown (starts with <code>ntn_</code> or <code>secret_</code>)</li>
+        <li>Paste it in the field above and click <strong>Save</strong></li>
+        <li>Finally, open any Notion page you want notes to land in &rarr; click <strong>&middot;&middot;&middot;</strong> &rarr; <strong>Connections</strong> &rarr; select <strong>NoteVs</strong></li>
+      </ol>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label style="font-size:12px">Auto-sync on save <span style="font-size:10px;color:var(--vscode-descriptionForeground);display:block;margin-top:2px">Push updates to Notion 60s after you stop typing (notes already exported only)</span></label>
+      <input type="checkbox" id="notionAutoSync" ${notionAutoSync ? 'checked' : ''}/>
+    </div>
+
+    <div style="font-size:12px;font-weight:600;margin:14px 0 6px;color:var(--vscode-foreground)">Obsidian</div>
+    ${obsidianApiKey
+      ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> REST API key saved</span><button class="int-btn danger" id="obsApiClear">Clear key</button></div>`
+      : `<div class="int-row"><input class="int-input" id="obsApiInput" type="password" placeholder="Local REST API key\u2026"/><button class="int-btn" id="obsApiSave">Save key</button></div>`
+    }
+    <div class="int-row">
+      <span style="font-size:11px;color:var(--vscode-descriptionForeground);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${obsidianVaultPath ? obsidianVaultPath : 'No vault folder set'}</span>
+      <button class="int-btn" id="obsBrowse">Browse vault</button>
+      ${obsidianVaultPath ? '<button class="int-btn danger" id="obsPathClear">Clear</button>' : ''}
+    </div>
+    <div class="int-hint">REST API: install "Local REST API" plugin in Obsidian. Vault folder: works without the plugin.</div>
   </div>
 
-  <div style="font-size:12px;font-weight:600;margin:12px 0 6px;color:var(--vscode-foreground)">Obsidian</div>
-  ${obsidianApiKey
-    ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> REST API key saved</span><button class="int-btn danger" id="obsApiClear">Clear key</button></div>`
-    : `<div class="int-row"><input class="int-input" id="obsApiInput" type="password" placeholder="Local REST API key\u2026"/><button class="int-btn" id="obsApiSave">Save key</button></div>`
-  }
-  <div class="int-row">
-    <span style="font-size:11px;color:var(--vscode-descriptionForeground);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${obsidianVaultPath ? obsidianVaultPath : 'No vault folder set'}</span>
-    <button class="int-btn" id="obsBrowse">Browse vault</button>
-    ${obsidianVaultPath ? '<button class="int-btn danger" id="obsPathClear">Clear</button>' : ''}
+  <div class="collapse-header" id="tasksToggle">
+    <span class="collapse-label">Tasks</span>
+    <i class="codicon codicon-chevron-right collapse-chevron" id="tasksChevron"></i>
   </div>
-  <div class="int-hint">REST API: install "Local REST API" plugin in Obsidian. Vault folder: works without the plugin.</div>
+  <div class="collapse-body" id="tasksBody">
+    <div class="int-hint" style="margin-top:4px">Connect your task manager to use the &ldquo;Remind me&rdquo; button in the note editor.</div>
+
+    <div style="font-size:12px;font-weight:600;margin:8px 0 6px;color:var(--vscode-foreground)">Todoist</div>
+    ${todoistConnected
+      ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Token saved</span><button class="int-btn danger" id="todoistClear">Disconnect</button></div>`
+      : `<div class="int-row"><input class="int-input" id="todoistTokenInput" type="password" placeholder="Paste your Todoist API token\u2026"/><button class="int-btn" id="todoistSave">Save</button></div>`
+    }
+    <button class="steps-toggle" id="todoistStepsToggle"><i class="codicon codicon-info"></i> How to get your token</button>
+    <div class="steps-box" id="todoistStepsBox" style="display:none">
+      <ol>
+        <li>Open <a id="todoistLink" href="#">app.todoist.com</a> and sign in</li>
+        <li>Click your avatar (top-left) &rarr; <strong>Settings</strong></li>
+        <li>Go to <strong>Integrations</strong> &rarr; <strong>Developer</strong> tab</li>
+        <li>Copy the <strong>API token</strong> shown</li>
+        <li>Paste it in the field above and click <strong>Save</strong></li>
+      </ol>
+    </div>
+
+    <div style="font-size:12px;font-weight:600;margin:14px 0 6px;color:var(--vscode-foreground)">Google Tasks</div>
+    ${googleTasksConnected
+      ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Connected</span><button class="int-btn danger" id="googleTasksDisconnect">Disconnect</button></div>`
+      : `<div class="int-row"><button class="int-btn" id="googleTasksConnect" style="background:var(--vscode-button-background);color:var(--vscode-button-foreground)"><i class="codicon codicon-account"></i> Connect Google account &rarr;</button></div>`
+    }
+    <button class="steps-toggle" id="googleStepsToggle"><i class="codicon codicon-info"></i> How this works</button>
+    <div class="steps-box" id="googleStepsBox" style="display:none">
+      <ol>
+        <li>Click <strong>Connect Google account</strong> above</li>
+        <li>A browser window opens &mdash; sign in with <strong>your own</strong> Google account</li>
+        <li>Click <strong>Allow</strong> to grant NoteVs access to your Tasks</li>
+        <li>Return to VS Code &mdash; you&rsquo;re connected!</li>
+      </ol>
+    </div>
+
+    <div class="int-hint" style="margin-top:10px">If both Todoist and Google Tasks are connected, you&rsquo;ll be asked which to use when you click &ldquo;Remind me&rdquo;.</div>
+  </div>
 
   ${logoutHtml}
   <script>
@@ -520,25 +577,54 @@ function settingsHtml(
     document.getElementById('obsBrowse').addEventListener('click',()=>vscode.postMessage({type:'browseObsidianVault'}));
     const obsPathClearBtn=document.getElementById('obsPathClear');
     if(obsPathClearBtn){obsPathClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearObsidianVaultPath'}));}
-    // Colour section collapse
-    document.getElementById('colourToggle').addEventListener('click',()=>{
-      const body=document.getElementById('colourBody');
-      const chevron=document.getElementById('colourChevron');
-      const open=body.classList.toggle('open');
-      chevron.classList.toggle('open',open);
-    });
-    // Notion steps toggle
-    document.getElementById('notionStepsToggle').addEventListener('click',()=>{
-      const box=document.getElementById('notionStepsBox');
-      const toggle=document.getElementById('notionStepsToggle');
-      const visible=box.style.display==='none';
-      box.style.display=visible?'block':'none';
-      toggle.innerHTML=visible?'<i class="codicon codicon-chevron-up"></i> Hide steps':'<i class="codicon codicon-info"></i> How to get your token';
-    });
+    // ── Collapse toggles ──────────────────────────────────────────────────────
+    function bindCollapse(toggleId, bodyId, chevronId) {
+      document.getElementById(toggleId).addEventListener('click',()=>{
+        const body=document.getElementById(bodyId);
+        const chevron=document.getElementById(chevronId);
+        const open=body.classList.toggle('open');
+        chevron.classList.toggle('open',open);
+      });
+    }
+    bindCollapse('colourToggle','colourBody','colourChevron');
+    bindCollapse('exportingToggle','exportingBody','exportingChevron');
+    bindCollapse('tasksToggle','tasksBody','tasksChevron');
+
+    // ── Steps toggles ─────────────────────────────────────────────────────────
+    function bindStepsToggle(btnId, boxId, labelOpen, labelClose) {
+      const btn=document.getElementById(btnId);
+      if(!btn) return;
+      btn.addEventListener('click',()=>{
+        const box=document.getElementById(boxId);
+        const visible=box.style.display==='none';
+        box.style.display=visible?'block':'none';
+        btn.innerHTML=visible?'<i class="codicon codicon-chevron-up"></i> '+labelClose:'<i class="codicon codicon-info"></i> '+labelOpen;
+      });
+    }
+    bindStepsToggle('notionStepsToggle','notionStepsBox','How to get your token','Hide steps');
+    bindStepsToggle('todoistStepsToggle','todoistStepsBox','How to get your token','Hide steps');
+    bindStepsToggle('googleStepsToggle','googleStepsBox','How this works','Hide');
+
+    // Notion external link
     document.getElementById('notionLink').addEventListener('click',(e)=>{
       e.preventDefault();
       vscode.postMessage({type:'openExternal',url:'https://app.notion.com/developers/connections'});
     });
+    // Todoist external link
+    const todoistLinkEl=document.getElementById('todoistLink');
+    if(todoistLinkEl){todoistLinkEl.addEventListener('click',(e)=>{e.preventDefault();vscode.postMessage({type:'openExternal',url:'https://app.todoist.com/app/settings/integrations/developer'});});}
+
+    // ── Todoist ───────────────────────────────────────────────────────────────
+    const todoistSaveBtn=document.getElementById('todoistSave');
+    if(todoistSaveBtn){todoistSaveBtn.addEventListener('click',()=>{const v=document.getElementById('todoistTokenInput').value.trim();if(v){vscode.postMessage({type:'saveTodoistToken',token:v});}});}
+    const todoistClearBtn=document.getElementById('todoistClear');
+    if(todoistClearBtn){todoistClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearTodoistToken'}));}
+
+    // ── Google Tasks ──────────────────────────────────────────────────────────
+    const googleConnectBtn=document.getElementById('googleTasksConnect');
+    if(googleConnectBtn){googleConnectBtn.addEventListener('click',()=>vscode.postMessage({type:'connectGoogleTasks'}));}
+    const googleDisconnectBtn=document.getElementById('googleTasksDisconnect');
+    if(googleDisconnectBtn){googleDisconnectBtn.addEventListener('click',()=>vscode.postMessage({type:'disconnectGoogleTasks'}));}
   <\/script></body></html>`;
 }
 
@@ -621,6 +707,15 @@ function notesListHtml(
       const badges: string[] = [];
       if (n.exports?.notion) { badges.push(`<span class="export-badge" title="Exported to Notion on ${new Date(n.exports.notion.ts).toLocaleString()}">&#10003; Notion</span>`); }
       if (n.exports?.obsidian) { badges.push(`<span class="export-badge" title="Saved to Obsidian on ${new Date(n.exports.obsidian).toLocaleString()}">&#10003; Obsidian</span>`); }
+      if (n.reminders?.todoist) {
+        const r = n.reminders.todoist;
+        const label = r.recurrence ? `Todoist — ${r.recurrence}` : `Todoist — ${r.due.slice(0, 10)}`;
+        badges.push(`<span class="export-badge task-badge" title="Reminded via Todoist on ${new Date(r.ts).toLocaleString()}">⏰ ${label}</span>`);
+      }
+      if (n.reminders?.googleTasks) {
+        const r = n.reminders.googleTasks;
+        badges.push(`<span class="export-badge task-badge" title="Added to Google Tasks on ${new Date(r.ts).toLocaleString()}">⏰ Google Tasks — ${r.due.slice(0, 10)}</span>`);
+      }
       return badges.length ? `<div class="export-badges">${badges.join('')}</div>` : '';
     })();
     return `<div class="note-row" data-id="${n.id}" style="border-left: 3px solid ${accent.border}; background: ${accent.glow};">
@@ -685,6 +780,7 @@ function notesListHtml(
     .status-badge.done{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3)}
     .status-badge.passed{background:rgba(108,142,245,.15);color:#6c8ef5;border:1px solid rgba(108,142,245,.3)}
     .export-badge{font-size:10px;padding:1px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(128,128,128,.2);color:var(--vscode-descriptionForeground);background:transparent;opacity:.75}
+    .export-badge.task-badge{border-color:rgba(251,191,36,.35);color:#fbbf24;opacity:.85}
     .export-badges{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px}
     .priority-indicator{font-size:10px;flex-shrink:0;display:flex;align-items:center}
     .priority-indicator.p-emergency{color:#f87171}.priority-indicator.p-urgent{color:#fb923c}.priority-indicator.p-important{color:#fbbf24}.priority-indicator.p-medium{color:#84cc16}.priority-indicator.p-low{color:#22c55e}
@@ -783,6 +879,15 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     const chips: string[] = [];
     if (note.exports?.notion) { chips.push(`<span class="export-chip" data-dest="notion" title="Last exported ${new Date(note.exports.notion.ts).toLocaleString()}">&#10003; Exported to Notion</span>`); }
     if (note.exports?.obsidian) { chips.push(`<span class="export-chip" data-dest="obsidian" title="Last saved ${new Date(note.exports.obsidian).toLocaleString()}">&#10003; Saved to Obsidian</span>`); }
+    if (note.reminders?.todoist) {
+      const r = note.reminders.todoist;
+      const label = r.recurrence ? r.recurrence : r.due.slice(0, 10);
+      chips.push(`<span class="export-chip" style="border-color:rgba(251,191,36,.35);color:#fbbf24" title="Reminded via Todoist on ${new Date(r.ts).toLocaleString()}">⏰ Todoist — ${label}</span>`);
+    }
+    if (note.reminders?.googleTasks) {
+      const r = note.reminders.googleTasks;
+      chips.push(`<span class="export-chip" style="border-color:rgba(251,191,36,.35);color:#fbbf24" title="Added to Google Tasks on ${new Date(r.ts).toLocaleString()}">⏰ Google Tasks — ${r.due.slice(0, 10)}</span>`);
+    }
     return chips.length ? `<div class="export-history-bar" id="exportHistoryBar">${chips.join('')}</div>` : '';
   })();
 
@@ -843,6 +948,8 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     .word-count{padding:4px 12px;font-size:10px;color:var(--vscode-descriptionForeground);flex-shrink:0;border-top:1px solid var(--vscode-panel-border);background:var(--vscode-sideBar-background);display:flex;justify-content:space-between;align-items:center}
     .export-btn{background:none;border:1px solid var(--vscode-panel-border);cursor:pointer;color:var(--vscode-descriptionForeground);font-size:11px;padding:3px 7px;border-radius:4px;display:flex;align-items:center;gap:3px;transition:background .15s,color .15s,border-color .15s;white-space:nowrap;font-family:var(--vscode-font-family);flex-shrink:0}
     .export-btn:hover{background:var(--vscode-toolbar-hoverBackground);color:var(--vscode-foreground);border-color:var(--vscode-focusBorder)}
+    .task-btn{background:none;border:1px solid var(--vscode-panel-border);cursor:pointer;color:var(--vscode-descriptionForeground);font-size:10px;padding:2px 7px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;transition:background .15s,color .15s,border-color .15s;white-space:nowrap;font-family:var(--vscode-font-family);flex-shrink:0}
+    .task-btn:hover{background:var(--vscode-toolbar-hoverBackground);color:var(--vscode-foreground);border-color:var(--vscode-focusBorder)}
     .export-history-bar{display:flex;align-items:center;gap:6px;padding:3px 12px;background:var(--vscode-sideBar-background);border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0;flex-wrap:wrap}
     .export-chip{font-size:10px;padding:1px 7px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(128,128,128,.2);color:var(--vscode-descriptionForeground);background:transparent;opacity:.75}
     .editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;background:${bgColor};color:${textColor}}
@@ -930,7 +1037,10 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
   </div>
   <div class="word-count">
     <span id="wordCount">0 words \u00b7 0 chars</span>
-    <span id="saveStatus" style="opacity:.6;font-style:italic">Saved</span>
+    <span style="display:flex;align-items:center;gap:6px">
+      <button class="task-btn" id="todoistBtn" title="Set a reminder in Todoist">&#9200; Remind me</button>
+      <span id="saveStatus" style="opacity:.6;font-style:italic">Saved</span>
+    </span>
   </div>
 
   <script>
@@ -979,6 +1089,45 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
         const bar=document.getElementById('exportHistoryBar');
         if(bar){const chip=bar.querySelector('.export-chip[data-dest="notion"]');if(chip){const d=new Date(e.data.ts);chip.title='Last auto-synced '+d.toLocaleString();}}
       }
+      if(e.data.type==='taskReminded'){
+        const btn=document.getElementById('todoistBtn');
+        if(btn){
+          const label=e.data.recurrence?e.data.recurrence:e.data.due?e.data.due.slice(0,10):'';
+          const providerLabel=e.data.provider==='todoist'?'Todoist':'Google Tasks';
+          btn.innerHTML='\u2713 '+providerLabel+(label?' \u2014 '+label:'');
+          btn.style.color='#fbbf24';
+          btn.style.borderColor='rgba(251,191,36,.4)';
+          btn.title='Reminder set \u2014 click to manage';
+          setTimeout(()=>{
+            btn.innerHTML='\u23f0 Remind me';
+            btn.style.color='';
+            btn.style.borderColor='';
+            btn.title='Set a reminder';
+          },6000);
+        }
+      }
+      if(e.data.type==='addTaskChip'){
+        let bar=document.getElementById('exportHistoryBar');
+        if(!bar){
+          // Create the bar if it doesn't exist yet (note had no exports before)
+          bar=document.createElement('div');
+          bar.id='exportHistoryBar';
+          bar.className='export-history-bar';
+          // Insert after annotations/before editor-wrap
+          const editorWrap=document.getElementById('wysiwygWrap')||document.getElementById('mdWrap');
+          if(editorWrap){editorWrap.parentNode.insertBefore(bar,editorWrap);}
+        }
+        // Remove existing chip for this provider if any
+        const existing=bar.querySelector('.task-chip-'+e.data.provider);
+        if(existing){existing.remove();}
+        const chip=document.createElement('span');
+        chip.className='export-chip task-chip-'+e.data.provider;
+        chip.style.borderColor='rgba(251,191,36,.35)';
+        chip.style.color='#fbbf24';
+        chip.title=e.data.chipTitle;
+        chip.textContent=e.data.chipText;
+        bar.appendChild(chip);
+      }
     });
     document.getElementById('notionBtn').addEventListener('click',()=>{
       doSave();
@@ -987,6 +1136,10 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
     document.getElementById('obsidianBtn').addEventListener('click',()=>{
       doSave();
       vscode.postMessage({type:'exportToObsidian',id:noteId});
+    });
+    document.getElementById('todoistBtn').addEventListener('click',()=>{
+      doSave();
+      vscode.postMessage({type:'sendToTodoist',id:noteId});
     });
   <\/script></body></html>`;
 }
@@ -1257,6 +1410,93 @@ export async function activate(context: vscode.ExtensionContext) {
           }
         });
       }
+      if (msg.type === 'sendToTodoist') {
+        const note = readLocalNote(context, id);
+        if (!note) { vscode.window.showErrorMessage('Note not found.'); return; }
+        const fp2 = getFolderPath();
+        const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? 'Project';
+
+        const onReminded: OnRemindedCallback = (provider, record) => {
+          const latest = readLocalNote(context, id);
+          if (latest) {
+            latest.reminders = {
+              ...latest.reminders,
+              [provider === 'todoist' ? 'todoist' : 'googleTasks']: record,
+            };
+            writeLocalNote(context, latest);
+            // Update button temporarily
+            notePanel.webview.postMessage({ type: 'taskReminded', provider, due: record.due, recurrence: record.recurrence });
+            // Add chip to export history bar without full re-render
+            const chipLabel = record.recurrence ? record.recurrence : record.due.slice(0, 10);
+            const chipText  = provider === 'todoist' ? `\u23f0 Todoist \u2014 ${chipLabel}` : `\u23f0 Google Tasks \u2014 ${chipLabel}`;
+            const chipTitle = provider === 'todoist'
+              ? `Reminded via Todoist on ${new Date(record.ts).toLocaleString()}`
+              : `Added to Google Tasks on ${new Date(record.ts).toLocaleString()}`;
+            notePanel.webview.postMessage({ type: 'addTaskChip', provider, chipText, chipTitle });
+            if (panel && fp2) { panel.webview.html = notesListHtml(pn2, readLocalNotesGrouped(context, fp2), getSubfolderOptions(context, fp2), 'local'); }
+          }
+        };
+
+        // Check if a reminder already exists on this note
+        const todoistR  = note.reminders?.todoist;
+        const googleR   = note.reminders?.googleTasks;
+        const hasExistingReminder = !!(todoistR || googleR);
+
+        if (hasExistingReminder) {
+          // Determine which provider's reminder to manage
+          // If both exist, ask which to manage
+          let existingProvider: 'todoist' | 'googleTasks';
+          let existingRecord: typeof todoistR | typeof googleR;
+
+          if (todoistR && googleR) {
+            const pick = await vscode.window.showQuickPick(
+              [
+                { label: `⏰ Todoist — ${todoistR.recurrence ?? todoistR.due.slice(0, 10)}`, value: 'todoist' as const },
+                { label: `⏰ Google Tasks — ${googleR.due.slice(0, 10)}`,                    value: 'googleTasks' as const },
+              ],
+              { title: 'Which reminder do you want to manage?', ignoreFocusOut: true },
+            );
+            if (!pick) { return; }
+            existingProvider = pick.value;
+            existingRecord = existingProvider === 'todoist' ? todoistR : googleR;
+          } else if (todoistR) {
+            existingProvider = 'todoist';
+            existingRecord = todoistR;
+          } else {
+            existingProvider = 'googleTasks';
+            existingRecord = googleR!;
+          }
+
+          const result = await manageExistingReminder(secrets, {
+            provider:    existingProvider,
+            taskId:      existingRecord!.taskId,
+            taskListId:  (existingRecord as typeof googleR)?.taskListId,
+            due:         existingRecord!.due,
+            recurrence:  (existingRecord as typeof todoistR)?.recurrence,
+          }, note.title);
+
+          if (!result) { return; }
+
+          if (result.action === 'cleared') {
+            const latest = readLocalNote(context, id);
+            if (latest) {
+              if (existingProvider === 'todoist') { delete latest.reminders?.todoist; }
+              else                                { delete latest.reminders?.googleTasks; }
+              if (!latest.reminders?.todoist && !latest.reminders?.googleTasks) { delete latest.reminders; }
+              writeLocalNote(context, latest);
+              notePanel.webview.html = noteEditorHtml(latest, projectName, bg, text);
+              if (panel && fp2) { panel.webview.html = notesListHtml(pn2, readLocalNotesGrouped(context, fp2), getSubfolderOptions(context, fp2), 'local'); }
+            }
+          } else if (result.action === 'updated') {
+            onReminded(existingProvider, result.record);
+            notePanel.webview.html = noteEditorHtml(readLocalNote(context, id) ?? note, projectName, bg, text);
+          } else if (result.action === 'new') {
+            await sendToTaskProvider(secrets, context.globalState, note, onReminded);
+          }
+        } else {
+          await sendToTaskProvider(secrets, context.globalState, note, onReminded);
+        }
+      }
     }, null, context.subscriptions);
   }
 
@@ -1383,7 +1623,9 @@ export async function activate(context: vscode.ExtensionContext) {
             if (syncEnabledSettings) { try { const u = await secrets.get('user'); syncUserEmailSettings = u ? JSON.parse(u)?.email ?? null : null; } catch { /* no user stored */ } }
             const notionConnectedSettings = await hasNotionToken(secrets);
             const obsStatus = await getObsidianStatus(secrets, context.globalState);
-            webviewView.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath, config.get('notionAutoSync', false));
+            const todoistConn = await hasTodoistToken(secrets);
+            const googleConn = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath, config.get('notionAutoSync', false), todoistConn, googleConn);
             break;
           }
           case 'saveNotionToken': {
@@ -1439,8 +1681,49 @@ export async function activate(context: vscode.ExtensionContext) {
           case 'clearObsidianVaultPath': {
             await clearObsidianVaultPath(context.globalState);
             const cfgO4 = vscode.workspace.getConfiguration('notevs');
-            webviewView.webview.html = settingsHtml(cfgO4.get('autoShow', true), cfgO4.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), !!(await secrets.get('obsidianApiKey')), '', cfgO4.get('notionAutoSync', false));
+            const todoistConn4 = await hasTodoistToken(secrets);
+            const googleConn4 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgO4.get('autoShow', true), cfgO4.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), !!(await secrets.get('obsidianApiKey')), '', cfgO4.get('notionAutoSync', false), todoistConn4, googleConn4);
             vscode.window.showInformationMessage('Obsidian vault path cleared.');
+            break;
+          }
+          case 'saveTodoistToken': {
+            if (msg.token) { await secrets.store('todoistToken', msg.token.trim()); }
+            const cfgT1 = vscode.workspace.getConfiguration('notevs');
+            const obsT1 = await getObsidianStatus(secrets, context.globalState);
+            const googleT1 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgT1.get('autoShow', true), cfgT1.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsT1.apiKey, obsT1.vaultPath, cfgT1.get('notionAutoSync', false), true, googleT1);
+            vscode.window.showInformationMessage('Todoist token saved.');
+            break;
+          }
+          case 'clearTodoistToken': {
+            await clearTodoistToken(secrets);
+            await clearTaskProviderPreference(context.globalState);
+            const cfgT2 = vscode.workspace.getConfiguration('notevs');
+            const obsT2 = await getObsidianStatus(secrets, context.globalState);
+            const googleT2 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgT2.get('autoShow', true), cfgT2.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsT2.apiKey, obsT2.vaultPath, cfgT2.get('notionAutoSync', false), false, googleT2);
+            vscode.window.showInformationMessage('Todoist disconnected.');
+            break;
+          }
+          case 'connectGoogleTasks': {
+            const ok = await connectGoogleTasks(secrets);
+            if (ok) {
+              const cfgG1 = vscode.workspace.getConfiguration('notevs');
+              const obsG1 = await getObsidianStatus(secrets, context.globalState);
+              const todoistG1 = await hasTodoistToken(secrets);
+              webviewView.webview.html = settingsHtml(cfgG1.get('autoShow', true), cfgG1.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsG1.apiKey, obsG1.vaultPath, cfgG1.get('notionAutoSync', false), todoistG1, true);
+            }
+            break;
+          }
+          case 'disconnectGoogleTasks': {
+            await disconnectGoogleTasks(secrets);
+            await clearTaskProviderPreference(context.globalState);
+            const cfgG2 = vscode.workspace.getConfiguration('notevs');
+            const obsG2 = await getObsidianStatus(secrets, context.globalState);
+            const todoistG2 = await hasTodoistToken(secrets);
+            webviewView.webview.html = settingsHtml(cfgG2.get('autoShow', true), cfgG2.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsG2.apiKey, obsG2.vaultPath, cfgG2.get('notionAutoSync', false), todoistG2, false);
+            vscode.window.showInformationMessage('Google Tasks disconnected.');
             break;
           }
           case 'openExternal': {
@@ -1734,6 +2017,18 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('notevs.openNotes', () => vscode.commands.executeCommand('notevs.notesView.focus')),
     vscode.commands.registerCommand('notevs.logout', async () => { await clearTokens(secrets); if (panel) { panel.webview.html = loginHtml(iconUri); } }),
+    vscode.commands.registerCommand('notevs.showSettings', async () => {
+      // Focus the sidebar first, then render settings
+      await vscode.commands.executeCommand('notevs.notesView.focus');
+      if (panel) {
+        const config = vscode.workspace.getConfiguration('notevs');
+        const notionConn = await hasNotionToken(secrets);
+        const obsStatus = await getObsidianStatus(secrets, context.globalState);
+        const todoistConn = await hasTodoistToken(secrets);
+        const googleConn = await isGoogleTasksConnected(secrets);
+        panel.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), false, null, null, notionConn, obsStatus.apiKey, obsStatus.vaultPath, config.get('notionAutoSync', false), todoistConn, googleConn);
+      }
+    }),
   );
   context.subscriptions.push(vscode.workspace.onDidChangeWorkspaceFolders(async () => {
     const config = vscode.workspace.getConfiguration('projectnotes');

@@ -9987,12 +9987,12 @@ var require_form_data = __commonJS({
     var CombinedStream = require_combined_stream();
     var util3 = require("util");
     var path5 = require("path");
-    var http4 = require("http");
+    var http5 = require("http");
     var https3 = require("https");
     var parseUrl2 = require("url").parse;
     var fs5 = require("fs");
     var Stream = require("stream").Stream;
-    var crypto2 = require("crypto");
+    var crypto3 = require("crypto");
     var mime = require_mime_types();
     var asynckit = require_asynckit();
     var setToStringTag = require_es_set_tostringtag();
@@ -10198,7 +10198,7 @@ var require_form_data = __commonJS({
       return Buffer.concat([dataBuffer, Buffer.from(this._lastBoundary())]);
     };
     FormData3.prototype._generateBoundary = function() {
-      this._boundary = "--------------------------" + crypto2.randomBytes(12).toString("hex");
+      this._boundary = "--------------------------" + crypto3.randomBytes(12).toString("hex");
     };
     FormData3.prototype.getLengthSync = function() {
       var knownLength = this._overheadLength + this._valueLength;
@@ -10259,7 +10259,7 @@ var require_form_data = __commonJS({
       if (options.protocol === "https:") {
         request = https3.request(options);
       } else {
-        request = http4.request(options);
+        request = http5.request(options);
       }
       this.getLength(function(err, length) {
         if (err && err !== "Unknown stream") {
@@ -10418,7 +10418,7 @@ var require_ms = __commonJS({
 // ../node_modules/debug/src/common.js
 var require_common = __commonJS({
   "../node_modules/debug/src/common.js"(exports2, module2) {
-    function setup(env3) {
+    function setup(env4) {
       createDebug.debug = createDebug;
       createDebug.default = createDebug;
       createDebug.coerce = coerce;
@@ -10427,8 +10427,8 @@ var require_common = __commonJS({
       createDebug.enabled = enabled;
       createDebug.humanize = require_ms();
       createDebug.destroy = destroy;
-      Object.keys(env3).forEach((key) => {
-        createDebug[key] = env3[key];
+      Object.keys(env4).forEach((key) => {
+        createDebug[key] = env4[key];
       });
       createDebug.names = [];
       createDebug.skips = [];
@@ -10782,7 +10782,7 @@ var require_supports_color = __commonJS({
     var os2 = require("os");
     var tty = require("tty");
     var hasFlag = require_has_flag();
-    var { env: env3 } = process;
+    var { env: env4 } = process;
     var flagForceColor;
     if (hasFlag("no-color") || hasFlag("no-colors") || hasFlag("color=false") || hasFlag("color=never")) {
       flagForceColor = 0;
@@ -10790,14 +10790,14 @@ var require_supports_color = __commonJS({
       flagForceColor = 1;
     }
     function envForceColor() {
-      if ("FORCE_COLOR" in env3) {
-        if (env3.FORCE_COLOR === "true") {
+      if ("FORCE_COLOR" in env4) {
+        if (env4.FORCE_COLOR === "true") {
           return 1;
         }
-        if (env3.FORCE_COLOR === "false") {
+        if (env4.FORCE_COLOR === "false") {
           return 0;
         }
-        return env3.FORCE_COLOR.length === 0 ? 1 : Math.min(Number.parseInt(env3.FORCE_COLOR, 10), 3);
+        return env4.FORCE_COLOR.length === 0 ? 1 : Math.min(Number.parseInt(env4.FORCE_COLOR, 10), 3);
       }
     }
     function translateLevel(level) {
@@ -10832,7 +10832,7 @@ var require_supports_color = __commonJS({
         return 0;
       }
       const min = forceColor || 0;
-      if (env3.TERM === "dumb") {
+      if (env4.TERM === "dumb") {
         return min;
       }
       if (process.platform === "win32") {
@@ -10842,34 +10842,34 @@ var require_supports_color = __commonJS({
         }
         return 1;
       }
-      if ("CI" in env3) {
-        if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE", "DRONE"].some((sign) => sign in env3) || env3.CI_NAME === "codeship") {
+      if ("CI" in env4) {
+        if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE", "DRONE"].some((sign) => sign in env4) || env4.CI_NAME === "codeship") {
           return 1;
         }
         return min;
       }
-      if ("TEAMCITY_VERSION" in env3) {
-        return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env3.TEAMCITY_VERSION) ? 1 : 0;
+      if ("TEAMCITY_VERSION" in env4) {
+        return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env4.TEAMCITY_VERSION) ? 1 : 0;
       }
-      if (env3.COLORTERM === "truecolor") {
+      if (env4.COLORTERM === "truecolor") {
         return 3;
       }
-      if ("TERM_PROGRAM" in env3) {
-        const version = Number.parseInt((env3.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
-        switch (env3.TERM_PROGRAM) {
+      if ("TERM_PROGRAM" in env4) {
+        const version = Number.parseInt((env4.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
+        switch (env4.TERM_PROGRAM) {
           case "iTerm.app":
             return version >= 3 ? 3 : 2;
           case "Apple_Terminal":
             return 2;
         }
       }
-      if (/-256(color)?$/i.test(env3.TERM)) {
+      if (/-256(color)?$/i.test(env4.TERM)) {
         return 2;
       }
-      if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env3.TERM)) {
+      if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env4.TERM)) {
         return 1;
       }
-      if ("COLORTERM" in env3) {
+      if ("COLORTERM" in env4) {
         return 1;
       }
       return min;
@@ -11099,7 +11099,7 @@ var require_follow_redirects = __commonJS({
   "../node_modules/follow-redirects/index.js"(exports2, module2) {
     var url2 = require("url");
     var URL2 = url2.URL;
-    var http4 = require("http");
+    var http5 = require("http");
     var https3 = require("https");
     var Writable = require("stream").Writable;
     var assert = require("assert");
@@ -11600,7 +11600,7 @@ var require_follow_redirects = __commonJS({
     function escapeRegex(regex) {
       return regex.replace(/[\]\\/()*+?.$]/g, "\\$&");
     }
-    module2.exports = wrap({ http: http4, https: https3 });
+    module2.exports = wrap({ http: http5, https: https3 });
     module2.exports.wrap = wrap;
   }
 });
@@ -11612,7 +11612,7 @@ __export(extension_exports, {
   deactivate: () => deactivate
 });
 module.exports = __toCommonJS(extension_exports);
-var vscode4 = __toESM(require("vscode"));
+var vscode5 = __toESM(require("vscode"));
 
 // ../node_modules/axios/lib/helpers/bind.js
 function bind(fn, thisArg) {
@@ -14755,15 +14755,15 @@ var test = (fn, ...args) => {
     return false;
   }
 };
-var factory = (env3) => {
-  env3 = utils_default.merge.call(
+var factory = (env4) => {
+  env4 = utils_default.merge.call(
     {
       skipUndefined: true
     },
     globalFetchAPI,
-    env3
+    env4
   );
-  const { fetch: envFetch, Request, Response } = env3;
+  const { fetch: envFetch, Request, Response } = env4;
   const isFetchSupported = envFetch ? isFunction2(envFetch) : typeof fetch === "function";
   const isRequestSupported = isFunction2(Request);
   const isResponseSupported = isFunction2(Response);
@@ -14950,14 +14950,14 @@ var factory = (env3) => {
 };
 var seedCache = /* @__PURE__ */ new Map();
 var getFetch = (config) => {
-  let env3 = config && config.env || {};
-  const { fetch: fetch2, Request, Response } = env3;
+  let env4 = config && config.env || {};
+  const { fetch: fetch2, Request, Response } = env4;
   const seeds = [Request, Response, fetch2];
   let len = seeds.length, i = len, seed, target, map = seedCache;
   while (i--) {
     seed = seeds[i];
     target = map.get(seed);
-    target === void 0 && map.set(seed, target = i ? /* @__PURE__ */ new Map() : factory(env3));
+    target === void 0 && map.set(seed, target = i ? /* @__PURE__ */ new Map() : factory(env4));
     map = target;
   }
   return target;
@@ -16371,12 +16371,699 @@ async function getObsidianStatus(secrets, globalState) {
   return { apiKey, vaultPath };
 }
 
+// src/taskIntegrations.ts
+var vscode4 = __toESM(require("vscode"));
+var http4 = __toESM(require("http"));
+var crypto2 = __toESM(require("crypto"));
+var GOOGLE_CLIENT_ID = "REDACTED_CLIENT_ID.apps.googleusercontent.com";
+var GOOGLE_CLIENT_SECRET = "REDACTED_CLIENT_SECRET";
+var GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+var GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
+var GOOGLE_TASKS_SCOPE = "https://www.googleapis.com/auth/tasks";
+var GOOGLE_TASKS_API = "https://tasks.googleapis.com/tasks/v1";
+function extractTaskPlainText(note) {
+  let text = "";
+  if (note.editorMode === "markdown") {
+    text = note.content || "";
+  } else {
+    try {
+      const delta = JSON.parse(note.content);
+      if (delta && Array.isArray(delta.ops)) {
+        text = delta.ops.map((op) => typeof op.insert === "string" ? op.insert : "").join("").trim();
+      }
+    } catch {
+      text = note.content || "";
+    }
+  }
+  return text.slice(0, 250);
+}
+var TIME_SLOTS = [
+  "07:00",
+  "08:00",
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+  "20:00",
+  "21:00"
+];
+async function pickDueDateTime(forProvider) {
+  const today = /* @__PURE__ */ new Date();
+  const fmt = (d) => d.toISOString().slice(0, 10);
+  const addDays = (n) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + n);
+    return d;
+  };
+  const daysUntilSat = (6 - today.getDay() + 7) % 7 || 7;
+  const daysUntilMon = (1 - today.getDay() + 7) % 7 || 7;
+  const dateItems = [
+    { label: "Today", detail: fmt(today), value: fmt(today) },
+    { label: "Tomorrow", detail: fmt(addDays(1)), value: fmt(addDays(1)) },
+    { label: "This weekend", detail: fmt(addDays(daysUntilSat)), value: fmt(addDays(daysUntilSat)) },
+    { label: "Next week", detail: fmt(addDays(daysUntilMon)), value: fmt(addDays(daysUntilMon)) }
+  ];
+  if (forProvider === "todoist") {
+    dateItems.push(
+      { label: "$(sync) Every day", detail: "Recurring \u2014 repeats daily", value: "__rec_every day" },
+      { label: "$(sync) Every weekday", detail: "Recurring \u2014 Mon\u2013Fri", value: "__rec_every weekday" },
+      { label: "$(sync) Every week", detail: `Recurring \u2014 weekly on ${today.toLocaleDateString(void 0, { weekday: "long" })}`, value: `__rec_every ${today.toLocaleDateString(void 0, { weekday: "long" }).toLowerCase()}` },
+      { label: "$(sync) Every month", detail: "Recurring \u2014 same day each month", value: "__rec_every month" },
+      { label: "$(sync) Custom repeat\u2026", detail: "Enter a custom Todoist schedule", value: "__rec_custom" }
+    );
+  }
+  dateItems.push({ label: "Pick a date\u2026", detail: "Enter a date manually (YYYY-MM-DD)", value: "__pick__" });
+  const datePicked = await vscode4.window.showQuickPick(dateItems, {
+    title: forProvider === "todoist" ? "When? (Step 1 of 2)" : "When is this due? (Step 1 of 2)",
+    placeHolder: "Select a date",
+    ignoreFocusOut: true
+  });
+  if (!datePicked) {
+    return null;
+  }
+  if (datePicked.value.startsWith("__rec_")) {
+    let dueString = datePicked.value.slice(6);
+    if (dueString === "custom") {
+      const entered = await vscode4.window.showInputBox({
+        title: "Custom recurrence",
+        prompt: 'Enter a Todoist schedule string, e.g. "every 2 weeks" or "every Monday and Friday"',
+        placeHolder: "every Monday",
+        ignoreFocusOut: true,
+        validateInput: (v) => v.trim().length > 2 ? void 0 : "Please enter a schedule"
+      });
+      if (!entered) {
+        return null;
+      }
+      dueString = entered.trim();
+    }
+    return { date: fmt(today), time: null, dueString };
+  }
+  let date = datePicked.value;
+  if (date === "__pick__") {
+    const entered = await vscode4.window.showInputBox({
+      title: "Enter a date",
+      prompt: "Format: YYYY-MM-DD",
+      placeHolder: fmt(today),
+      ignoreFocusOut: true,
+      validateInput: (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) ? void 0 : "Please use YYYY-MM-DD format"
+    });
+    if (!entered) {
+      return null;
+    }
+    date = entered;
+  }
+  const timeItems = [
+    { label: "No specific time", detail: "Just a date", value: "__none__" },
+    ...TIME_SLOTS.map((t) => {
+      const [h, m] = t.split(":").map(Number);
+      const suffix = h < 12 ? "AM" : "PM";
+      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+      return { label: `${h12}:${m.toString().padStart(2, "0")} ${suffix}`, value: t };
+    }),
+    { label: "Custom time\u2026", detail: "Enter HH:MM", value: "__pick__" }
+  ];
+  const googleNote = forProvider === "googleTasks" ? "  \u24D8 Google Tasks ignores time \u2014 only the date will be used" : void 0;
+  const timePicked = await vscode4.window.showQuickPick(timeItems, {
+    title: forProvider === "todoist" ? "What time? (Step 2 of 2)" : "What time? (Step 2 of 2)",
+    placeHolder: googleNote ?? "Select a time (optional)",
+    ignoreFocusOut: true
+  });
+  if (!timePicked) {
+    return null;
+  }
+  let time = null;
+  if (timePicked.value === "__none__") {
+    time = null;
+  } else if (timePicked.value === "__pick__") {
+    const entered = await vscode4.window.showInputBox({
+      title: "Enter a time",
+      prompt: "Format: HH:MM (24-hour)",
+      placeHolder: "09:00",
+      ignoreFocusOut: true,
+      validateInput: (v) => /^\d{2}:\d{2}$/.test(v) ? void 0 : "Please use HH:MM format"
+    });
+    if (!entered) {
+      return null;
+    }
+    time = entered;
+  } else {
+    time = timePicked.value;
+  }
+  return { date, time, dueString: null };
+}
+async function sendToTaskProvider(secrets, globalState, note, onReminded) {
+  const hasTodoist = await hasTodoistToken(secrets);
+  const hasGoogle = await isGoogleTasksConnected(secrets);
+  if (!hasTodoist && !hasGoogle) {
+    const choice = await vscode4.window.showInformationMessage(
+      "No task service connected. Go to Settings \u2192 Integrations \u2192 Tasks to connect Todoist or Google Tasks.",
+      "Open Settings"
+    );
+    if (choice === "Open Settings") {
+      vscode4.commands.executeCommand("notevs.showSettings");
+    }
+    return;
+  }
+  if (hasTodoist && !hasGoogle) {
+    await sendToTodoist(secrets, note, onReminded);
+    return;
+  }
+  if (!hasTodoist && hasGoogle) {
+    await sendToGoogleTasks(secrets, note, onReminded);
+    return;
+  }
+  const saved = globalState.get("notevs.taskProvider", "");
+  if (saved === "todoist") {
+    await sendToTodoist(secrets, note, onReminded);
+    return;
+  }
+  if (saved === "google") {
+    await sendToGoogleTasks(secrets, note, onReminded);
+    return;
+  }
+  const providerPick = await vscode4.window.showQuickPick(
+    [
+      { label: "$(list-ordered) Todoist", description: "Send to your Todoist inbox", value: "todoist" },
+      { label: "$(checklist) Google Tasks", description: "Send to your Google Tasks", value: "google" }
+    ],
+    { title: "Where do you want to set this reminder?", ignoreFocusOut: true }
+  );
+  if (!providerPick) {
+    return;
+  }
+  const rememberPick = await vscode4.window.showQuickPick(
+    [
+      { label: "$(check) Yes, remember this choice", value: "yes" },
+      { label: "$(close) No, keep asking me", value: "no" }
+    ],
+    { title: `Use ${providerPick.value === "todoist" ? "Todoist" : "Google Tasks"} as default?`, ignoreFocusOut: true }
+  );
+  if (rememberPick?.value === "yes") {
+    await globalState.update("notevs.taskProvider", providerPick.value);
+  }
+  if (providerPick.value === "todoist") {
+    await sendToTodoist(secrets, note, onReminded);
+  } else {
+    await sendToGoogleTasks(secrets, note, onReminded);
+  }
+}
+async function clearTaskProviderPreference(globalState) {
+  await globalState.update("notevs.taskProvider", "");
+}
+var TODOIST_API = "https://api.todoist.com/api/v1";
+function mapPriority(priority) {
+  switch (priority) {
+    case "emergency":
+      return 1;
+    case "urgent":
+      return 1;
+    case "important":
+      return 2;
+    case "medium":
+      return 3;
+    default:
+      return 4;
+  }
+}
+async function hasTodoistToken(secrets) {
+  return !!await secrets.get("todoistToken");
+}
+async function clearTodoistToken(secrets) {
+  await secrets.delete("todoistToken");
+}
+async function sendToTodoist(secrets, note, onReminded) {
+  let token = await secrets.get("todoistToken");
+  if (!token) {
+    const entered = await vscode4.window.showInputBox({
+      title: "Connect Todoist",
+      prompt: "Get your token at: app.todoist.com/app/settings/integrations/developer",
+      password: true,
+      ignoreFocusOut: true,
+      placeHolder: "Paste your Todoist API token\u2026",
+      validateInput: (v) => v && v.trim().length > 10 ? void 0 : "Token looks too short"
+    });
+    if (!entered) {
+      return;
+    }
+    await secrets.store("todoistToken", entered.trim());
+    token = entered.trim();
+    vscode4.window.showInformationMessage("Todoist token saved.");
+  }
+  const due = await pickDueDateTime("todoist");
+  if (!due) {
+    return;
+  }
+  const payload = {
+    content: note.title || "Untitled",
+    description: extractTaskPlainText(note),
+    priority: mapPriority(note.priority)
+  };
+  if (due.dueString) {
+    payload.due_string = due.dueString;
+  } else if (due.time) {
+    payload.due_datetime = `${due.date}T${due.time}:00`;
+  } else {
+    payload.due_date = due.date;
+  }
+  let taskId;
+  try {
+    const { data } = await axios_default.post(`${TODOIST_API}/tasks`, payload, {
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      timeout: 1e4
+    });
+    taskId = data.id;
+  } catch (e) {
+    const status = e?.response?.status;
+    if (status === 401 || status === 403) {
+      await secrets.delete("todoistToken");
+      vscode4.window.showErrorMessage("Invalid Todoist token \u2014 cleared. Click \u201CRemind me\u201D again to re-enter it.");
+    } else if (status === 429) {
+      vscode4.window.showErrorMessage("Todoist rate limit hit. Try again in a moment.");
+    } else if (e?.code === "ENOTFOUND" || e?.code === "ECONNREFUSED") {
+      vscode4.window.showErrorMessage("No internet connection. Task not sent.");
+    } else {
+      vscode4.window.showErrorMessage(`Failed to create Todoist task. (${status ?? "network error"})`);
+    }
+    return;
+  }
+  const dueLabel = due.dueString ?? (due.time ? `${due.date} at ${due.time}` : due.date);
+  onReminded?.("todoist", {
+    ts: (/* @__PURE__ */ new Date()).toISOString(),
+    due: due.time ? `${due.date}T${due.time}` : due.date,
+    taskId,
+    recurrence: due.dueString ?? void 0
+  });
+  const taskUrl = `https://app.todoist.com/app/task/${taskId}`;
+  const choice = await vscode4.window.showInformationMessage(
+    `\u2713 Reminder set in Todoist \u2014 ${dueLabel}`,
+    "Open in Todoist \u2192"
+  );
+  if (choice === "Open in Todoist \u2192") {
+    vscode4.env.openExternal(vscode4.Uri.parse(taskUrl));
+  }
+}
+async function isGoogleTasksConnected(secrets) {
+  return !!await secrets.get("googleTasksAccessToken");
+}
+async function disconnectGoogleTasks(secrets) {
+  await secrets.delete("googleTasksAccessToken");
+  await secrets.delete("googleTasksRefreshToken");
+  await secrets.delete("googleTasksExpiry");
+}
+async function ensureGoogleToken(secrets) {
+  const accessToken = await secrets.get("googleTasksAccessToken");
+  const refreshToken = await secrets.get("googleTasksRefreshToken");
+  const expiryStr = await secrets.get("googleTasksExpiry");
+  if (!accessToken || !refreshToken) {
+    return null;
+  }
+  const expiry = expiryStr ? new Date(expiryStr).getTime() : 0;
+  if (Date.now() < expiry - 6e4) {
+    return accessToken;
+  }
+  try {
+    const { data } = await axios_default.post(GOOGLE_TOKEN_URL, new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token"
+    }).toString(), { headers: { "Content-Type": "application/x-www-form-urlencoded" }, timeout: 1e4 });
+    const newToken = data.access_token;
+    const expiresIn = data.expires_in ?? 3600;
+    const newExpiry = new Date(Date.now() + expiresIn * 1e3).toISOString();
+    await secrets.store("googleTasksAccessToken", newToken);
+    await secrets.store("googleTasksExpiry", newExpiry);
+    return newToken;
+  } catch {
+    await disconnectGoogleTasks(secrets);
+    return null;
+  }
+}
+async function connectGoogleTasks(secrets) {
+  return new Promise((resolve) => {
+    let server = null;
+    let timeoutId = null;
+    let listenPort = 0;
+    const state = crypto2.randomBytes(16).toString("hex");
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      if (server) {
+        try {
+          server.close();
+        } catch {
+        }
+        server = null;
+      }
+    };
+    server = http4.createServer(async (req, res) => {
+      if (!req.url?.startsWith("/callback")) {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      const url2 = new URL(req.url, "http://127.0.0.1");
+      const code = url2.searchParams.get("code");
+      const retState = url2.searchParams.get("state");
+      const html = (msg) => `<!DOCTYPE html><html><head><meta charset="UTF-8"/><style>body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#1e1e1e;color:#d4d4d4;font-size:16px;text-align:center}</style></head><body><p>${msg}</p></body></html>`;
+      if (!code || retState !== state) {
+        res.writeHead(400, { "Content-Type": "text/html" });
+        res.end(html("Auth failed. Please close this tab and try again."));
+        cleanup();
+        vscode4.window.showErrorMessage("Google Tasks: auth failed or was cancelled.");
+        resolve(false);
+        return;
+      }
+      res.writeHead(200, { "Content-Type": "text/html" });
+      res.end(html("\u2713 Google Tasks connected! You can close this tab and return to VS Code."));
+      cleanup();
+      try {
+        const { data } = await axios_default.post(GOOGLE_TOKEN_URL, new URLSearchParams({
+          code,
+          client_id: GOOGLE_CLIENT_ID,
+          client_secret: GOOGLE_CLIENT_SECRET,
+          redirect_uri: `http://127.0.0.1:${listenPort}/callback`,
+          grant_type: "authorization_code"
+        }).toString(), { headers: { "Content-Type": "application/x-www-form-urlencoded" }, timeout: 15e3 });
+        const expiresIn = data.expires_in ?? 3600;
+        const expiry = new Date(Date.now() + expiresIn * 1e3).toISOString();
+        await secrets.store("googleTasksAccessToken", data.access_token);
+        await secrets.store("googleTasksRefreshToken", data.refresh_token);
+        await secrets.store("googleTasksExpiry", expiry);
+        vscode4.window.showInformationMessage("\u2713 Google Tasks connected!");
+        resolve(true);
+      } catch {
+        vscode4.window.showErrorMessage("Google Tasks: failed to exchange auth code. Please try again.");
+        resolve(false);
+      }
+    });
+    server.listen(0, "127.0.0.1", () => {
+      const addr = server.address();
+      listenPort = addr?.port ?? 0;
+      if (!listenPort) {
+        cleanup();
+        resolve(false);
+        return;
+      }
+      const redirectUri = `http://127.0.0.1:${listenPort}/callback`;
+      const authUrl = `${GOOGLE_AUTH_URL}?${new URLSearchParams({
+        client_id: GOOGLE_CLIENT_ID,
+        redirect_uri: redirectUri,
+        response_type: "code",
+        scope: GOOGLE_TASKS_SCOPE,
+        access_type: "offline",
+        prompt: "consent",
+        state
+      }).toString()}`;
+      vscode4.env.openExternal(vscode4.Uri.parse(authUrl));
+      vscode4.window.showInformationMessage("Complete Google sign-in in your browser\u2026");
+      timeoutId = setTimeout(() => {
+        cleanup();
+        vscode4.window.showErrorMessage("Google Tasks: auth timed out. Please try again.");
+        resolve(false);
+      }, 9e4);
+    });
+    server.on("error", () => {
+      cleanup();
+      vscode4.window.showErrorMessage("Google Tasks: could not start auth server. Please try again.");
+      resolve(false);
+    });
+  });
+}
+async function sendToGoogleTasks(secrets, note, onReminded) {
+  let token = await ensureGoogleToken(secrets);
+  if (!token) {
+    const ok = await connectGoogleTasks(secrets);
+    if (!ok) {
+      return;
+    }
+    token = await ensureGoogleToken(secrets);
+    if (!token) {
+      vscode4.window.showErrorMessage("Google Tasks: could not get access token.");
+      return;
+    }
+  }
+  const due = await pickDueDateTime("googleTasks");
+  if (!due) {
+    return;
+  }
+  let taskListId;
+  try {
+    const { data } = await axios_default.get(`${GOOGLE_TASKS_API}/users/@me/lists`, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 1e4
+    });
+    const lists = data.items ?? [];
+    if (lists.length === 0) {
+      vscode4.window.showErrorMessage("No task lists found in your Google Tasks account.");
+      return;
+    } else if (lists.length === 1) {
+      taskListId = lists[0].id;
+    } else {
+      const picked = await vscode4.window.showQuickPick(
+        lists.map((l) => ({ label: l.title, value: l.id })),
+        { title: "Which task list?", placeHolder: "Choose a Google Tasks list", ignoreFocusOut: true }
+      );
+      if (!picked) {
+        return;
+      }
+      taskListId = picked.value;
+    }
+  } catch (e) {
+    const status = e?.response?.status;
+    if (status === 401) {
+      await disconnectGoogleTasks(secrets);
+      vscode4.window.showErrorMessage("Google Tasks: session expired. Please reconnect in Settings.");
+    } else {
+      vscode4.window.showErrorMessage("Google Tasks: could not fetch task lists. Check your internet connection.");
+    }
+    return;
+  }
+  let createdTaskId = "";
+  try {
+    const { data: created } = await axios_default.post(
+      `${GOOGLE_TASKS_API}/lists/${encodeURIComponent(taskListId)}/tasks`,
+      {
+        title: note.title || "Untitled",
+        notes: extractTaskPlainText(note),
+        status: "needsAction",
+        due: `${due.date}T00:00:00.000Z`
+      },
+      {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        timeout: 1e4
+      }
+    );
+    createdTaskId = created.id;
+  } catch (e) {
+    const status = e?.response?.status;
+    if (status === 401) {
+      await disconnectGoogleTasks(secrets);
+      vscode4.window.showErrorMessage("Google Tasks: session expired. Please reconnect in Settings.");
+    } else if (status === 429) {
+      vscode4.window.showErrorMessage("Google Tasks: rate limit hit. Try again in a moment.");
+    } else if (e?.code === "ENOTFOUND") {
+      vscode4.window.showErrorMessage("No internet connection. Task not sent.");
+    } else {
+      vscode4.window.showErrorMessage(`Failed to create Google Task. (${status ?? "network error"})`);
+    }
+    return;
+  }
+  onReminded?.("googleTasks", {
+    ts: (/* @__PURE__ */ new Date()).toISOString(),
+    due: due.date,
+    taskId: createdTaskId,
+    taskListId
+  });
+  vscode4.window.showInformationMessage(`\u2713 Added to Google Tasks for ${due.date}${due.time ? ` (time not supported by Google Tasks API)` : ""}`);
+}
+async function manageExistingReminder(secrets, reminder, noteTitle) {
+  const providerLabel = reminder.provider === "todoist" ? "Todoist" : "Google Tasks";
+  const dueLabel = reminder.recurrence ? reminder.recurrence : reminder.due.slice(0, 10);
+  const items = [];
+  if (reminder.provider === "todoist" && reminder.taskId) {
+    items.push({ label: `$(link-external) Open in ${providerLabel}`, detail: `View task: \u201C${noteTitle}\u201D`, value: "open" });
+  }
+  items.push(
+    { label: `$(calendar) Update due date`, detail: `Currently: ${dueLabel}`, value: "update" },
+    { label: `$(trash) Remove reminder`, detail: `Delete this task from ${providerLabel}`, value: "delete" },
+    { label: `$(add) Set another reminder`, detail: "Create an additional task", value: "new" }
+  );
+  const picked = await vscode4.window.showQuickPick(items, {
+    title: `\u23F0 ${providerLabel} reminder \u2014 ${dueLabel}`,
+    placeHolder: "What would you like to do?",
+    ignoreFocusOut: true
+  });
+  if (!picked) {
+    return null;
+  }
+  if (picked.value === "open" && reminder.provider === "todoist" && reminder.taskId) {
+    vscode4.env.openExternal(vscode4.Uri.parse(`https://app.todoist.com/app/task/${reminder.taskId}`));
+    return null;
+  }
+  if (picked.value === "new") {
+    return { action: "new" };
+  }
+  if (picked.value === "delete") {
+    await deleteReminder(secrets, reminder);
+    return { action: "cleared" };
+  }
+  if (picked.value === "update") {
+    const newRecord = await updateReminderDue(secrets, reminder);
+    if (!newRecord) {
+      return null;
+    }
+    return { action: "updated", record: newRecord };
+  }
+  return null;
+}
+async function deleteReminder(secrets, reminder) {
+  if (!reminder.taskId) {
+    vscode4.window.showWarningMessage("No task ID stored \u2014 cannot delete. The reminder record will be cleared locally.");
+    return;
+  }
+  if (reminder.provider === "todoist") {
+    const token = await secrets.get("todoistToken");
+    if (!token) {
+      vscode4.window.showErrorMessage("Todoist not connected.");
+      return;
+    }
+    try {
+      await axios_default.delete(`${TODOIST_API}/tasks/${reminder.taskId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 1e4
+      });
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status === 404) {
+      } else if (status === 401) {
+        await secrets.delete("todoistToken");
+        vscode4.window.showErrorMessage("Todoist token invalid \u2014 cleared.");
+        return;
+      } else {
+        vscode4.window.showErrorMessage(`Failed to delete Todoist task. (${status ?? "network error"})`);
+        return;
+      }
+    }
+    vscode4.window.showInformationMessage("Todoist task deleted.");
+  } else {
+    if (!reminder.taskListId) {
+      vscode4.window.showWarningMessage("Task list ID not stored \u2014 clearing reminder locally only.");
+      return;
+    }
+    const token = await ensureGoogleToken(secrets);
+    if (!token) {
+      vscode4.window.showErrorMessage("Google Tasks: not connected.");
+      return;
+    }
+    try {
+      await axios_default.delete(
+        `${GOOGLE_TASKS_API}/lists/${encodeURIComponent(reminder.taskListId)}/tasks/${encodeURIComponent(reminder.taskId)}`,
+        { headers: { Authorization: `Bearer ${token}` }, timeout: 1e4 }
+      );
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status === 404) {
+      } else {
+        vscode4.window.showErrorMessage(`Failed to delete Google Task. (${status ?? "network error"})`);
+        return;
+      }
+    }
+    vscode4.window.showInformationMessage("Google Task deleted.");
+  }
+}
+async function updateReminderDue(secrets, reminder) {
+  const due = await pickDueDateTime(reminder.provider);
+  if (!due) {
+    return null;
+  }
+  if (!reminder.taskId) {
+    vscode4.window.showWarningMessage("No task ID stored \u2014 cannot update on service. Reminder date updated locally only.");
+    return {
+      ts: (/* @__PURE__ */ new Date()).toISOString(),
+      due: due.time ? `${due.date}T${due.time}` : due.date,
+      taskId: reminder.taskId,
+      taskListId: reminder.taskListId,
+      recurrence: due.dueString ?? void 0
+    };
+  }
+  if (reminder.provider === "todoist") {
+    const token = await secrets.get("todoistToken");
+    if (!token) {
+      vscode4.window.showErrorMessage("Todoist not connected.");
+      return null;
+    }
+    const payload = {};
+    if (due.dueString) {
+      payload.due_string = due.dueString;
+    } else if (due.time) {
+      payload.due_datetime = `${due.date}T${due.time}:00`;
+    } else {
+      payload.due_date = due.date;
+    }
+    try {
+      await axios_default.post(`${TODOIST_API}/tasks/${reminder.taskId}`, payload, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        timeout: 1e4
+      });
+    } catch (e) {
+      const status = e?.response?.status;
+      vscode4.window.showErrorMessage(`Failed to update Todoist task. (${status ?? "network error"})`);
+      return null;
+    }
+    vscode4.window.showInformationMessage(`\u2713 Todoist task updated.`);
+    return {
+      ts: (/* @__PURE__ */ new Date()).toISOString(),
+      due: due.time ? `${due.date}T${due.time}` : due.date,
+      taskId: reminder.taskId,
+      recurrence: due.dueString ?? void 0
+    };
+  } else {
+    if (!reminder.taskListId) {
+      vscode4.window.showWarningMessage("Task list ID not stored \u2014 updating locally only.");
+    } else {
+      const token = await ensureGoogleToken(secrets);
+      if (!token) {
+        vscode4.window.showErrorMessage("Google Tasks: not connected.");
+        return null;
+      }
+      try {
+        await axios_default.patch(
+          `${GOOGLE_TASKS_API}/lists/${encodeURIComponent(reminder.taskListId)}/tasks/${encodeURIComponent(reminder.taskId)}`,
+          { due: `${due.date}T00:00:00.000Z` },
+          { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, timeout: 1e4 }
+        );
+      } catch (e) {
+        const status = e?.response?.status;
+        vscode4.window.showErrorMessage(`Failed to update Google Task. (${status ?? "network error"})`);
+        return null;
+      }
+      vscode4.window.showInformationMessage(`\u2713 Google Task updated to ${due.date}.`);
+    }
+    return {
+      ts: (/* @__PURE__ */ new Date()).toISOString(),
+      due: due.date,
+      taskId: reminder.taskId,
+      taskListId: reminder.taskListId
+    };
+  }
+}
+
 // src/extension.ts
 function getApiUrl() {
-  return vscode4.workspace.getConfiguration("notevs").get("apiUrl", "http://localhost:3001");
+  return vscode5.workspace.getConfiguration("notevs").get("apiUrl", "http://localhost:3001");
 }
 function getFolderPath() {
-  const folders = vscode4.workspace.workspaceFolders;
+  const folders = vscode5.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
     return null;
   }
@@ -16614,7 +17301,7 @@ function loginHtml(iconUri) {
     document.getElementById('b').addEventListener('click',()=>vscode.postMessage({type:'startLogin'}));
   </script></body></html>`;
 }
-function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyncAt, notionConnected, obsidianApiKey, obsidianVaultPath, notionAutoSync) {
+function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyncAt, notionConnected, obsidianApiKey, obsidianVaultPath, notionAutoSync, todoistConnected, googleTasksConnected) {
   const swatches = BG_COLORS.map((c) => `
     <div class="swatch${c.bg === noteBgColor ? " active" : ""}" data-bg="${c.bg}" data-text="${c.text}"
       style="background:${c.bg};border-color:${c.bg === noteBgColor ? "var(--vscode-focusBorder)" : "transparent"}" title="${c.label}">
@@ -16700,34 +17387,74 @@ function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyn
     <div class="swatches">${swatches}</div>
   </div>
   <div class="label">Integrations</div>
-  <div class="int-hint">Export notes to your favourite tools</div>
 
-  <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--vscode-foreground)">Notion</div>
-  ${notionConnected ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Token saved</span><button class="int-btn danger" id="notionClear">Disconnect</button><button class="int-btn" id="notionChangePage">Change page</button></div>` : `<div class="int-row"><input class="int-input" id="notionTokenInput" type="password" placeholder="Paste token (secret_\u2026 or ntn_\u2026)"/><button class="int-btn" id="notionSave">Save</button></div>`}
-  <button class="steps-toggle" id="notionStepsToggle"><i class="codicon codicon-info"></i> How to get your token</button>
-  <div class="steps-box" id="notionStepsBox" style="display:none">
-    <ol>
-      <li>Go to <a href="https://app.notion.com/developers/connections" id="notionLink">app.notion.com/developers/connections</a></li>
-      <li>Click <strong>+ New connection</strong></li>
-      <li>Name it <strong>NoteVs</strong>, keep <strong>Access token</strong> selected, click <strong>Create connection</strong></li>
-      <li>Copy the token shown (starts with <code>ntn_</code> or <code>secret_</code>)</li>
-      <li>Paste it in the field above and click <strong>Save</strong></li>
-      <li>Finally, open any Notion page you want notes to land in &rarr; click <strong>&middot;&middot;&middot;</strong> &rarr; <strong>Connections</strong> &rarr; select <strong>NoteVs</strong></li>
-    </ol>
+  <div class="collapse-header" id="exportingToggle">
+    <span class="collapse-label">Exporting</span>
+    <i class="codicon codicon-chevron-right collapse-chevron" id="exportingChevron"></i>
   </div>
-  <div class="row" style="margin-top:10px">
-    <label style="font-size:12px">Auto-sync on save <span style="font-size:10px;color:var(--vscode-descriptionForeground);display:block;margin-top:2px">Push updates to Notion 60s after you stop typing (notes already exported only)</span></label>
-    <input type="checkbox" id="notionAutoSync" ${notionAutoSync ? "checked" : ""}/>
+  <div class="collapse-body" id="exportingBody">
+    <div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--vscode-foreground)">Notion</div>
+    ${notionConnected ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Token saved</span><button class="int-btn danger" id="notionClear">Disconnect</button><button class="int-btn" id="notionChangePage">Change page</button></div>` : `<div class="int-row"><input class="int-input" id="notionTokenInput" type="password" placeholder="Paste token (secret_\u2026 or ntn_\u2026)"/><button class="int-btn" id="notionSave">Save</button></div>`}
+    <button class="steps-toggle" id="notionStepsToggle"><i class="codicon codicon-info"></i> How to get your token</button>
+    <div class="steps-box" id="notionStepsBox" style="display:none">
+      <ol>
+        <li>Go to <a href="https://app.notion.com/developers/connections" id="notionLink">app.notion.com/developers/connections</a></li>
+        <li>Click <strong>+ New connection</strong></li>
+        <li>Name it <strong>NoteVs</strong>, keep <strong>Access token</strong> selected, click <strong>Create connection</strong></li>
+        <li>Copy the token shown (starts with <code>ntn_</code> or <code>secret_</code>)</li>
+        <li>Paste it in the field above and click <strong>Save</strong></li>
+        <li>Finally, open any Notion page you want notes to land in &rarr; click <strong>&middot;&middot;&middot;</strong> &rarr; <strong>Connections</strong> &rarr; select <strong>NoteVs</strong></li>
+      </ol>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label style="font-size:12px">Auto-sync on save <span style="font-size:10px;color:var(--vscode-descriptionForeground);display:block;margin-top:2px">Push updates to Notion 60s after you stop typing (notes already exported only)</span></label>
+      <input type="checkbox" id="notionAutoSync" ${notionAutoSync ? "checked" : ""}/>
+    </div>
+
+    <div style="font-size:12px;font-weight:600;margin:14px 0 6px;color:var(--vscode-foreground)">Obsidian</div>
+    ${obsidianApiKey ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> REST API key saved</span><button class="int-btn danger" id="obsApiClear">Clear key</button></div>` : `<div class="int-row"><input class="int-input" id="obsApiInput" type="password" placeholder="Local REST API key\u2026"/><button class="int-btn" id="obsApiSave">Save key</button></div>`}
+    <div class="int-row">
+      <span style="font-size:11px;color:var(--vscode-descriptionForeground);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${obsidianVaultPath ? obsidianVaultPath : "No vault folder set"}</span>
+      <button class="int-btn" id="obsBrowse">Browse vault</button>
+      ${obsidianVaultPath ? '<button class="int-btn danger" id="obsPathClear">Clear</button>' : ""}
+    </div>
+    <div class="int-hint">REST API: install "Local REST API" plugin in Obsidian. Vault folder: works without the plugin.</div>
   </div>
 
-  <div style="font-size:12px;font-weight:600;margin:12px 0 6px;color:var(--vscode-foreground)">Obsidian</div>
-  ${obsidianApiKey ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> REST API key saved</span><button class="int-btn danger" id="obsApiClear">Clear key</button></div>` : `<div class="int-row"><input class="int-input" id="obsApiInput" type="password" placeholder="Local REST API key\u2026"/><button class="int-btn" id="obsApiSave">Save key</button></div>`}
-  <div class="int-row">
-    <span style="font-size:11px;color:var(--vscode-descriptionForeground);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${obsidianVaultPath ? obsidianVaultPath : "No vault folder set"}</span>
-    <button class="int-btn" id="obsBrowse">Browse vault</button>
-    ${obsidianVaultPath ? '<button class="int-btn danger" id="obsPathClear">Clear</button>' : ""}
+  <div class="collapse-header" id="tasksToggle">
+    <span class="collapse-label">Tasks</span>
+    <i class="codicon codicon-chevron-right collapse-chevron" id="tasksChevron"></i>
   </div>
-  <div class="int-hint">REST API: install "Local REST API" plugin in Obsidian. Vault folder: works without the plugin.</div>
+  <div class="collapse-body" id="tasksBody">
+    <div class="int-hint" style="margin-top:4px">Connect your task manager to use the &ldquo;Remind me&rdquo; button in the note editor.</div>
+
+    <div style="font-size:12px;font-weight:600;margin:8px 0 6px;color:var(--vscode-foreground)">Todoist</div>
+    ${todoistConnected ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Token saved</span><button class="int-btn danger" id="todoistClear">Disconnect</button></div>` : `<div class="int-row"><input class="int-input" id="todoistTokenInput" type="password" placeholder="Paste your Todoist API token\u2026"/><button class="int-btn" id="todoistSave">Save</button></div>`}
+    <button class="steps-toggle" id="todoistStepsToggle"><i class="codicon codicon-info"></i> How to get your token</button>
+    <div class="steps-box" id="todoistStepsBox" style="display:none">
+      <ol>
+        <li>Open <a id="todoistLink" href="#">app.todoist.com</a> and sign in</li>
+        <li>Click your avatar (top-left) &rarr; <strong>Settings</strong></li>
+        <li>Go to <strong>Integrations</strong> &rarr; <strong>Developer</strong> tab</li>
+        <li>Copy the <strong>API token</strong> shown</li>
+        <li>Paste it in the field above and click <strong>Save</strong></li>
+      </ol>
+    </div>
+
+    <div style="font-size:12px;font-weight:600;margin:14px 0 6px;color:var(--vscode-foreground)">Google Tasks</div>
+    ${googleTasksConnected ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Connected</span><button class="int-btn danger" id="googleTasksDisconnect">Disconnect</button></div>` : `<div class="int-row"><button class="int-btn" id="googleTasksConnect" style="background:var(--vscode-button-background);color:var(--vscode-button-foreground)"><i class="codicon codicon-account"></i> Connect Google account &rarr;</button></div>`}
+    <button class="steps-toggle" id="googleStepsToggle"><i class="codicon codicon-info"></i> How this works</button>
+    <div class="steps-box" id="googleStepsBox" style="display:none">
+      <ol>
+        <li>Click <strong>Connect Google account</strong> above</li>
+        <li>A browser window opens &mdash; sign in with <strong>your own</strong> Google account</li>
+        <li>Click <strong>Allow</strong> to grant NoteVs access to your Tasks</li>
+        <li>Return to VS Code &mdash; you&rsquo;re connected!</li>
+      </ol>
+    </div>
+
+    <div class="int-hint" style="margin-top:10px">If both Todoist and Google Tasks are connected, you&rsquo;ll be asked which to use when you click &ldquo;Remind me&rdquo;.</div>
+  </div>
 
   ${logoutHtml}
   <script>
@@ -16760,25 +17487,54 @@ function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyn
     document.getElementById('obsBrowse').addEventListener('click',()=>vscode.postMessage({type:'browseObsidianVault'}));
     const obsPathClearBtn=document.getElementById('obsPathClear');
     if(obsPathClearBtn){obsPathClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearObsidianVaultPath'}));}
-    // Colour section collapse
-    document.getElementById('colourToggle').addEventListener('click',()=>{
-      const body=document.getElementById('colourBody');
-      const chevron=document.getElementById('colourChevron');
-      const open=body.classList.toggle('open');
-      chevron.classList.toggle('open',open);
-    });
-    // Notion steps toggle
-    document.getElementById('notionStepsToggle').addEventListener('click',()=>{
-      const box=document.getElementById('notionStepsBox');
-      const toggle=document.getElementById('notionStepsToggle');
-      const visible=box.style.display==='none';
-      box.style.display=visible?'block':'none';
-      toggle.innerHTML=visible?'<i class="codicon codicon-chevron-up"></i> Hide steps':'<i class="codicon codicon-info"></i> How to get your token';
-    });
+    // \u2500\u2500 Collapse toggles \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    function bindCollapse(toggleId, bodyId, chevronId) {
+      document.getElementById(toggleId).addEventListener('click',()=>{
+        const body=document.getElementById(bodyId);
+        const chevron=document.getElementById(chevronId);
+        const open=body.classList.toggle('open');
+        chevron.classList.toggle('open',open);
+      });
+    }
+    bindCollapse('colourToggle','colourBody','colourChevron');
+    bindCollapse('exportingToggle','exportingBody','exportingChevron');
+    bindCollapse('tasksToggle','tasksBody','tasksChevron');
+
+    // \u2500\u2500 Steps toggles \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    function bindStepsToggle(btnId, boxId, labelOpen, labelClose) {
+      const btn=document.getElementById(btnId);
+      if(!btn) return;
+      btn.addEventListener('click',()=>{
+        const box=document.getElementById(boxId);
+        const visible=box.style.display==='none';
+        box.style.display=visible?'block':'none';
+        btn.innerHTML=visible?'<i class="codicon codicon-chevron-up"></i> '+labelClose:'<i class="codicon codicon-info"></i> '+labelOpen;
+      });
+    }
+    bindStepsToggle('notionStepsToggle','notionStepsBox','How to get your token','Hide steps');
+    bindStepsToggle('todoistStepsToggle','todoistStepsBox','How to get your token','Hide steps');
+    bindStepsToggle('googleStepsToggle','googleStepsBox','How this works','Hide');
+
+    // Notion external link
     document.getElementById('notionLink').addEventListener('click',(e)=>{
       e.preventDefault();
       vscode.postMessage({type:'openExternal',url:'https://app.notion.com/developers/connections'});
     });
+    // Todoist external link
+    const todoistLinkEl=document.getElementById('todoistLink');
+    if(todoistLinkEl){todoistLinkEl.addEventListener('click',(e)=>{e.preventDefault();vscode.postMessage({type:'openExternal',url:'https://app.todoist.com/app/settings/integrations/developer'});});}
+
+    // \u2500\u2500 Todoist \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    const todoistSaveBtn=document.getElementById('todoistSave');
+    if(todoistSaveBtn){todoistSaveBtn.addEventListener('click',()=>{const v=document.getElementById('todoistTokenInput').value.trim();if(v){vscode.postMessage({type:'saveTodoistToken',token:v});}});}
+    const todoistClearBtn=document.getElementById('todoistClear');
+    if(todoistClearBtn){todoistClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearTodoistToken'}));}
+
+    // \u2500\u2500 Google Tasks \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    const googleConnectBtn=document.getElementById('googleTasksConnect');
+    if(googleConnectBtn){googleConnectBtn.addEventListener('click',()=>vscode.postMessage({type:'connectGoogleTasks'}));}
+    const googleDisconnectBtn=document.getElementById('googleTasksDisconnect');
+    if(googleDisconnectBtn){googleDisconnectBtn.addEventListener('click',()=>vscode.postMessage({type:'disconnectGoogleTasks'}));}
   </script></body></html>`;
 }
 function noFolderHtml() {
@@ -16848,6 +17604,15 @@ function notesListHtml(projectName, groups, subfolderOptions, syncStatus, lastSy
       if (n.exports?.obsidian) {
         badges.push(`<span class="export-badge" title="Saved to Obsidian on ${new Date(n.exports.obsidian).toLocaleString()}">&#10003; Obsidian</span>`);
       }
+      if (n.reminders?.todoist) {
+        const r = n.reminders.todoist;
+        const label = r.recurrence ? `Todoist \u2014 ${r.recurrence}` : `Todoist \u2014 ${r.due.slice(0, 10)}`;
+        badges.push(`<span class="export-badge task-badge" title="Reminded via Todoist on ${new Date(r.ts).toLocaleString()}">\u23F0 ${label}</span>`);
+      }
+      if (n.reminders?.googleTasks) {
+        const r = n.reminders.googleTasks;
+        badges.push(`<span class="export-badge task-badge" title="Added to Google Tasks on ${new Date(r.ts).toLocaleString()}">\u23F0 Google Tasks \u2014 ${r.due.slice(0, 10)}</span>`);
+      }
       return badges.length ? `<div class="export-badges">${badges.join("")}</div>` : "";
     })();
     return `<div class="note-row" data-id="${n.id}" style="border-left: 3px solid ${accent.border}; background: ${accent.glow};">
@@ -16908,6 +17673,7 @@ function notesListHtml(projectName, groups, subfolderOptions, syncStatus, lastSy
     .status-badge.done{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.3)}
     .status-badge.passed{background:rgba(108,142,245,.15);color:#6c8ef5;border:1px solid rgba(108,142,245,.3)}
     .export-badge{font-size:10px;padding:1px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(128,128,128,.2);color:var(--vscode-descriptionForeground);background:transparent;opacity:.75}
+    .export-badge.task-badge{border-color:rgba(251,191,36,.35);color:#fbbf24;opacity:.85}
     .export-badges{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px}
     .priority-indicator{font-size:10px;flex-shrink:0;display:flex;align-items:center}
     .priority-indicator.p-emergency{color:#f87171}.priority-indicator.p-urgent{color:#fb923c}.priority-indicator.p-important{color:#fbbf24}.priority-indicator.p-medium{color:#84cc16}.priority-indicator.p-low{color:#22c55e}
@@ -17006,6 +17772,15 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     if (note.exports?.obsidian) {
       chips.push(`<span class="export-chip" data-dest="obsidian" title="Last saved ${new Date(note.exports.obsidian).toLocaleString()}">&#10003; Saved to Obsidian</span>`);
     }
+    if (note.reminders?.todoist) {
+      const r = note.reminders.todoist;
+      const label = r.recurrence ? r.recurrence : r.due.slice(0, 10);
+      chips.push(`<span class="export-chip" style="border-color:rgba(251,191,36,.35);color:#fbbf24" title="Reminded via Todoist on ${new Date(r.ts).toLocaleString()}">\u23F0 Todoist \u2014 ${label}</span>`);
+    }
+    if (note.reminders?.googleTasks) {
+      const r = note.reminders.googleTasks;
+      chips.push(`<span class="export-chip" style="border-color:rgba(251,191,36,.35);color:#fbbf24" title="Added to Google Tasks on ${new Date(r.ts).toLocaleString()}">\u23F0 Google Tasks \u2014 ${r.due.slice(0, 10)}</span>`);
+    }
     return chips.length ? `<div class="export-history-bar" id="exportHistoryBar">${chips.join("")}</div>` : "";
   })();
   const annotationsHtml = note.annotations && note.annotations.length > 0 ? note.annotations.map((ann) => {
@@ -17062,6 +17837,8 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     .word-count{padding:4px 12px;font-size:10px;color:var(--vscode-descriptionForeground);flex-shrink:0;border-top:1px solid var(--vscode-panel-border);background:var(--vscode-sideBar-background);display:flex;justify-content:space-between;align-items:center}
     .export-btn{background:none;border:1px solid var(--vscode-panel-border);cursor:pointer;color:var(--vscode-descriptionForeground);font-size:11px;padding:3px 7px;border-radius:4px;display:flex;align-items:center;gap:3px;transition:background .15s,color .15s,border-color .15s;white-space:nowrap;font-family:var(--vscode-font-family);flex-shrink:0}
     .export-btn:hover{background:var(--vscode-toolbar-hoverBackground);color:var(--vscode-foreground);border-color:var(--vscode-focusBorder)}
+    .task-btn{background:none;border:1px solid var(--vscode-panel-border);cursor:pointer;color:var(--vscode-descriptionForeground);font-size:10px;padding:2px 7px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;transition:background .15s,color .15s,border-color .15s;white-space:nowrap;font-family:var(--vscode-font-family);flex-shrink:0}
+    .task-btn:hover{background:var(--vscode-toolbar-hoverBackground);color:var(--vscode-foreground);border-color:var(--vscode-focusBorder)}
     .export-history-bar{display:flex;align-items:center;gap:6px;padding:3px 12px;background:var(--vscode-sideBar-background);border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0;flex-wrap:wrap}
     .export-chip{font-size:10px;padding:1px 7px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;border:1px solid rgba(128,128,128,.2);color:var(--vscode-descriptionForeground);background:transparent;opacity:.75}
     .editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;background:${bgColor};color:${textColor}}
@@ -17149,7 +17926,10 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
   </div>
   <div class="word-count">
     <span id="wordCount">0 words \xB7 0 chars</span>
-    <span id="saveStatus" style="opacity:.6;font-style:italic">Saved</span>
+    <span style="display:flex;align-items:center;gap:6px">
+      <button class="task-btn" id="todoistBtn" title="Set a reminder in Todoist">&#9200; Remind me</button>
+      <span id="saveStatus" style="opacity:.6;font-style:italic">Saved</span>
+    </span>
   </div>
 
   <script>
@@ -17198,6 +17978,45 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
         const bar=document.getElementById('exportHistoryBar');
         if(bar){const chip=bar.querySelector('.export-chip[data-dest="notion"]');if(chip){const d=new Date(e.data.ts);chip.title='Last auto-synced '+d.toLocaleString();}}
       }
+      if(e.data.type==='taskReminded'){
+        const btn=document.getElementById('todoistBtn');
+        if(btn){
+          const label=e.data.recurrence?e.data.recurrence:e.data.due?e.data.due.slice(0,10):'';
+          const providerLabel=e.data.provider==='todoist'?'Todoist':'Google Tasks';
+          btn.innerHTML='\u2713 '+providerLabel+(label?' \u2014 '+label:'');
+          btn.style.color='#fbbf24';
+          btn.style.borderColor='rgba(251,191,36,.4)';
+          btn.title='Reminder set \u2014 click to manage';
+          setTimeout(()=>{
+            btn.innerHTML='\u23F0 Remind me';
+            btn.style.color='';
+            btn.style.borderColor='';
+            btn.title='Set a reminder';
+          },6000);
+        }
+      }
+      if(e.data.type==='addTaskChip'){
+        let bar=document.getElementById('exportHistoryBar');
+        if(!bar){
+          // Create the bar if it doesn't exist yet (note had no exports before)
+          bar=document.createElement('div');
+          bar.id='exportHistoryBar';
+          bar.className='export-history-bar';
+          // Insert after annotations/before editor-wrap
+          const editorWrap=document.getElementById('wysiwygWrap')||document.getElementById('mdWrap');
+          if(editorWrap){editorWrap.parentNode.insertBefore(bar,editorWrap);}
+        }
+        // Remove existing chip for this provider if any
+        const existing=bar.querySelector('.task-chip-'+e.data.provider);
+        if(existing){existing.remove();}
+        const chip=document.createElement('span');
+        chip.className='export-chip task-chip-'+e.data.provider;
+        chip.style.borderColor='rgba(251,191,36,.35)';
+        chip.style.color='#fbbf24';
+        chip.title=e.data.chipTitle;
+        chip.textContent=e.data.chipText;
+        bar.appendChild(chip);
+      }
     });
     document.getElementById('notionBtn').addEventListener('click',()=>{
       doSave();
@@ -17206,6 +18025,10 @@ function noteEditorHtml(note, projectName, bgColor, textColor) {
     document.getElementById('obsidianBtn').addEventListener('click',()=>{
       doSave();
       vscode.postMessage({type:'exportToObsidian',id:noteId});
+    });
+    document.getElementById('todoistBtn').addEventListener('click',()=>{
+      doSave();
+      vscode.postMessage({type:'sendToTodoist',id:noteId});
     });
   </script></body></html>`;
 }
@@ -17222,7 +18045,7 @@ async function activate(context) {
   const notionSyncTimers = /* @__PURE__ */ new Map();
   const notionSyncCooldowns = /* @__PURE__ */ new Map();
   function getNoteColors() {
-    const config = vscode4.workspace.getConfiguration("notevs");
+    const config = vscode5.workspace.getConfiguration("notevs");
     return { bg: config.get("noteBgColor", "#1e1e1e"), text: config.get("noteTextColor", "#d4d4d4") };
   }
   let memCache = null;
@@ -17289,7 +18112,7 @@ async function activate(context) {
         const localEdited = new Date(item.localUpdatedAt).getTime();
         const cachedAt = memCache ? new Date(memCache.cachedAt).getTime() : 0;
         if (serverUpdated > cachedAt && serverUpdated > localEdited) {
-          const choice = await vscode4.window.showWarningMessage(
+          const choice = await vscode5.window.showWarningMessage(
             `"${serverNote.title}" was edited on another machine while offline. Which version to keep?`,
             { modal: true },
             "Keep my offline version",
@@ -17314,7 +18137,7 @@ async function activate(context) {
     const { bg, text } = getNoteColors();
     const existingPanel = openNotePanels.get(id);
     if (existingPanel) {
-      existingPanel.reveal(vscode4.ViewColumn.Beside);
+      existingPanel.reveal(vscode5.ViewColumn.Beside);
       return;
     }
     if (openingNotes.has(id)) {
@@ -17324,10 +18147,10 @@ async function activate(context) {
     const cached = loadCache();
     const cachedNote = cached?.notes.find((n) => n.id === id);
     const noteTitle = cachedNote?.title || "Note";
-    const notePanel = vscode4.window.createWebviewPanel(
+    const notePanel = vscode5.window.createWebviewPanel(
       "notenest.note",
       noteTitle,
-      vscode4.ViewColumn.Beside,
+      vscode5.ViewColumn.Beside,
       { enableScripts: true, retainContextWhenHidden: true }
     );
     openNotePanels.set(id, notePanel);
@@ -17373,7 +18196,7 @@ async function activate(context) {
           if (existing) {
             const updated = { ...existing, ...patch, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
             writeLocalNote2(context, updated);
-            const autoSync = vscode4.workspace.getConfiguration("notevs").get("notionAutoSync", false);
+            const autoSync = vscode5.workspace.getConfiguration("notevs").get("notionAutoSync", false);
             if (autoSync && updated.exports?.notion?.pageId) {
               const prev = notionSyncTimers.get(msg.id);
               if (prev) {
@@ -17438,16 +18261,16 @@ async function activate(context) {
         const fp2 = msg.noteFolderPath || getFolderPath();
         if (!fp2 || !msg.file) return;
         try {
-          const doc = await vscode4.workspace.openTextDocument(vscode4.Uri.file(`${fp2}/${msg.file}`));
-          const editor = await vscode4.window.showTextDocument(doc, { preview: false, viewColumn: vscode4.ViewColumn.One });
+          const doc = await vscode5.workspace.openTextDocument(vscode5.Uri.file(`${fp2}/${msg.file}`));
+          const editor = await vscode5.window.showTextDocument(doc, { preview: false, viewColumn: vscode5.ViewColumn.One });
           const sl = Math.max(0, (msg.lineStart || msg.line || 1) - 1);
           const el = Math.max(0, (msg.lineEnd || msg.lineStart || msg.line || 1) - 1);
           const elt = doc.lineAt(Math.min(el, doc.lineCount - 1));
-          const range = new vscode4.Range(sl, 0, elt.lineNumber, elt.text.length);
-          editor.selection = new vscode4.Selection(range.start, range.end);
-          editor.revealRange(range, vscode4.TextEditorRevealType.InCenter);
+          const range = new vscode5.Range(sl, 0, elt.lineNumber, elt.text.length);
+          editor.selection = new vscode5.Selection(range.start, range.end);
+          editor.revealRange(range, vscode5.TextEditorRevealType.InCenter);
         } catch {
-          vscode4.window.showErrorMessage(`Could not open file: ${msg.file}`);
+          vscode5.window.showErrorMessage(`Could not open file: ${msg.file}`);
         }
       }
       if (msg.type === "deleteAnnotation") {
@@ -17458,7 +18281,7 @@ async function activate(context) {
           updateNoteInCache(fn);
           notePanel.webview.html = noteEditorHtml(fn, projectName, bg, text);
         } catch {
-          vscode4.window.showErrorMessage("Failed to delete annotation.");
+          vscode5.window.showErrorMessage("Failed to delete annotation.");
         }
       }
       if (msg.type === "saveAnnotation") {
@@ -17471,7 +18294,7 @@ async function activate(context) {
       if (msg.type === "exportToNotion") {
         const note = readLocalNote2(context, id);
         if (!note) {
-          vscode4.window.showErrorMessage("Note not found.");
+          vscode5.window.showErrorMessage("Note not found.");
           return;
         }
         await sendToNotion(secrets, context.globalState, note, (dest, ts, pageId, pageUrl) => {
@@ -17497,7 +18320,7 @@ async function activate(context) {
       if (msg.type === "exportToObsidian") {
         const note = readLocalNote2(context, id);
         if (!note) {
-          vscode4.window.showErrorMessage("Note not found.");
+          vscode5.window.showErrorMessage("Note not found.");
           return;
         }
         await sendToObsidian(secrets, context.globalState, note, (dest, ts) => {
@@ -17516,6 +18339,95 @@ async function activate(context) {
           }
         });
       }
+      if (msg.type === "sendToTodoist") {
+        const note = readLocalNote2(context, id);
+        if (!note) {
+          vscode5.window.showErrorMessage("Note not found.");
+          return;
+        }
+        const fp2 = getFolderPath();
+        const pn2 = fp2?.split(/[\/\\]/).filter(Boolean).pop() ?? "Project";
+        const onReminded = (provider2, record) => {
+          const latest = readLocalNote2(context, id);
+          if (latest) {
+            latest.reminders = {
+              ...latest.reminders,
+              [provider2 === "todoist" ? "todoist" : "googleTasks"]: record
+            };
+            writeLocalNote2(context, latest);
+            notePanel.webview.postMessage({ type: "taskReminded", provider: provider2, due: record.due, recurrence: record.recurrence });
+            const chipLabel = record.recurrence ? record.recurrence : record.due.slice(0, 10);
+            const chipText = provider2 === "todoist" ? `\u23F0 Todoist \u2014 ${chipLabel}` : `\u23F0 Google Tasks \u2014 ${chipLabel}`;
+            const chipTitle = provider2 === "todoist" ? `Reminded via Todoist on ${new Date(record.ts).toLocaleString()}` : `Added to Google Tasks on ${new Date(record.ts).toLocaleString()}`;
+            notePanel.webview.postMessage({ type: "addTaskChip", provider: provider2, chipText, chipTitle });
+            if (panel && fp2) {
+              panel.webview.html = notesListHtml(pn2, readLocalNotesGrouped(context, fp2), getSubfolderOptions(context, fp2), "local");
+            }
+          }
+        };
+        const todoistR = note.reminders?.todoist;
+        const googleR = note.reminders?.googleTasks;
+        const hasExistingReminder = !!(todoistR || googleR);
+        if (hasExistingReminder) {
+          let existingProvider;
+          let existingRecord;
+          if (todoistR && googleR) {
+            const pick = await vscode5.window.showQuickPick(
+              [
+                { label: `\u23F0 Todoist \u2014 ${todoistR.recurrence ?? todoistR.due.slice(0, 10)}`, value: "todoist" },
+                { label: `\u23F0 Google Tasks \u2014 ${googleR.due.slice(0, 10)}`, value: "googleTasks" }
+              ],
+              { title: "Which reminder do you want to manage?", ignoreFocusOut: true }
+            );
+            if (!pick) {
+              return;
+            }
+            existingProvider = pick.value;
+            existingRecord = existingProvider === "todoist" ? todoistR : googleR;
+          } else if (todoistR) {
+            existingProvider = "todoist";
+            existingRecord = todoistR;
+          } else {
+            existingProvider = "googleTasks";
+            existingRecord = googleR;
+          }
+          const result = await manageExistingReminder(secrets, {
+            provider: existingProvider,
+            taskId: existingRecord.taskId,
+            taskListId: existingRecord?.taskListId,
+            due: existingRecord.due,
+            recurrence: existingRecord?.recurrence
+          }, note.title);
+          if (!result) {
+            return;
+          }
+          if (result.action === "cleared") {
+            const latest = readLocalNote2(context, id);
+            if (latest) {
+              if (existingProvider === "todoist") {
+                delete latest.reminders?.todoist;
+              } else {
+                delete latest.reminders?.googleTasks;
+              }
+              if (!latest.reminders?.todoist && !latest.reminders?.googleTasks) {
+                delete latest.reminders;
+              }
+              writeLocalNote2(context, latest);
+              notePanel.webview.html = noteEditorHtml(latest, projectName, bg, text);
+              if (panel && fp2) {
+                panel.webview.html = notesListHtml(pn2, readLocalNotesGrouped(context, fp2), getSubfolderOptions(context, fp2), "local");
+              }
+            }
+          } else if (result.action === "updated") {
+            onReminded(existingProvider, result.record);
+            notePanel.webview.html = noteEditorHtml(readLocalNote2(context, id) ?? note, projectName, bg, text);
+          } else if (result.action === "new") {
+            await sendToTaskProvider(secrets, context.globalState, note, onReminded);
+          }
+        } else {
+          await sendToTaskProvider(secrets, context.globalState, note, onReminded);
+        }
+      }
     }, null, context.subscriptions);
   }
   const provider = {
@@ -17523,9 +18435,9 @@ async function activate(context) {
       panel = webviewView;
       webviewView.webview.options = {
         enableScripts: true,
-        localResourceRoots: [vscode4.Uri.joinPath(context.extensionUri, "media")]
+        localResourceRoots: [vscode5.Uri.joinPath(context.extensionUri, "media")]
       };
-      iconUri = webviewView.webview.asWebviewUri(vscode4.Uri.joinPath(context.extensionUri, "media", "icon.png")).toString();
+      iconUri = webviewView.webview.asWebviewUri(vscode5.Uri.joinPath(context.extensionUri, "media", "icon.png")).toString();
       async function render() {
         await context.globalState.update("notevs.syncEnabled", false);
         await context.globalState.update("notevs.firstRunComplete", true);
@@ -17573,13 +18485,13 @@ async function activate(context) {
               await context.globalState.update("notevs.syncEnabled", true);
               webviewView.webview.html = loginHtml(iconUri);
             } else {
-              const ok = await vscode4.window.showWarningMessage("Disable sync? Your notes will stay on this device.", { modal: true }, "Disable sync");
+              const ok = await vscode5.window.showWarningMessage("Disable sync? Your notes will stay on this device.", { modal: true }, "Disable sync");
               if (ok === "Disable sync") {
                 await context.globalState.update("notevs.syncEnabled", false);
                 await clearTokens(secrets);
                 await render();
               } else {
-                const config = vscode4.workspace.getConfiguration("notevs");
+                const config = vscode5.workspace.getConfiguration("notevs");
                 const lsAt = context.globalState.get("notevs.lastSyncAt") ?? null;
                 webviewView.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), true, null, lsAt, false, false, "", false);
               }
@@ -17604,19 +18516,19 @@ async function activate(context) {
               { label: `$(folder-opened) ${wsLabel}`, description: "workspace root", folderPath: workspacePath },
               ...msg.subfolders.map((s) => ({ label: `$(folder) ${s.label}`, description: s.folderPath.replace(workspacePath + "/", ""), folderPath: s.folderPath }))
             ];
-            const picked = await vscode4.window.showQuickPick(folderItems, { title: "Create note in\u2026", placeHolder: "Choose a folder for the new note", ignoreFocusOut: true });
+            const picked = await vscode5.window.showQuickPick(folderItems, { title: "Create note in\u2026", placeHolder: "Choose a folder for the new note", ignoreFocusOut: true });
             if (picked) {
               webviewView.webview.postMessage({ type: "showNewNoteInput", folderPath: picked.folderPath });
             }
             break;
           }
           case "openFolder":
-            vscode4.commands.executeCommand("vscode.openFolder");
+            vscode5.commands.executeCommand("vscode.openFolder");
             break;
           case "newNote": {
             const folderPath = getFolderPath();
             if (!folderPath) {
-              vscode4.window.showWarningMessage("Open a folder first.");
+              vscode5.window.showWarningMessage("Open a folder first.");
               break;
             }
             const targetFolder = msg.targetFolder || folderPath;
@@ -17642,7 +18554,7 @@ async function activate(context) {
                 webviewView.webview.html = notesListHtml(projectName, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
                 await openNote(newNote.id);
               } catch {
-                vscode4.window.showErrorMessage("Failed to create note.");
+                vscode5.window.showErrorMessage("Failed to create note.");
               }
             }
             break;
@@ -17657,23 +18569,23 @@ async function activate(context) {
             const folderPath = msg.noteFolderPath || getFolderPath();
             if (!folderPath || !msg.file) break;
             try {
-              const doc = await vscode4.workspace.openTextDocument(vscode4.Uri.file(`${folderPath}/${msg.file}`));
-              const editor = await vscode4.window.showTextDocument(doc, { preview: false, viewColumn: vscode4.ViewColumn.One });
+              const doc = await vscode5.workspace.openTextDocument(vscode5.Uri.file(`${folderPath}/${msg.file}`));
+              const editor = await vscode5.window.showTextDocument(doc, { preview: false, viewColumn: vscode5.ViewColumn.One });
               const startLine = Math.max(0, (msg.lineStart || msg.line || 1) - 1);
               const endLine = Math.max(0, (msg.lineEnd || msg.lineStart || msg.line || 1) - 1);
               const endLineText = doc.lineAt(Math.min(endLine, doc.lineCount - 1));
-              const range = new vscode4.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length);
-              editor.selection = new vscode4.Selection(range.start, range.end);
-              editor.revealRange(range, vscode4.TextEditorRevealType.InCenter);
+              const range = new vscode5.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length);
+              editor.selection = new vscode5.Selection(range.start, range.end);
+              editor.revealRange(range, vscode5.TextEditorRevealType.InCenter);
             } catch {
-              vscode4.window.showErrorMessage(`Could not open file: ${msg.file}`);
+              vscode5.window.showErrorMessage(`Could not open file: ${msg.file}`);
             }
             break;
           }
           case "saveNote":
             break;
           case "deleteNote": {
-            const ok = await vscode4.window.showWarningMessage("Delete this note? This cannot be undone.", { modal: true }, "Delete");
+            const ok = await vscode5.window.showWarningMessage("Delete this note? This cannot be undone.", { modal: true }, "Delete");
             if (ok === "Delete") {
               const notePanel = openNotePanels.get(msg.id);
               if (notePanel) {
@@ -17683,7 +18595,7 @@ async function activate(context) {
               if (!syncEnabledDel) {
                 deleteLocalNote(context, msg.id);
                 const folderPathDel = getFolderPath();
-                const activeEdDel = vscode4.window.activeTextEditor;
+                const activeEdDel = vscode5.window.activeTextEditor;
                 if (activeEdDel) {
                   refreshAnnotations(activeEdDel);
                 }
@@ -17706,7 +18618,7 @@ async function activate(context) {
             break;
           }
           case "openSettings": {
-            const config = vscode4.workspace.getConfiguration("notevs");
+            const config = vscode5.workspace.getConfiguration("notevs");
             const syncEnabledSettings = context.globalState.get("notevs.syncEnabled") ?? false;
             const lastSyncAtSettings = context.globalState.get("notevs.lastSyncAt") ?? null;
             let syncUserEmailSettings = null;
@@ -17719,52 +18631,54 @@ async function activate(context) {
             }
             const notionConnectedSettings = await hasNotionToken(secrets);
             const obsStatus = await getObsidianStatus(secrets, context.globalState);
-            webviewView.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath, config.get("notionAutoSync", false));
+            const todoistConn = await hasTodoistToken(secrets);
+            const googleConn = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath, config.get("notionAutoSync", false), todoistConn, googleConn);
             break;
           }
           case "saveNotionToken": {
             if (msg.token) {
               await secrets.store("notionToken", msg.token);
             }
-            const cfgN1 = vscode4.workspace.getConfiguration("notevs");
+            const cfgN1 = vscode5.workspace.getConfiguration("notevs");
             const obsN1 = await getObsidianStatus(secrets, context.globalState);
             webviewView.webview.html = settingsHtml(cfgN1.get("autoShow", true), cfgN1.get("noteBgColor", "#1e1e1e"), false, null, null, true, obsN1.apiKey, obsN1.vaultPath, cfgN1.get("notionAutoSync", false));
-            vscode4.window.showInformationMessage("Notion token saved.");
+            vscode5.window.showInformationMessage("Notion token saved.");
             break;
           }
           case "clearNotionToken": {
             await clearNotionToken(secrets, context.globalState);
-            const cfgN2 = vscode4.workspace.getConfiguration("notevs");
+            const cfgN2 = vscode5.workspace.getConfiguration("notevs");
             const obsN2 = await getObsidianStatus(secrets, context.globalState);
             webviewView.webview.html = settingsHtml(cfgN2.get("autoShow", true), cfgN2.get("noteBgColor", "#1e1e1e"), false, null, null, false, obsN2.apiKey, obsN2.vaultPath, cfgN2.get("notionAutoSync", false));
-            vscode4.window.showInformationMessage("Notion disconnected.");
+            vscode5.window.showInformationMessage("Notion disconnected.");
             break;
           }
           case "changeNotionPage": {
             await resetNotionPage(context.globalState);
-            vscode4.window.showInformationMessage("Notion parent page cleared. It will be picked on next export.");
+            vscode5.window.showInformationMessage("Notion parent page cleared. It will be picked on next export.");
             break;
           }
           case "saveObsidianApiKey": {
             if (msg.key) {
               await secrets.store("obsidianApiKey", msg.key);
             }
-            const cfgO1 = vscode4.workspace.getConfiguration("notevs");
+            const cfgO1 = vscode5.workspace.getConfiguration("notevs");
             const vpO1 = context.globalState.get("notevs.obsidianVaultPath", "");
             webviewView.webview.html = settingsHtml(cfgO1.get("autoShow", true), cfgO1.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), true, vpO1, cfgO1.get("notionAutoSync", false));
-            vscode4.window.showInformationMessage("Obsidian API key saved.");
+            vscode5.window.showInformationMessage("Obsidian API key saved.");
             break;
           }
           case "clearObsidianApiKey": {
             await clearObsidianApiKey(secrets);
-            const cfgO2 = vscode4.workspace.getConfiguration("notevs");
+            const cfgO2 = vscode5.workspace.getConfiguration("notevs");
             const vpO2 = context.globalState.get("notevs.obsidianVaultPath", "");
             webviewView.webview.html = settingsHtml(cfgO2.get("autoShow", true), cfgO2.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), false, vpO2, cfgO2.get("notionAutoSync", false));
-            vscode4.window.showInformationMessage("Obsidian API key cleared.");
+            vscode5.window.showInformationMessage("Obsidian API key cleared.");
             break;
           }
           case "browseObsidianVault": {
-            const picked = await vscode4.window.showOpenDialog({
+            const picked = await vscode5.window.showOpenDialog({
               canSelectFolders: true,
               canSelectFiles: false,
               canSelectMany: false,
@@ -17773,36 +18687,79 @@ async function activate(context) {
             });
             if (picked && picked.length > 0) {
               await context.globalState.update("notevs.obsidianVaultPath", picked[0].fsPath);
-              const cfgO3 = vscode4.workspace.getConfiguration("notevs");
+              const cfgO3 = vscode5.workspace.getConfiguration("notevs");
               webviewView.webview.html = settingsHtml(cfgO3.get("autoShow", true), cfgO3.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), !!await secrets.get("obsidianApiKey"), picked[0].fsPath, cfgO3.get("notionAutoSync", false));
-              vscode4.window.showInformationMessage(`Obsidian vault set to: ${picked[0].fsPath}`);
+              vscode5.window.showInformationMessage(`Obsidian vault set to: ${picked[0].fsPath}`);
             }
             break;
           }
           case "clearObsidianVaultPath": {
             await clearObsidianVaultPath(context.globalState);
-            const cfgO4 = vscode4.workspace.getConfiguration("notevs");
-            webviewView.webview.html = settingsHtml(cfgO4.get("autoShow", true), cfgO4.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), !!await secrets.get("obsidianApiKey"), "", cfgO4.get("notionAutoSync", false));
-            vscode4.window.showInformationMessage("Obsidian vault path cleared.");
+            const cfgO4 = vscode5.workspace.getConfiguration("notevs");
+            const todoistConn4 = await hasTodoistToken(secrets);
+            const googleConn4 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgO4.get("autoShow", true), cfgO4.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), !!await secrets.get("obsidianApiKey"), "", cfgO4.get("notionAutoSync", false), todoistConn4, googleConn4);
+            vscode5.window.showInformationMessage("Obsidian vault path cleared.");
+            break;
+          }
+          case "saveTodoistToken": {
+            if (msg.token) {
+              await secrets.store("todoistToken", msg.token.trim());
+            }
+            const cfgT1 = vscode5.workspace.getConfiguration("notevs");
+            const obsT1 = await getObsidianStatus(secrets, context.globalState);
+            const googleT1 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgT1.get("autoShow", true), cfgT1.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsT1.apiKey, obsT1.vaultPath, cfgT1.get("notionAutoSync", false), true, googleT1);
+            vscode5.window.showInformationMessage("Todoist token saved.");
+            break;
+          }
+          case "clearTodoistToken": {
+            await clearTodoistToken(secrets);
+            await clearTaskProviderPreference(context.globalState);
+            const cfgT2 = vscode5.workspace.getConfiguration("notevs");
+            const obsT2 = await getObsidianStatus(secrets, context.globalState);
+            const googleT2 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgT2.get("autoShow", true), cfgT2.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsT2.apiKey, obsT2.vaultPath, cfgT2.get("notionAutoSync", false), false, googleT2);
+            vscode5.window.showInformationMessage("Todoist disconnected.");
+            break;
+          }
+          case "connectGoogleTasks": {
+            const ok = await connectGoogleTasks(secrets);
+            if (ok) {
+              const cfgG1 = vscode5.workspace.getConfiguration("notevs");
+              const obsG1 = await getObsidianStatus(secrets, context.globalState);
+              const todoistG1 = await hasTodoistToken(secrets);
+              webviewView.webview.html = settingsHtml(cfgG1.get("autoShow", true), cfgG1.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsG1.apiKey, obsG1.vaultPath, cfgG1.get("notionAutoSync", false), todoistG1, true);
+            }
+            break;
+          }
+          case "disconnectGoogleTasks": {
+            await disconnectGoogleTasks(secrets);
+            await clearTaskProviderPreference(context.globalState);
+            const cfgG2 = vscode5.workspace.getConfiguration("notevs");
+            const obsG2 = await getObsidianStatus(secrets, context.globalState);
+            const todoistG2 = await hasTodoistToken(secrets);
+            webviewView.webview.html = settingsHtml(cfgG2.get("autoShow", true), cfgG2.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsG2.apiKey, obsG2.vaultPath, cfgG2.get("notionAutoSync", false), todoistG2, false);
+            vscode5.window.showInformationMessage("Google Tasks disconnected.");
             break;
           }
           case "openExternal": {
             if (msg.url) {
-              vscode4.env.openExternal(vscode4.Uri.parse(msg.url));
+              vscode5.env.openExternal(vscode5.Uri.parse(msg.url));
             }
             break;
           }
           case "setSetting": {
-            const config = vscode4.workspace.getConfiguration("notevs");
+            const config = vscode5.workspace.getConfiguration("notevs");
             if (msg.key === "autoShow") {
-              await config.update("autoShow", msg.value, vscode4.ConfigurationTarget.Global);
+              await config.update("autoShow", msg.value, vscode5.ConfigurationTarget.Global);
             }
             if (msg.key === "noteBgColor") {
-              await config.update("noteBgColor", msg.value, vscode4.ConfigurationTarget.Global);
-              await config.update("noteTextColor", msg.textColor, vscode4.ConfigurationTarget.Global);
+              await config.update("noteBgColor", msg.value, vscode5.ConfigurationTarget.Global);
+              await config.update("noteTextColor", msg.textColor, vscode5.ConfigurationTarget.Global);
             }
             if (msg.key === "notionAutoSync") {
-              await config.update("notionAutoSync", msg.value, vscode4.ConfigurationTarget.Global);
+              await config.update("notionAutoSync", msg.value, vscode5.ConfigurationTarget.Global);
             }
             break;
           }
@@ -17815,15 +18772,15 @@ async function activate(context) {
       render();
     }
   };
-  context.subscriptions.push(vscode4.window.registerWebviewViewProvider("notevs.notesView", provider));
-  const annotationDecoration = vscode4.window.createTextEditorDecorationType({
+  context.subscriptions.push(vscode5.window.registerWebviewViewProvider("notevs.notesView", provider));
+  const annotationDecoration = vscode5.window.createTextEditorDecorationType({
     borderWidth: "0 0 0 3px",
     borderStyle: "solid",
     borderColor: "rgba(108,142,245,0.7)",
     backgroundColor: "rgba(108,142,245,0.06)",
     isWholeLine: true,
     overviewRulerColor: "rgba(108,142,245,0.6)",
-    overviewRulerLane: vscode4.OverviewRulerLane.Right
+    overviewRulerLane: vscode5.OverviewRulerLane.Right
     // gutterIconPath removed — logo should not appear on annotation highlights
   });
   const annotationCache = /* @__PURE__ */ new Map();
@@ -17863,12 +18820,12 @@ async function activate(context) {
       const startLine = Math.max(0, ann.lineStart - 1);
       const endLine = Math.max(0, ann.lineEnd - 1);
       const endLineText = editor.document.lineAt(Math.min(endLine, editor.document.lineCount - 1));
-      return { range: new vscode4.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length) };
+      return { range: new vscode5.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length) };
     });
     editor.setDecorations(annotationDecoration, decorations);
   }
   context.subscriptions.push(
-    vscode4.languages.registerHoverProvider({ scheme: "file" }, {
+    vscode5.languages.registerHoverProvider({ scheme: "file" }, {
       provideHover(document2, position) {
         const folderPath = getFolderPath();
         if (!folderPath) {
@@ -17897,7 +18854,7 @@ async function activate(context) {
         preview = preview.replace(/\n/g, " ").trim().slice(0, 150);
         const priorityLabel = hovered.priority !== "none" ? ` \u2022 ${hovered.priority}` : "";
         const statusLabel = hovered.status === "done" ? " \u2713 Done" : hovered.status === "passed" ? " \u2713 Passed" : " \u25CF Open";
-        const md = new vscode4.MarkdownString("", true);
+        const md = new vscode5.MarkdownString("", true);
         md.isTrusted = true;
         md.appendMarkdown(`**\u{1F4CE} ${hovered.noteTitle}**`);
         md.appendMarkdown(`
@@ -17912,24 +18869,24 @@ ${hovered.comment}`);
 
 ${preview}`);
         }
-        const openCmd = vscode4.Uri.parse(`command:notevs.openNoteById?${encodeURIComponent(JSON.stringify({ id: hovered.noteId }))}`);
+        const openCmd = vscode5.Uri.parse(`command:notevs.openNoteById?${encodeURIComponent(JSON.stringify({ id: hovered.noteId }))}`);
         md.appendMarkdown(`
 
 [Open note \u2192](${openCmd})`);
         const sl = Math.max(0, hovered.lineStart - 1);
         const el = Math.max(0, hovered.lineEnd - 1);
         const elt = document2.lineAt(Math.min(el, document2.lineCount - 1));
-        return new vscode4.Hover(md, new vscode4.Range(sl, 0, elt.lineNumber, elt.text.length));
+        return new vscode5.Hover(md, new vscode5.Range(sl, 0, elt.lineNumber, elt.text.length));
       }
     })
   );
   context.subscriptions.push(
-    vscode4.commands.registerCommand("notevs.openNoteById", async ({ id }) => {
+    vscode5.commands.registerCommand("notevs.openNoteById", async ({ id }) => {
       await openNote(id);
     })
   );
   context.subscriptions.push(
-    vscode4.languages.registerCodeLensProvider({ scheme: "file" }, {
+    vscode5.languages.registerCodeLensProvider({ scheme: "file" }, {
       provideCodeLenses(document2) {
         const folderPath = getFolderPath();
         if (!folderPath) {
@@ -17946,22 +18903,22 @@ ${preview}`);
           }
           seen.add(key);
           const line = Math.max(0, ann.lineStart - 1);
-          lenses.push(new vscode4.CodeLens(new vscode4.Range(line, 0, line, 0), { title: `\u{1F4CE} ${ann.noteTitle}`, command: "notevs.openNoteById", arguments: [{ id: ann.noteId }], tooltip: "Open this NoteVs note" }));
+          lenses.push(new vscode5.CodeLens(new vscode5.Range(line, 0, line, 0), { title: `\u{1F4CE} ${ann.noteTitle}`, command: "notevs.openNoteById", arguments: [{ id: ann.noteId }], tooltip: "Open this NoteVs note" }));
         }
         return lenses;
       }
     })
   );
-  context.subscriptions.push(vscode4.window.onDidChangeActiveTextEditor((editor) => {
+  context.subscriptions.push(vscode5.window.onDidChangeActiveTextEditor((editor) => {
     if (editor) {
       refreshAnnotations(editor);
     }
   }));
-  if (vscode4.window.activeTextEditor) {
-    refreshAnnotations(vscode4.window.activeTextEditor);
+  if (vscode5.window.activeTextEditor) {
+    refreshAnnotations(vscode5.window.activeTextEditor);
   }
-  context.subscriptions.push(vscode4.workspace.onDidSaveTextDocument((doc) => {
-    const editor = vscode4.window.visibleTextEditors.find((e) => e.document === doc);
+  context.subscriptions.push(vscode5.workspace.onDidSaveTextDocument((doc) => {
+    const editor = vscode5.window.visibleTextEditors.find((e) => e.document === doc);
     if (editor) {
       refreshAnnotations(editor);
     }
@@ -17969,20 +18926,20 @@ ${preview}`);
   async function refreshGutterDecorations(editor) {
     await refreshAnnotations(editor);
   }
-  const selectionDecoration = vscode4.window.createTextEditorDecorationType({
-    after: { contentText: "  NoteVs \u2318\u21E7N to annotate", color: new vscode4.ThemeColor("editorCodeLens.foreground"), margin: "0 0 0 12px", fontStyle: "italic", fontWeight: "400" },
-    rangeBehavior: vscode4.DecorationRangeBehavior.ClosedClosed
+  const selectionDecoration = vscode5.window.createTextEditorDecorationType({
+    after: { contentText: "  NoteVs \u2318\u21E7N to annotate", color: new vscode5.ThemeColor("editorCodeLens.foreground"), margin: "0 0 0 12px", fontStyle: "italic", fontWeight: "400" },
+    rangeBehavior: vscode5.DecorationRangeBehavior.ClosedClosed
   });
-  const annotateStatusBarItem = vscode4.window.createStatusBarItem(vscode4.StatusBarAlignment.Right, 1e3);
+  const annotateStatusBarItem = vscode5.window.createStatusBarItem(vscode5.StatusBarAlignment.Right, 1e3);
   annotateStatusBarItem.text = "\u{1F4CE} Annotate selection";
   annotateStatusBarItem.tooltip = "Add a NoteVs note to the selected code \u2014 or press \u2318\u21E7N";
   annotateStatusBarItem.command = "notevs.annotateSelectionFromStatusBar";
-  annotateStatusBarItem.backgroundColor = new vscode4.ThemeColor("statusBarItem.warningBackground");
+  annotateStatusBarItem.backgroundColor = new vscode5.ThemeColor("statusBarItem.warningBackground");
   context.subscriptions.push(annotateStatusBarItem);
   let savedEditorUri = null;
   let savedSelection = null;
   let selectionDecorationTimer = null;
-  context.subscriptions.push(vscode4.window.onDidChangeTextEditorSelection((e) => {
+  context.subscriptions.push(vscode5.window.onDidChangeTextEditorSelection((e) => {
     if (selectionDecorationTimer) {
       clearTimeout(selectionDecorationTimer);
     }
@@ -18001,32 +18958,32 @@ ${preview}`);
         savedEditorUri = null;
         return;
       }
-      savedSelection = new vscode4.Selection(editor.selection.start, editor.selection.end);
+      savedSelection = new vscode5.Selection(editor.selection.start, editor.selection.end);
       savedEditorUri = editor.document.uri;
       const endPos = editor.selection.end;
       const endLine = editor.document.lineAt(endPos.line);
-      editor.setDecorations(selectionDecoration, [{ range: new vscode4.Range(endPos.line, endLine.range.end.character, endPos.line, endLine.range.end.character) }]);
+      editor.setDecorations(selectionDecoration, [{ range: new vscode5.Range(endPos.line, endLine.range.end.character, endPos.line, endLine.range.end.character) }]);
       annotateStatusBarItem.show();
     }, 150);
   }));
-  context.subscriptions.push(vscode4.languages.registerCodeActionsProvider({ scheme: "file" }, {
+  context.subscriptions.push(vscode5.languages.registerCodeActionsProvider({ scheme: "file" }, {
     provideCodeActions(document2, range) {
       if (range.isEmpty) {
         return [];
       }
-      const action = new vscode4.CodeAction("\u{1F4CE} NoteVs: Annotate this selection", vscode4.CodeActionKind.Empty);
+      const action = new vscode5.CodeAction("\u{1F4CE} NoteVs: Annotate this selection", vscode5.CodeActionKind.Empty);
       action.command = { command: "notevs.annotateSelection", title: "\u{1F4CE} NoteVs: Annotate this selection" };
       return [action];
     }
-  }, { providedCodeActionKinds: [vscode4.CodeActionKind.Empty] }));
+  }, { providedCodeActionKinds: [vscode5.CodeActionKind.Empty] }));
   async function runAnnotate(docUri, selection) {
     const folderPath = getFolderPath();
     if (!folderPath) {
-      vscode4.window.showWarningMessage("Open a folder first to use NoteVs annotations.");
+      vscode5.window.showWarningMessage("Open a folder first to use NoteVs annotations.");
       return;
     }
     const syncEnabledAnnotate = context.globalState.get("notevs.syncEnabled") ?? false;
-    const doc = await vscode4.workspace.openTextDocument(docUri);
+    const doc = await vscode5.workspace.openTextDocument(docUri);
     const codeSnippet = doc.getText(selection);
     const relPath = docUri.fsPath.replace(folderPath + "/", "").replace(folderPath + "\\", "");
     const lineStart = selection.start.line + 1;
@@ -18036,7 +18993,7 @@ ${preview}`);
     const existingNotes = syncEnabledAnn ? loadCache()?.notes ?? [] : readLocalNotesForWorkspace(context, folderPath);
     const items = [{ label: "$(add) Create new note", description: "", detail: `New note with this annotation attached \u2014 ${locationLabel}`, noteId: void 0 }];
     if (existingNotes.length > 0) {
-      items.push({ label: "Add to existing note", kind: vscode4.QuickPickItemKind.Separator });
+      items.push({ label: "Add to existing note", kind: vscode5.QuickPickItemKind.Separator });
       for (const n of existingNotes) {
         const annCount = (n.annotations?.length ?? 0) + (n.filePath ? 1 : 0);
         const annLabel = annCount > 0 ? `${annCount} annotation${annCount > 1 ? "s" : ""} \xB7 ` : "";
@@ -18054,17 +19011,17 @@ ${preview}`);
         items.push({ label: `$(note) ${n.title}`, description: `${annLabel}${date}`, detail: preview || "Empty note", noteId: n.id });
       }
     }
-    const picked = await vscode4.window.showQuickPick(items, { title: "Add Annotation", placeHolder: "Create a new note or add to an existing one\u2026", matchOnDescription: true, matchOnDetail: true, ignoreFocusOut: true });
+    const picked = await vscode5.window.showQuickPick(items, { title: "Add Annotation", placeHolder: "Create a new note or add to an existing one\u2026", matchOnDescription: true, matchOnDetail: true, ignoreFocusOut: true });
     if (!picked) {
       return;
     }
     const pnAnn = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
     if (!picked.noteId) {
-      const title = await vscode4.window.showInputBox({ title: "Add Annotation", step: 1, totalSteps: 2, prompt: `New note for ${locationLabel}`, placeHolder: "Note title\u2026", ignoreFocusOut: true });
+      const title = await vscode5.window.showInputBox({ title: "Add Annotation", step: 1, totalSteps: 2, prompt: `New note for ${locationLabel}`, placeHolder: "Note title\u2026", ignoreFocusOut: true });
       if (title === void 0) {
         return;
       }
-      const comment = await vscode4.window.showInputBox({ title: "Add Annotation", step: 2, totalSteps: 2, prompt: "Add a comment for this annotation (optional)", placeHolder: "e.g. This needs refactoring\u2026", ignoreFocusOut: true });
+      const comment = await vscode5.window.showInputBox({ title: "Add Annotation", step: 2, totalSteps: 2, prompt: "Add a comment for this annotation (optional)", placeHolder: "e.g. This needs refactoring\u2026", ignoreFocusOut: true });
       if (comment === void 0) {
         return;
       }
@@ -18077,11 +19034,11 @@ ${preview}`);
         if (panel) {
           panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
         }
-        const activeEd = vscode4.window.activeTextEditor;
+        const activeEd = vscode5.window.activeTextEditor;
         if (activeEd) {
           await refreshAnnotations(activeEd);
         }
-        vscode4.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
+        vscode5.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
       } else {
         try {
           const noteRes = await apiPost(secrets, "/notes", { folderPath, title: title || "Untitled annotation", content: "", editorMode: "wysiwyg" });
@@ -18097,15 +19054,15 @@ ${preview}`);
           if (panel) {
             panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
           }
-          vscode4.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
+          vscode5.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
         } catch {
-          vscode4.window.showErrorMessage("Failed to create note and annotation.");
+          vscode5.window.showErrorMessage("Failed to create note and annotation.");
           return;
         }
       }
     } else {
       const targetNote = existingNotes.find((n) => n.id === picked.noteId);
-      const comment = await vscode4.window.showInputBox({ title: "Add Annotation", step: 1, totalSteps: 1, prompt: `Adding annotation to \u201C${targetNote.title}\u201D \u2014 ${locationLabel}`, placeHolder: "Comment (optional)\u2026", ignoreFocusOut: true });
+      const comment = await vscode5.window.showInputBox({ title: "Add Annotation", step: 1, totalSteps: 1, prompt: `Adding annotation to \u201C${targetNote.title}\u201D \u2014 ${locationLabel}`, placeHolder: "Comment (optional)\u2026", ignoreFocusOut: true });
       if (comment === void 0) {
         return;
       }
@@ -18119,7 +19076,7 @@ ${preview}`);
           if (panel) {
             panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
           }
-          const activeEd2 = vscode4.window.activeTextEditor;
+          const activeEd2 = vscode5.window.activeTextEditor;
           if (activeEd2) {
             await refreshAnnotations(activeEd2);
           }
@@ -18129,7 +19086,7 @@ ${preview}`);
             existingPanel.webview.html = noteEditorHtml(updated, pnAnn, bg, text);
           }
         }
-        vscode4.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
+        vscode5.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
       } else {
         try {
           const annRes = await apiPost(secrets, "/annotations", { noteId: picked.noteId, filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || "", status: "open" });
@@ -18156,28 +19113,28 @@ ${preview}`);
             } catch {
             }
           }
-          vscode4.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
+          vscode5.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
         } catch {
-          vscode4.window.showErrorMessage("Failed to save annotation.");
+          vscode5.window.showErrorMessage("Failed to save annotation.");
           return;
         }
       }
     }
-    const activeEditor = vscode4.window.activeTextEditor;
+    const activeEditor = vscode5.window.activeTextEditor;
     if (activeEditor) {
       refreshGutterDecorations(activeEditor);
     }
     savedSelection = null;
     savedEditorUri = null;
   }
-  context.subscriptions.push(vscode4.commands.registerCommand("notevs.annotateSelectionFromStatusBar", async () => {
+  context.subscriptions.push(vscode5.commands.registerCommand("notevs.annotateSelectionFromStatusBar", async () => {
     if (!savedSelection || !savedEditorUri) {
-      vscode4.window.showWarningMessage("Select some code first, then click Annotate.");
+      vscode5.window.showWarningMessage("Select some code first, then click Annotate.");
       return;
     }
     await runAnnotate(savedEditorUri, savedSelection);
   }));
-  context.subscriptions.push(vscode4.commands.registerTextEditorCommand("notevs.annotateSelection", async (editor) => {
+  context.subscriptions.push(vscode5.commands.registerTextEditorCommand("notevs.annotateSelection", async (editor) => {
     let selection = editor.selection;
     let docUri = editor.document.uri;
     if (selection.isEmpty && savedSelection && savedEditorUri) {
@@ -18185,7 +19142,7 @@ ${preview}`);
       docUri = savedEditorUri;
     }
     if (selection.isEmpty) {
-      vscode4.window.showWarningMessage("Select some code first, then run Annotate with NoteVs.");
+      vscode5.window.showWarningMessage("Select some code first, then run Annotate with NoteVs.");
       return;
     }
     await runAnnotate(docUri, selection);
@@ -18250,18 +19207,29 @@ ${preview}`);
   flushOfflineQueue().catch(() => {
   });
   context.subscriptions.push(
-    vscode4.commands.registerCommand("notevs.openNotes", () => vscode4.commands.executeCommand("notevs.notesView.focus")),
-    vscode4.commands.registerCommand("notevs.logout", async () => {
+    vscode5.commands.registerCommand("notevs.openNotes", () => vscode5.commands.executeCommand("notevs.notesView.focus")),
+    vscode5.commands.registerCommand("notevs.logout", async () => {
       await clearTokens(secrets);
       if (panel) {
         panel.webview.html = loginHtml(iconUri);
       }
+    }),
+    vscode5.commands.registerCommand("notevs.showSettings", async () => {
+      await vscode5.commands.executeCommand("notevs.notesView.focus");
+      if (panel) {
+        const config = vscode5.workspace.getConfiguration("notevs");
+        const notionConn = await hasNotionToken(secrets);
+        const obsStatus = await getObsidianStatus(secrets, context.globalState);
+        const todoistConn = await hasTodoistToken(secrets);
+        const googleConn = await isGoogleTasksConnected(secrets);
+        panel.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), false, null, null, notionConn, obsStatus.apiKey, obsStatus.vaultPath, config.get("notionAutoSync", false), todoistConn, googleConn);
+      }
     })
   );
-  context.subscriptions.push(vscode4.workspace.onDidChangeWorkspaceFolders(async () => {
-    const config = vscode4.workspace.getConfiguration("projectnotes");
+  context.subscriptions.push(vscode5.workspace.onDidChangeWorkspaceFolders(async () => {
+    const config = vscode5.workspace.getConfiguration("projectnotes");
     if (config.get("autoShow", true)) {
-      vscode4.commands.executeCommand("projectnotes.notesView.focus");
+      vscode5.commands.executeCommand("projectnotes.notesView.focus");
     }
   }));
 }
@@ -18271,11 +19239,11 @@ async function startLoginFlow(secrets, onSuccess) {
   try {
     const { data } = await axios_default.get(`${apiUrl}/auth/extension/login`, { params: { state } });
     if (!data.success) {
-      vscode4.window.showErrorMessage("Failed to start login.");
+      vscode5.window.showErrorMessage("Failed to start login.");
       return;
     }
-    await vscode4.env.openExternal(vscode4.Uri.parse(data.data.url));
-    vscode4.window.showInformationMessage("Complete sign-in in your browser. Waiting\u2026");
+    await vscode5.env.openExternal(vscode5.Uri.parse(data.data.url));
+    vscode5.window.showInformationMessage("Complete sign-in in your browser. Waiting\u2026");
     for (let i = 0; i < 60; i++) {
       await new Promise((r) => setTimeout(r, 3e3));
       try {
@@ -18283,16 +19251,16 @@ async function startLoginFlow(secrets, onSuccess) {
         if (td.success && td.data.ready) {
           await setTokens(secrets, td.data.tokens.accessToken, td.data.tokens.refreshToken);
           await secrets.store("user", JSON.stringify(td.data.user));
-          vscode4.window.showInformationMessage(`\u2705 Logged in as ${td.data.user.name}`);
+          vscode5.window.showInformationMessage(`\u2705 Logged in as ${td.data.user.name}`);
           onSuccess();
           return;
         }
       } catch {
       }
     }
-    vscode4.window.showErrorMessage("Login timed out. Please try again.");
+    vscode5.window.showErrorMessage("Login timed out. Please try again.");
   } catch {
-    vscode4.window.showErrorMessage("Could not connect to NoteNest API.");
+    vscode5.window.showErrorMessage("Could not connect to NoteNest API.");
   }
 }
 function deactivate() {
