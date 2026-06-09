@@ -2,6 +2,14 @@
 
 All notable changes to NoteVs will be documented here.
 
+## [0.9.0] - 2026-06-09
+
+### Added
+- **MCP sidebar live refresh** — notes created, updated, or deleted by AI agents now appear in the sidebar immediately without needing to manually create a note to trigger a refresh
+- **`notevs_export_to_notion` MCP tool** — agents can now export any note to Notion directly (creates a new page or updates the existing one); requires Notion token to be configured in Settings → Integrations → Exporting
+- **`notevs_export_to_obsidian` MCP tool** — agents can now save any note to the Obsidian vault (uses the Local REST API if configured, falls back to direct vault folder write); requires Obsidian to be set up in Settings → Integrations → Exporting
+- **`notevs_set_reminder` MCP tool** — agents can now create task reminders for notes in Todoist or Google Tasks headlessly, using the stored tokens from Settings → Integrations → Tasks; accepts `id`, `dueDate` (YYYY-MM-DD), optional `dueTime` (HH:MM), and optional `provider` (`todoist` or `google`)
+
 ## [0.8.0] - 2026-05-30
 
 ### Added

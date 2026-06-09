@@ -15729,6 +15729,249 @@ function readAllNotes(storagePath, folderPath) {
 var FOLDER_PATH_PROP = {
   folderPath: { type: "string", description: "Absolute path to the project folder. Pass process.cwd() from the agent. Falls back to the folder open in VS Code." }
 };
+var NOTION_API_VERSION = "2022-06-28";
+async function notionRequest(method, urlPath, token, body) {
+  const { data } = await axios_default({
+    method,
+    url: `https://api.notion.com/v1${urlPath}`,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Notion-Version": NOTION_API_VERSION,
+      "Content-Type": "application/json"
+    },
+    data: body,
+    timeout: 15e3
+  });
+  return data;
+}
+function noteToNotionBlocks(content, editorMode) {
+  const lines = (editorMode === "markdown" ? content : (() => {
+    try {
+      const delta = JSON.parse(content);
+      return (delta.ops ?? []).map((op) => typeof op.insert === "string" ? op.insert : "").join("");
+    } catch {
+      return content;
+    }
+  })()).split("\n").slice(0, 80);
+  return lines.map((line) => ({
+    object: "block",
+    type: "paragraph",
+    paragraph: { rich_text: [{ type: "text", text: { content: line.slice(0, 2e3) } }] }
+  }));
+}
+async function exportNoteToNotion(secrets, globalState, storagePath, noteId) {
+  const token = await secrets.get("notionToken");
+  if (!token) {
+    throw new Error("Notion token not configured. Connect Notion in Settings \u2192 Integrations \u2192 Exporting first.");
+  }
+  const note = readLocalNote(storagePath, noteId);
+  if (!note) {
+    throw new Error(`Note not found: ${noteId}`);
+  }
+  let parentPageId = globalState.get("notevs.notionParentPageId", "");
+  if (!parentPageId) {
+    const searchRes = await notionRequest("POST", "/search", token, { filter: { value: "page", property: "object" }, page_size: 10 });
+    const pages = searchRes.results ?? [];
+    if (pages.length === 0) {
+      throw new Error("No Notion pages found. Share at least one page with your NoteVs integration.");
+    }
+    parentPageId = pages[0].id;
+    await globalState.update("notevs.notionParentPageId", parentPageId);
+  }
+  const existingPageId = note.exports?.notion?.pageId;
+  if (existingPageId) {
+    try {
+      const blocksRes = await notionRequest("GET", `/blocks/${existingPageId}/children`, token);
+      for (const block of blocksRes.results ?? []) {
+        await notionRequest("DELETE", `/blocks/${block.id}`, token).catch(() => {
+        });
+      }
+    } catch {
+    }
+    await notionRequest("PATCH", `/pages/${existingPageId}`, token, {
+      properties: { title: { title: [{ type: "text", text: { content: note.title.slice(0, 2e3) } }] } }
+    });
+    await notionRequest("PATCH", `/blocks/${existingPageId}/children`, token, {
+      children: noteToNotionBlocks(note.content, note.editorMode)
+    });
+    const pageUrl = `https://www.notion.so/${existingPageId.replace(/-/g, "")}`;
+    const ts = (/* @__PURE__ */ new Date()).toISOString();
+    note.exports = { ...note.exports, notion: { ts, pageId: existingPageId, pageUrl } };
+    writeLocalNote(storagePath, note);
+    return { pageId: existingPageId, pageUrl };
+  } else {
+    const created = await notionRequest("POST", "/pages", token, {
+      parent: { page_id: parentPageId },
+      properties: { title: { title: [{ type: "text", text: { content: note.title.slice(0, 2e3) } }] } },
+      children: noteToNotionBlocks(note.content, note.editorMode)
+    });
+    const pageUrl = created.url || `https://www.notion.so/${created.id.replace(/-/g, "")}`;
+    const ts = (/* @__PURE__ */ new Date()).toISOString();
+    note.exports = { ...note.exports, notion: { ts, pageId: created.id, pageUrl } };
+    writeLocalNote(storagePath, note);
+    return { pageId: created.id, pageUrl };
+  }
+}
+async function exportNoteToObsidian(secrets, globalState, storagePath, noteId) {
+  const note = readLocalNote(storagePath, noteId);
+  if (!note) {
+    throw new Error(`Note not found: ${noteId}`);
+  }
+  let mdContent;
+  if (note.editorMode === "markdown") {
+    mdContent = note.content || "";
+  } else {
+    try {
+      const delta = JSON.parse(note.content);
+      mdContent = (delta.ops ?? []).map((op) => typeof op.insert === "string" ? op.insert : "").join("");
+    } catch {
+      mdContent = note.content || "";
+    }
+  }
+  const safeFilename = note.title.replace(/[/\\?%*:|"<>]/g, "-").trim() || "untitled";
+  const apiKey = await secrets.get("obsidianApiKey");
+  if (apiKey) {
+    try {
+      await axios_default.put(
+        `http://127.0.0.1:27123/vault/${encodeURIComponent(safeFilename)}.md`,
+        mdContent,
+        { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "text/markdown" }, timeout: 8e3 }
+      );
+      const ts2 = (/* @__PURE__ */ new Date()).toISOString();
+      note.exports = { ...note.exports, obsidian: ts2 };
+      writeLocalNote(storagePath, note);
+      return { filePath: `${safeFilename}.md` };
+    } catch {
+    }
+  }
+  const vaultPath = globalState.get("notevs.obsidianVaultPath", "");
+  if (!vaultPath) {
+    throw new Error("Obsidian not configured. Connect Obsidian in Settings \u2192 Integrations \u2192 Exporting first.");
+  }
+  const outPath = path2.join(vaultPath, `${safeFilename}.md`);
+  fs2.writeFileSync(outPath, mdContent, "utf8");
+  const ts = (/* @__PURE__ */ new Date()).toISOString();
+  note.exports = { ...note.exports, obsidian: ts };
+  writeLocalNote(storagePath, note);
+  return { filePath: outPath };
+}
+var TODOIST_API = "https://api.todoist.com/api/v1";
+var GOOGLE_TASKS_API = "https://tasks.googleapis.com/tasks/v1";
+function mapPriorityToTodoist(priority) {
+  switch (priority) {
+    case "emergency":
+      return 1;
+    case "urgent":
+      return 1;
+    case "important":
+      return 2;
+    case "medium":
+      return 3;
+    default:
+      return 4;
+  }
+}
+async function setNoteReminder(secrets, storagePath, noteId, dueDate, dueTime, provider) {
+  const note = readLocalNote(storagePath, noteId);
+  if (!note) {
+    throw new Error(`Note not found: ${noteId}`);
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+    throw new Error("dueDate must be in YYYY-MM-DD format");
+  }
+  const todoistToken = await secrets.get("todoistToken");
+  const googleAccess = await secrets.get("googleTasksAccessToken");
+  const useProvider = (() => {
+    if (provider === "todoist") {
+      return "todoist";
+    }
+    if (provider === "google") {
+      return "google";
+    }
+    if (todoistToken) {
+      return "todoist";
+    }
+    if (googleAccess) {
+      return "google";
+    }
+    throw new Error("No task provider connected. Connect Todoist or Google Tasks in Settings \u2192 Integrations \u2192 Tasks first.");
+  })();
+  let description = "";
+  if (note.editorMode === "markdown") {
+    description = (note.content || "").slice(0, 250);
+  } else {
+    try {
+      const delta = JSON.parse(note.content);
+      description = (delta.ops ?? []).map((op) => typeof op.insert === "string" ? op.insert : "").join("").slice(0, 250);
+    } catch {
+      description = (note.content || "").slice(0, 250);
+    }
+  }
+  if (useProvider === "todoist") {
+    if (!todoistToken) {
+      throw new Error("Todoist token not found. Connect Todoist in Settings first.");
+    }
+    const payload = {
+      content: note.title || "Untitled",
+      description,
+      priority: mapPriorityToTodoist(note.priority)
+    };
+    if (dueTime) {
+      payload.due_datetime = `${dueDate}T${dueTime}:00`;
+    } else {
+      payload.due_date = dueDate;
+    }
+    const { data } = await axios_default.post(`${TODOIST_API}/tasks`, payload, {
+      headers: { Authorization: `Bearer ${todoistToken}`, "Content-Type": "application/json" },
+      timeout: 1e4
+    });
+    const taskId = data.id;
+    const ts = (/* @__PURE__ */ new Date()).toISOString();
+    note.reminders = { ...note.reminders, todoist: { ts, due: dueTime ? `${dueDate}T${dueTime}` : dueDate, taskId } };
+    writeLocalNote(storagePath, note);
+    return { provider: "todoist", taskId, taskUrl: `https://app.todoist.com/app/task/${taskId}` };
+  } else {
+    const refreshToken = await secrets.get("googleTasksRefreshToken");
+    const expiryStr = await secrets.get("googleTasksExpiry");
+    let accessToken = googleAccess;
+    if (!accessToken || !refreshToken) {
+      throw new Error("Google Tasks not connected. Connect in Settings first.");
+    }
+    const expiry = expiryStr ? new Date(expiryStr).getTime() : 0;
+    if (Date.now() >= expiry - 6e4) {
+      const GOOGLE_CLIENT_ID2 = "REDACTED_CLIENT_ID.apps.googleusercontent.com";
+      const GOOGLE_CLIENT_SECRET2 = "REDACTED_CLIENT_SECRET";
+      const { data: refreshData } = await axios_default.post(
+        "https://oauth2.googleapis.com/token",
+        new URLSearchParams({ client_id: GOOGLE_CLIENT_ID2, client_secret: GOOGLE_CLIENT_SECRET2, refresh_token: refreshToken, grant_type: "refresh_token" }).toString(),
+        { headers: { "Content-Type": "application/x-www-form-urlencoded" }, timeout: 1e4 }
+      );
+      accessToken = refreshData.access_token;
+      const newExpiry = new Date(Date.now() + (refreshData.expires_in ?? 3600) * 1e3).toISOString();
+      await secrets.store("googleTasksAccessToken", accessToken);
+      await secrets.store("googleTasksExpiry", newExpiry);
+    }
+    const { data: listsData } = await axios_default.get(`${GOOGLE_TASKS_API}/users/@me/lists`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      timeout: 1e4
+    });
+    const lists = listsData.items ?? [];
+    if (!lists.length) {
+      throw new Error("No Google Tasks lists found.");
+    }
+    const taskListId = lists[0].id;
+    const { data: created } = await axios_default.post(
+      `${GOOGLE_TASKS_API}/lists/${encodeURIComponent(taskListId)}/tasks`,
+      { title: note.title || "Untitled", notes: description, status: "needsAction", due: `${dueDate}T00:00:00.000Z` },
+      { headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" }, timeout: 1e4 }
+    );
+    const taskId = created.id;
+    const ts = (/* @__PURE__ */ new Date()).toISOString();
+    note.reminders = { ...note.reminders, googleTasks: { ts, due: dueDate, taskId, taskListId } };
+    writeLocalNote(storagePath, note);
+    return { provider: "google", taskId };
+  }
+}
 var TOOL_DEFINITIONS = [
   {
     name: "notevs_list_notes",
@@ -15805,6 +16048,42 @@ var TOOL_DEFINITIONS = [
       },
       required: ["query"]
     }
+  },
+  {
+    name: "notevs_export_to_notion",
+    description: "Export a NoteVs note to Notion. Creates a new page or updates the existing one. Requires Notion to be connected in Settings \u2192 Integrations \u2192 Exporting.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "The note id (from notevs_list_notes or notevs_create_note)" }
+      },
+      required: ["id"]
+    }
+  },
+  {
+    name: "notevs_export_to_obsidian",
+    description: "Export a NoteVs note to the Obsidian vault (via Local REST API or vault folder). Requires Obsidian to be configured in Settings \u2192 Integrations \u2192 Exporting.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "The note id (from notevs_list_notes or notevs_create_note)" }
+      },
+      required: ["id"]
+    }
+  },
+  {
+    name: "notevs_set_reminder",
+    description: "Create a task reminder for a note in Todoist or Google Tasks. Requires at least one task provider to be connected in Settings \u2192 Integrations \u2192 Tasks.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "The note id" },
+        dueDate: { type: "string", description: "Due date in YYYY-MM-DD format (e.g. 2026-06-15)" },
+        dueTime: { type: "string", description: "Optional due time in HH:MM format (e.g. 09:00). Todoist only \u2014 Google Tasks ignores time." },
+        provider: { type: "string", enum: ["todoist", "google"], description: "Which provider to use. Omit to auto-select the connected one (or todoist if both are connected)." }
+      },
+      required: ["id", "dueDate"]
+    }
   }
 ];
 function handleListNotes(storagePath, folderPath) {
@@ -15860,6 +16139,18 @@ function handleAddAnnotation(storagePath, args) {
   writeLocalNote(storagePath, { ...existing, annotations: [...existing.annotations ?? [], newAnnotation], updatedAt: now });
   return { annotationId: newAnnotation.id, noteId: args.noteId, status: "added" };
 }
+async function handleExportToNotion(secrets, globalState, storagePath, id) {
+  const result = await exportNoteToNotion(secrets, globalState, storagePath, id);
+  return { id, status: "exported", destination: "notion", pageId: result.pageId, pageUrl: result.pageUrl };
+}
+async function handleExportToObsidian(secrets, globalState, storagePath, id) {
+  const result = await exportNoteToObsidian(secrets, globalState, storagePath, id);
+  return { id, status: "exported", destination: "obsidian", filePath: result.filePath };
+}
+async function handleSetReminder(secrets, storagePath, args) {
+  const result = await setNoteReminder(secrets, storagePath, args.id, args.dueDate, args.dueTime ?? null, args.provider ?? null);
+  return { id: args.id, status: "reminder_set", ...result };
+}
 function handleSearchNotes(storagePath, folderPath, query) {
   const q = query.toLowerCase().trim();
   return readAllNotes(storagePath, folderPath).filter((n) => {
@@ -15889,7 +16180,7 @@ function readBody(req) {
     req.on("error", reject);
   });
 }
-function startMcpServer(context) {
+function startMcpServer(context, onNoteMutated) {
   const storagePath = context.globalStorageUri.fsPath;
   function resolveFolderPath(argFolderPath) {
     try {
@@ -15942,18 +16233,34 @@ function startMcpServer(context) {
             break;
           case "notevs_create_note":
             result = handleCreateNote(storagePath, folderPath, args);
+            onNoteMutated?.();
             break;
           case "notevs_save_note":
             result = handleSaveNote(storagePath, args);
+            onNoteMutated?.();
             break;
           case "notevs_delete_note":
             result = handleDeleteNote(storagePath, args.id);
+            onNoteMutated?.();
             break;
           case "notevs_add_annotation":
             result = handleAddAnnotation(storagePath, args);
+            onNoteMutated?.();
             break;
           case "notevs_search_notes":
             result = handleSearchNotes(storagePath, folderPath, args.query);
+            break;
+          case "notevs_export_to_notion":
+            result = await handleExportToNotion(context.secrets, context.globalState, storagePath, args.id);
+            onNoteMutated?.();
+            break;
+          case "notevs_export_to_obsidian":
+            result = await handleExportToObsidian(context.secrets, context.globalState, storagePath, args.id);
+            onNoteMutated?.();
+            break;
+          case "notevs_set_reminder":
+            result = await handleSetReminder(context.secrets, storagePath, args);
+            onNoteMutated?.();
             break;
           default:
             send(400, { error: `Unknown tool: ${tool}` });
@@ -16380,7 +16687,7 @@ var GOOGLE_CLIENT_SECRET = "REDACTED_CLIENT_SECRET";
 var GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 var GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 var GOOGLE_TASKS_SCOPE = "https://www.googleapis.com/auth/tasks";
-var GOOGLE_TASKS_API = "https://tasks.googleapis.com/tasks/v1";
+var GOOGLE_TASKS_API2 = "https://tasks.googleapis.com/tasks/v1";
 function extractTaskPlainText(note) {
   let text = "";
   if (note.editorMode === "markdown") {
@@ -16577,7 +16884,7 @@ async function sendToTaskProvider(secrets, globalState, note, onReminded) {
 async function clearTaskProviderPreference(globalState) {
   await globalState.update("notevs.taskProvider", "");
 }
-var TODOIST_API = "https://api.todoist.com/api/v1";
+var TODOIST_API2 = "https://api.todoist.com/api/v1";
 function mapPriority(priority) {
   switch (priority) {
     case "emergency":
@@ -16634,7 +16941,7 @@ async function sendToTodoist(secrets, note, onReminded) {
   }
   let taskId;
   try {
-    const { data } = await axios_default.post(`${TODOIST_API}/tasks`, payload, {
+    const { data } = await axios_default.post(`${TODOIST_API2}/tasks`, payload, {
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       timeout: 1e4
     });
@@ -16818,7 +17125,7 @@ async function sendToGoogleTasks(secrets, note, onReminded) {
   }
   let taskListId;
   try {
-    const { data } = await axios_default.get(`${GOOGLE_TASKS_API}/users/@me/lists`, {
+    const { data } = await axios_default.get(`${GOOGLE_TASKS_API2}/users/@me/lists`, {
       headers: { Authorization: `Bearer ${token}` },
       timeout: 1e4
     });
@@ -16851,7 +17158,7 @@ async function sendToGoogleTasks(secrets, note, onReminded) {
   let createdTaskId = "";
   try {
     const { data: created } = await axios_default.post(
-      `${GOOGLE_TASKS_API}/lists/${encodeURIComponent(taskListId)}/tasks`,
+      `${GOOGLE_TASKS_API2}/lists/${encodeURIComponent(taskListId)}/tasks`,
       {
         title: note.title || "Untitled",
         notes: extractTaskPlainText(note),
@@ -16938,7 +17245,7 @@ async function deleteReminder(secrets, reminder) {
       return;
     }
     try {
-      await axios_default.delete(`${TODOIST_API}/tasks/${reminder.taskId}`, {
+      await axios_default.delete(`${TODOIST_API2}/tasks/${reminder.taskId}`, {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 1e4
       });
@@ -16967,7 +17274,7 @@ async function deleteReminder(secrets, reminder) {
     }
     try {
       await axios_default.delete(
-        `${GOOGLE_TASKS_API}/lists/${encodeURIComponent(reminder.taskListId)}/tasks/${encodeURIComponent(reminder.taskId)}`,
+        `${GOOGLE_TASKS_API2}/lists/${encodeURIComponent(reminder.taskListId)}/tasks/${encodeURIComponent(reminder.taskId)}`,
         { headers: { Authorization: `Bearer ${token}` }, timeout: 1e4 }
       );
     } catch (e) {
@@ -17011,7 +17318,7 @@ async function updateReminderDue(secrets, reminder) {
       payload.due_date = due.date;
     }
     try {
-      await axios_default.post(`${TODOIST_API}/tasks/${reminder.taskId}`, payload, {
+      await axios_default.post(`${TODOIST_API2}/tasks/${reminder.taskId}`, payload, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         timeout: 1e4
       });
@@ -17038,7 +17345,7 @@ async function updateReminderDue(secrets, reminder) {
       }
       try {
         await axios_default.patch(
-          `${GOOGLE_TASKS_API}/lists/${encodeURIComponent(reminder.taskListId)}/tasks/${encodeURIComponent(reminder.taskId)}`,
+          `${GOOGLE_TASKS_API2}/lists/${encodeURIComponent(reminder.taskListId)}/tasks/${encodeURIComponent(reminder.taskId)}`,
           { due: `${due.date}T00:00:00.000Z` },
           { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, timeout: 1e4 }
         );
@@ -19202,7 +19509,16 @@ ${preview}`);
     writeNoteNestConfig(currentFolder).then(() => installGitHook(currentFolder)).catch(() => {
     });
   }
-  const mcpServer = startMcpServer(context);
+  const onNoteMutated = () => {
+    if (panel) {
+      const fp = getFolderPath();
+      if (fp) {
+        const pn = fp.split(/[\/\\]/).filter(Boolean).pop() ?? "Project";
+        panel.webview.html = notesListHtml(pn, readLocalNotesGrouped(context, fp), getSubfolderOptions(context, fp), "local");
+      }
+    }
+  };
+  const mcpServer = startMcpServer(context, onNoteMutated);
   context.subscriptions.push({ dispose: () => mcpServer.close() });
   flushOfflineQueue().catch(() => {
   });

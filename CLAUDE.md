@@ -24,8 +24,14 @@ The build uses esbuild with `--loader:.ts=ts`. **Never put literal backtick char
 ```
 src/
   extension.ts     ← ENTIRE extension — HTML generators, commands, providers, all logic
+  mcpServer.ts     ← Local HTTP MCP server (localhost:37491); exports OnNoteMutated callback type
+  mcpBridge.ts     ← stdio bridge for Claude Code / Cursor
+  mcpInstaller.ts  ← Auto-registers MCP bridge in ~/.claude.json, ~/.cursor/mcp.json etc.
+  taskIntegrations.ts ← Todoist + Google Tasks OAuth + task creation (UI-driven, used by editor)
+  integrations.ts  ← Notion + Obsidian export helpers (used by both editor and MCP server)
 dist/
   extension.js     ← Built output (never edit this directly)
+  mcp-bridge.cjs   ← Compiled stdio bridge
 media/
   icon.png         ← Activity bar icon (no wordmark)
   icon-marketplace.png ← Marketplace listing icon (with NoteVs wordmark)
@@ -39,9 +45,27 @@ The file is structured in this order:
 4. Local storage helpers (`readLocalNotes`, `writeLocalNote`, `deleteLocalNote`, etc.)
 5. Constants (`PRIORITY_ORDER`, `PRIORITY_LABEL`, `BG_COLORS` etc.)
 6. HTML generator functions (`welcomeHtml`, `loginHtml`, `settingsHtml`, `noFolderHtml`, `notesListHtml`, `noteEditorHtml`)
-7. `activate()` — registers everything
+7. `activate()` — registers everything, including the `onNoteMutated` callback passed to `startMcpServer`
 8. `startLoginFlow()` — extension OAuth login
 9. `deactivate()`
+
+## MCP server (`mcpServer.ts`)
+The MCP server runs on `localhost:37491` and exposes 10 tools:
+
+| Tool | Notes |
+|---|---|
+| `notevs_list_notes` | Scoped to folderPath |
+| `notevs_get_note` | By id |
+| `notevs_create_note` | Writes to disk + fires `onNoteMutated` |
+| `notevs_save_note` | Updates JSON file + fires `onNoteMutated` |
+| `notevs_delete_note` | Removes JSON + meta entry + fires `onNoteMutated` |
+| `notevs_add_annotation` | Appends annotation + fires `onNoteMutated` |
+| `notevs_search_notes` | Keyword search across title/content/tags/annotations |
+| `notevs_export_to_notion` | Self-contained Notion HTTP calls (no VS Code UI); uses stored `notionToken` secret |
+| `notevs_export_to_obsidian` | REST API then vault-folder fallback; uses stored `obsidianApiKey` secret |
+| `notevs_set_reminder` | Todoist or Google Tasks headless POST; uses stored tokens; auto-picks provider if one is connected |
+
+`OnNoteMutated` is a callback type exported from `mcpServer.ts`. `extension.ts` passes a closure that re-renders the sidebar `panel.webview.html` immediately when any mutation tool fires.
 
 ## Local-first architecture
 NoteVs is local-first. Notes are stored as JSON files on disk in `context.globalStorageUri/notes/`. An index is kept in `meta.json`. Cloud sync is opt-in via the Settings panel.

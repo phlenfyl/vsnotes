@@ -4,7 +4,7 @@ import { randomBytes, randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { installMcpBridge } from './mcpInstaller';
-import { startMcpServer } from './mcpServer';
+import { startMcpServer, type OnNoteMutated } from './mcpServer';
 import {
   sendToNotion, clearNotionToken, resetNotionPage, hasNotionToken,
   sendToObsidian, clearObsidianApiKey, clearObsidianVaultPath, getObsidianStatus,
@@ -2010,7 +2010,17 @@ export async function activate(context: vscode.ExtensionContext) {
   if (currentFolder) { writeNoteNestConfig(currentFolder).then(() => installGitHook(currentFolder)).catch(() => {}); }
 
   // ── MCP Server ────────────────────────────────────────────────────────────────
-  const mcpServer = startMcpServer(context);
+  const onNoteMutated: OnNoteMutated = () => {
+    // Re-render the sidebar immediately when MCP agent creates/saves/deletes a note
+    if (panel) {
+      const fp = getFolderPath();
+      if (fp) {
+        const pn = fp.split(/[\/\\]/).filter(Boolean).pop() ?? 'Project';
+        panel.webview.html = notesListHtml(pn, readLocalNotesGrouped(context, fp), getSubfolderOptions(context, fp), 'local');
+      }
+    }
+  };
+  const mcpServer = startMcpServer(context, onNoteMutated);
   context.subscriptions.push({ dispose: () => mcpServer.close() });
 
   flushOfflineQueue().catch(() => {});

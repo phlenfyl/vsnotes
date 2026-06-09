@@ -97,6 +97,29 @@ Once registered, you can talk to your notes naturally:
 - _"Search my notes for anything about the login flow"_
 - _"Add an annotation to src/auth.ts lines 45–52"_
 - _"Mark the 'Fix race condition' note as done"_
+- _"Export the 'Sprint plan' note to Notion"_
+- _"Save the 'API design' note to my Obsidian vault"_
+- _"Set a reminder for the 'Fix login bug' note for tomorrow at 09:00"_
+
+#### Full tool reference
+
+| Tool | What it does |
+|---|---|
+| `notevs_list_notes` | List all notes for the current project folder |
+| `notevs_get_note` | Get full content + annotations for a note by id |
+| `notevs_create_note` | Create a new note (title, content, tags, priority, status) |
+| `notevs_save_note` | Update an existing note's fields |
+| `notevs_delete_note` | Permanently delete a note |
+| `notevs_add_annotation` | Attach a code annotation to a note (file + line range) |
+| `notevs_search_notes` | Search notes by keyword |
+| `notevs_export_to_notion` | Export a note to Notion (creates or updates page) |
+| `notevs_export_to_obsidian` | Save a note to Obsidian vault as Markdown |
+| `notevs_set_reminder` | Create a task in Todoist or Google Tasks for a note |
+
+**Requirements for export/reminder tools:**
+- `notevs_export_to_notion` — Notion token must be saved in Settings → Integrations → Exporting
+- `notevs_export_to_obsidian` — Obsidian Local REST API key or vault folder must be configured in Settings → Integrations → Exporting
+- `notevs_set_reminder` — Todoist API token or Google Tasks must be connected in Settings → Integrations → Tasks
 
 Notes are always scoped to the repo the agent is running in.
 
