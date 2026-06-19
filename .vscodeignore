@@ -10,3 +10,5 @@ esbuild*
 *.map
 dist/mcp-bridge.mjs
 .env
+screenshots/
+screenshot/

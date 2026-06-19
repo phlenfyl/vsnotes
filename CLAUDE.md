@@ -94,6 +94,8 @@ NoteVs is local-first. Notes are stored as JSON files on disk in `context.global
 | `notevs.annotateSelection` | Cmd+Shift+N, right-click context menu |
 | `notevs.annotateSelectionFromStatusBar` | Status bar button (internal) |
 | `notevs.openNoteById` | Hover popup "Open note →" link |
+| `notevs.exportNotes` | Command palette / sidebar `|→` dropdown |
+| `notevs.importNotes` | Command palette / sidebar `|→` dropdown |
 
 ## Auth storage
 Tokens are stored in VS Code `SecretStorage` (not localStorage). Keys: `accessToken`, `refreshToken`, `user`.
@@ -107,6 +109,47 @@ Written to `.git/hooks/pre-commit` on folder open (sync mode). Blocks commits wh
 
 ## Annotation highlights
 When a file is opened, `refreshAnnotations()` fetches all notes for that file (from disk in local mode, from API in sync mode) and applies gutter decorations and populates `annotationCache` for the hover provider.
+
+## Export / Import (`.notevs/` folder)
+
+The export/import system uses a two-file structure per project:
+
+```
+.notevs/
+  notes.json          ← all metadata (version, workspacePath, isMonorepo, notes[])
+  root/
+    my-note-abc123.md ← plain text content only, no frontmatter
+  packages/api/
+    other-note.md
+```
+
+**`notes.json`** shape (version 2):
+```json
+{
+  "version": 2,
+  "workspacePath": "/abs/path/to/repo",
+  "isMonorepo": true,
+  "exportedAt": "ISO string",
+  "notes": [
+    {
+      "id", "localId", "title", "status", "priority", "editorMode",
+      "pinned", "tags", "folderPath", "createdAt", "updatedAt",
+      "exports",     // Notion/Obsidian integration state
+      "reminders",   // Todoist/Google Tasks state
+      "annotations", // code annotation objects
+      "file": "root/my-note-abc123.md"  // relative to .notevs/
+    }
+  ]
+}
+```
+
+**Content round-trip:** Quill delta → `deltaToPlainText()` on export → `.md` file. On import: plain text → `plainTextToDelta()` → stored as Quill delta. Markdown-mode notes skip the conversion.
+
+**Import validation:** `notes.json` `workspacePath` is compared against the current workspace root. Mismatches show a warning but allow "Import anyway". `folderPath` on each note is remapped if the workspace has moved.
+
+**v1 legacy import:** The importer also handles the old format (`.md` files with YAML frontmatter + `meta.json`). Falls back to v1 path if `notes.json` is absent but `meta.json` is present.
+
+**Re-import behaviour:** If a note id already exists, content is updated only if the `.md` file has changed (user edited it externally). Integration state (`exports`, `reminders`) is merged, never wiped.
 
 ## Note fields
 - `status`: `"open"` | `"done"` | `"passed"`

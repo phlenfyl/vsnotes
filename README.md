@@ -7,6 +7,7 @@ Project notes and code annotations, right inside VS Code. Works fully offline �
 - 📝 **Multiple notes per project** — each folder gets its own isolated notes list
 - 💻 **Local-first** — works completely offline, no account or internet required
 - 🔗 **Code annotations** — select any lines in a file and attach a note to them (Cmd+Shift+N)
+- 📦 **Export & Import** — back up your notes to a `.notevs/` folder in your repo; restore them anytime with full fidelity
 - 🤖 **AI agent support** — Claude Code and Cursor can create, read, and annotate notes via MCP (auto-registered on install)
 - 🎨 **Custom backgrounds** — 12 background colours for your note editor
 - ⚡ **Auto-save** — notes save as you type
@@ -25,7 +26,56 @@ Select any lines in a file, then:
 - Or right-click → **NoteVs: Annotate Selection**
 - Or click the **📎 Annotate selection** status bar button
 
-Annotated lines show a blue gutter highlight. Hover over them to see the note preview. Annotations are collapsible inside the note editor — click any annotation row to expand or collapse it.
+![Add Annotation picker — create a new note or attach to an existing one](screenshot/Screenshot%202026-06-20%20at%2000.43.38.png)
+
+Annotated lines show a blue gutter highlight. Hover over them to see the note preview.
+
+![Hover tooltip showing note title and preview over an annotated line](screenshot/Screenshot%202026-06-20%20at%2000.44.28.png)
+
+Annotations are collapsible inside the note editor — click any annotation row to expand or collapse it.
+
+![Note editor showing a code annotation with file and line link](screenshot/Screenshot%202026-06-20%20at%2000.44.40.png)
+
+![Note editor in Markdown mode with annotation panel](screenshot/Screenshot%202026-06-20%20at%2000.44.52.png)
+
+## Export & Import
+
+Click the **`|→`** button in the sidebar toolbar to open the Export / Import menu.
+
+### Exporting
+
+Exporting creates a `.notevs/` folder at your repo root:
+
+```
+your-project/
+  .notevs/
+    notes.json          ← all note metadata + links to .md files
+    root/
+      my-note-abc123.md ← plain text, freely editable
+    packages/api/
+      other-note.md
+```
+
+- Each `.md` file contains **only the note text** — clean, no frontmatter, editable in any editor
+- `notes.json` holds all metadata: title, status, priority, tags, Notion/Obsidian export state, Todoist/Google Tasks reminders, and annotations
+- In a **monorepo**, notes are grouped into sub-folders matching your package structure (e.g. `.notevs/packages/api/`). Single repos use `.notevs/root/`
+- Commit `.notevs/` to git so your notes travel with the repo
+
+### Importing
+
+Importing reads `.notevs/` from your current workspace root and restores all notes:
+
+- **Full fidelity** — Notion export badges, Todoist/Google Tasks reminder badges, and code annotations all come back automatically, no re-linking needed
+- **Idempotent** — notes that already exist are skipped; only new ones are added
+- **External edits** — if you edited a `.md` file outside NoteVs, re-importing picks up the updated content
+- **Workspace validation** — NoteVs checks that the export belongs to the current project before importing; warns you if it came from a different repo
+- **Monorepo aware** — `folderPath` on each note is remapped automatically if the workspace has moved
+
+### Use cases
+
+- **Backup** — export before wiping your machine; import on the new one
+- **Team sharing** — commit `.notevs/` so teammates can import project notes
+- **Editing outside VS Code** — open the `.md` files in any editor, write freely, then re-import to sync the changes back into NoteVs
 
 ## AI Agent Support (MCP)
 

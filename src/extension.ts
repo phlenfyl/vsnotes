@@ -748,6 +748,12 @@ function notesListHtml(
     .toolbar-right{display:flex;align-items:center;gap:4px}
     .icon-btn{background:none;border:none;cursor:pointer;color:var(--vscode-foreground);opacity:.7;font-size:16px;padding:4px;border-radius:4px;line-height:1;transition:opacity .2s,background .2s}
     .icon-btn:hover{opacity:1;background:var(--vscode-toolbar-hoverBackground)}
+    .dropdown-wrap{position:relative;display:inline-flex}
+    .dropdown-menu{display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--vscode-menu-background, var(--vscode-sideBar-background));border:1px solid var(--vscode-menu-border, var(--vscode-panel-border));border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:9999;min-width:160px;overflow:hidden}
+    .dropdown-menu.open{display:block}
+    .dropdown-item{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:12px;cursor:pointer;color:var(--vscode-menu-foreground, var(--vscode-foreground));white-space:nowrap;background:none;border:none;width:100%;text-align:left;font-family:var(--vscode-font-family)}
+    .dropdown-item:hover{background:var(--vscode-menu-selectionBackground, var(--vscode-toolbar-hoverBackground));color:var(--vscode-menu-selectionForeground, var(--vscode-foreground))}
+    .dropdown-item i{opacity:.8;font-size:14px}
     .search-bar{padding:8px 12px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0}
     .search-bar input{width:100%;background:var(--vscode-input-background);border:1px solid var(--vscode-input-border);color:var(--vscode-input-foreground);border-radius:4px;padding:6px 10px;font-size:12px;outline:none;font-family:var(--vscode-font-family);box-sizing:border-box}
     .search-bar input:focus{border-color:var(--vscode-focusBorder)}
@@ -797,8 +803,13 @@ function notesListHtml(
     <span class="project-name" title="${projectName}">${projectName}</span>
     <div class="toolbar-right">
       <button class="icon-btn" id="newBtn" title="New note"><i class="codicon codicon-add"></i></button>
-      <button class="icon-btn" id="exportBtn" title="Export notes to .notevs/"><i class="codicon codicon-export"></i></button>
-      <button class="icon-btn" id="importBtn" title="Import notes from .notevs/"><i class="codicon codicon-import"></i></button>
+      <div class="dropdown-wrap" id="exportWrap">
+        <button class="icon-btn" id="exportBtn" title="Export / Import notes"><i class="codicon codicon-export"></i></button>
+        <div class="dropdown-menu" id="exportMenu">
+          <button class="dropdown-item" id="doExportBtn"><i class="codicon codicon-export"></i>Export notes</button>
+          <button class="dropdown-item" id="doImportBtn"><i class="codicon codicon-import"></i>Import notes</button>
+        </div>
+      </div>
       <button class="icon-btn" id="settingsBtn" title="Settings"><i class="codicon codicon-settings-gear"></i></button>
     </div>
   </div>
@@ -840,8 +851,20 @@ function notesListHtml(
       }
     });
     document.getElementById('settingsBtn').addEventListener('click',()=>vscode.postMessage({type:'openSettings'}));
-    document.getElementById('exportBtn').addEventListener('click',()=>vscode.postMessage({type:'exportNotes'}));
-    document.getElementById('importBtn').addEventListener('click',()=>vscode.postMessage({type:'importNotes'}));
+    const exportMenu = document.getElementById('exportMenu');
+    document.getElementById('exportBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      exportMenu.classList.toggle('open');
+    });
+    document.addEventListener('click', () => exportMenu.classList.remove('open'));
+    document.getElementById('doExportBtn').addEventListener('click', () => {
+      exportMenu.classList.remove('open');
+      vscode.postMessage({type:'exportNotes'});
+    });
+    document.getElementById('doImportBtn').addEventListener('click', () => {
+      exportMenu.classList.remove('open');
+      vscode.postMessage({type:'importNotes'});
+    });
     document.querySelectorAll('.note-row').forEach(row=>{
       row.addEventListener('click',e=>{if(e.target.closest('.del-btn'))return;vscode.postMessage({type:'openNote',id:row.dataset.id});});
     });
@@ -1151,93 +1174,70 @@ function noteEditorHtml(note: NoteItem, projectName: string, bgColor: string, te
 // ── Export / Import helpers ───────────────────────────────────────────────────
 
 /**
- * Serialise a NoteItem to a Markdown string with YAML frontmatter.
- * The frontmatter carries every metadata field so the note can be fully
- * restored on import. The body is the raw content (Quill delta JSON or
- * Markdown text — whatever the note already stores).
- */
-function noteToMarkdown(note: NoteItem): string {
-  const q = '"';
-  const safeLine = (v: unknown) => String(v ?? '').replace(/"/g, q + q);
-  const tags = Array.isArray(note.tags) ? note.tags.join(', ') : '';
-  const nl = '\n';
-  const lines = [
-    '---',
-    'id: ' + q + safeLine(note.id) + q,
-    'localId: ' + q + safeLine(note.localId ?? '') + q,
-    'title: ' + q + safeLine(note.title) + q,
-    'status: ' + q + safeLine(note.status ?? 'open') + q,
-    'priority: ' + q + safeLine(note.priority ?? 'none') + q,
-    'editorMode: ' + q + safeLine(note.editorMode ?? 'wysiwyg') + q,
-    'pinned: ' + (note.pinned ? 'true' : 'false'),
-    'tags: ' + q + tags + q,
-    'folderPath: ' + q + safeLine(note.folderPath ?? '') + q,
-    'createdAt: ' + q + safeLine(note.createdAt ?? '') + q,
-    'updatedAt: ' + q + safeLine(note.updatedAt ?? '') + q,
-    '---',
-    '',
-  ];
-  return lines.join(nl) + (note.content ?? '');
-}
-
-/**
- * Parse a Markdown string (with YAML frontmatter) back into a NoteItem.
- * Returns null if the file is not a valid NoteVs export.
- */
-function markdownToNote(raw: string): NoteItem | null {
-  if (!raw.startsWith('---')) { return null; }
-  const end = raw.indexOf('\n---', 4);
-  if (end === -1) { return null; }
-  const fm = raw.slice(4, end);
-  const content = raw.slice(end + 4).replace(/^\n/, '');
-  function field(key: string): string {
-    const m = fm.match(new RegExp('^' + key + ':\\s*"(.*?)"\\s*$', 'm'));
-    return m ? m[1].replace(/""/g, '"') : '';
-  }
-  function boolField(key: string): boolean {
-    const m = fm.match(new RegExp('^' + key + ':\\s*(true|false)\\s*$', 'm'));
-    return m ? m[1] === 'true' : false;
-  }
-  const id = field('id');
-  if (!id) { return null; }
-  const tagsRaw = field('tags');
-  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
-  return {
-    id,
-    localId: field('localId') || randomUUID(),
-    title: field('title') || 'Untitled',
-    status: field('status') || 'open',
-    priority: field('priority') || 'none',
-    editorMode: field('editorMode') || 'wysiwyg',
-    pinned: boolField('pinned'),
-    tags,
-    folderPath: field('folderPath') || '',
-    createdAt: field('createdAt') || new Date().toISOString(),
-    updatedAt: field('updatedAt') || new Date().toISOString(),
-    content,
-    deletedAt: null,
-    syncedAt: null,
-  };
-}
-
-/**
  * Derive the sub-folder name inside .notevs/ for a given note folderPath.
- * For the workspace root itself → 'root'.
- * For a sub-package (e.g. /workspace/packages/api) → 'packages_api'.
+ * Workspace root -> 'root'.
+ * Sub-package (/workspace/packages/api) -> 'packages/api' (mirrors real structure).
  */
+/**
+ * Extract plain text from a Quill delta JSON string.
+ * Falls back to the raw string if it is not a valid delta.
+ */
+function deltaToPlainText(raw: string): string {
+  if (!raw) { return ''; }
+  try {
+    const delta = JSON.parse(raw);
+    if (delta && Array.isArray(delta.ops)) {
+      return delta.ops
+        .map((op: { insert?: unknown }) => (typeof op.insert === 'string' ? op.insert : ''))
+        .join('');
+    }
+  } catch { /* not a delta — treat as plain text */ }
+  return raw;
+}
+
+/**
+ * Wrap a plain-text string back into a minimal Quill delta.
+ * Ensures the delta always ends with a trailing newline (Quill requirement).
+ */
+function plainTextToDelta(text: string): string {
+  const body = text.endsWith('\n') ? text : text + '\n';
+  return JSON.stringify({ ops: [{ insert: body }] });
+}
+
 function notevsFolderName(noteFolderPath: string, workspacePath: string): string {
   if (!noteFolderPath || noteFolderPath === workspacePath) { return 'root'; }
   const sep = workspacePath.endsWith('/') ? workspacePath : workspacePath + '/';
-  const rel = noteFolderPath.startsWith(sep) ? noteFolderPath.slice(sep.length) : noteFolderPath;
-  return rel.replace(/[\/\\]+/g, '_') || 'root';
+  const rel = noteFolderPath.startsWith(sep) ? noteFolderPath.slice(sep.length) : '';
+  return rel || 'root';
+}
+
+/**
+ * Build a safe filename from a note title + short id suffix.
+ * No special chars, max 60 chars, always ends in .md.
+ */
+function safeNoteFilename(title: string, id: string): string {
+  const safe = (title || 'untitled')
+    .replace(/[<>:"\/\\|?*\x00-\x1f]/g, '')
+    .replace(/\s+/g, '-')
+    .trim()
+    .slice(0, 60) || 'untitled';
+  return safe + '-' + id.slice(0, 8) + '.md';
 }
 
 /**
  * Export all notes for the current workspace into <repo-root>/.notevs/
- * Single repo  → .notevs/<safe-title>-<id8>.md
- * Monorepo     → .notevs/root/   .notevs/packages_api/  etc.
- * A meta.json is always written at .notevs/meta.json with the workspace
- * fingerprint so imports can be validated.
+ *
+ * New structure (v2):
+ *   .notevs/
+ *     notes.json              <- all metadata, each entry has "file" -> relative .md path
+ *     root/
+ *       my-note-abc123.md     <- ONLY raw content, no frontmatter
+ *     packages/api/
+ *       other-note-def456.md
+ *
+ * notes.json shape:
+ *   { version, workspacePath, isMonorepo, exportedAt,
+ *     notes: [{ id, title, status, priority, ..., file: "root/my-note-abc123.md" }] }
  */
 async function exportNotesToFolder(context: vscode.ExtensionContext): Promise<void> {
   const workspacePath = getFolderPath();
@@ -1250,43 +1250,62 @@ async function exportNotesToFolder(context: vscode.ExtensionContext): Promise<vo
   const isMonorepo = groups.length > 1;
   const exportRoot = path.join(workspacePath, '.notevs');
 
+  const label = allNotes.length + ' note' + (allNotes.length !== 1 ? 's' : '');
   const confirm = await vscode.window.showInformationMessage(
-    `Export ${allNotes.length} note${allNotes.length !== 1 ? 's' : ''} to .notevs/ in your repo root?`,
+    'Export ' + label + ' to .notevs/ in your repo root?',
     { modal: true }, 'Export'
   );
   if (confirm !== 'Export') { return; }
 
-  function safeFilename(title: string, id: string): string {
-    const safe = (title || 'untitled')
-      .replace(/[<>:"\/\\|?*\x00-\x1f]/g, '')
-      .replace(/\s+/g, '-')
-      .trim()
-      .slice(0, 60) || 'untitled';
-    return `${safe}-${id.slice(0, 8)}.md`;
-  }
+  if (!fs.existsSync(exportRoot)) { fs.mkdirSync(exportRoot, { recursive: true }); }
 
-  let written = 0;
+  const notesManifest: object[] = [];
 
   for (const note of allNotes) {
-    const subFolder = isMonorepo ? notevsFolderName(note.folderPath ?? '', workspacePath) : '';
-    const targetDir = subFolder ? path.join(exportRoot, subFolder) : exportRoot;
+    const subFolder = notevsFolderName(note.folderPath ?? '', workspacePath);
+    const targetDir = path.join(exportRoot, subFolder);
     if (!fs.existsSync(targetDir)) { fs.mkdirSync(targetDir, { recursive: true }); }
-    const filename = safeFilename(note.title, note.id);
-    fs.writeFileSync(path.join(targetDir, filename), noteToMarkdown(note), 'utf8');
-    written++;
+
+    const filename = safeNoteFilename(note.title, note.id);
+    const relFile  = subFolder + '/' + filename;
+
+    // Write plain text — extract from Quill delta so the .md is human-readable
+    fs.writeFileSync(path.join(targetDir, filename), deltaToPlainText(note.content ?? ''), 'utf8');
+
+    // Collect metadata entry — include ALL fields so nothing is lost on re-import
+    notesManifest.push({
+      id:          note.id,
+      localId:     note.localId ?? '',
+      title:       note.title,
+      status:      note.status ?? 'open',
+      priority:    note.priority ?? 'none',
+      editorMode:  note.editorMode ?? 'wysiwyg',
+      pinned:      note.pinned ?? false,
+      tags:        Array.isArray(note.tags) ? note.tags : [],
+      folderPath:  note.folderPath ?? '',
+      createdAt:   note.createdAt ?? new Date().toISOString(),
+      updatedAt:   note.updatedAt ?? new Date().toISOString(),
+      // Integration / reminder state — restored silently on import
+      ...(note.exports   ? { exports:     note.exports   } : {}),
+      ...(note.reminders ? { reminders:   note.reminders } : {}),
+      // Annotation source info
+      ...(note.annotations ? { annotations: note.annotations } : {}),
+      ...(note.filePath    ? { filePath: note.filePath, lineStart: note.lineStart, lineEnd: note.lineEnd, codeSnippet: note.codeSnippet } : {}),
+      file: relFile,
+    });
   }
 
-  const metaObj = {
-    version: 1,
+  const notesJson = {
+    version:      2,
     workspacePath,
     isMonorepo,
-    exportedAt: new Date().toISOString(),
-    noteCount: written,
+    exportedAt:   new Date().toISOString(),
+    notes:        notesManifest,
   };
-  fs.writeFileSync(path.join(exportRoot, 'meta.json'), JSON.stringify(metaObj, null, 2), 'utf8');
+  fs.writeFileSync(path.join(exportRoot, 'notes.json'), JSON.stringify(notesJson, null, 2), 'utf8');
 
   vscode.window.showInformationMessage(
-    `\u2713 Exported ${written} note${written !== 1 ? 's' : ''} to .notevs/`,
+    '\u2713 Exported ' + allNotes.length + ' note' + (allNotes.length !== 1 ? 's' : '') + ' to .notevs/',
     'Open folder'
   ).then(choice => {
     if (choice === 'Open folder') {
@@ -1297,8 +1316,10 @@ async function exportNotesToFolder(context: vscode.ExtensionContext): Promise<vo
 
 /**
  * Import notes from <repo-root>/.notevs/ back into NoteVs local storage.
- * Validates meta.json workspacePath against the current workspace.
- * Skips notes whose id already exists (no duplicates).
+ *
+ * v2 (notes.json): reads metadata from notes.json, content from each .md file.
+ *   On re-import, if the note already exists but content changed -> updates it.
+ * v1 legacy (meta.json + .md with frontmatter): still supported for old exports.
  */
 async function importNotesFromFolder(context: vscode.ExtensionContext, panel: vscode.WebviewView | undefined): Promise<void> {
   const workspacePath = getFolderPath();
@@ -1310,9 +1331,117 @@ async function importNotesFromFolder(context: vscode.ExtensionContext, panel: vs
     return;
   }
 
+  // ── v2 format ──────────────────────────────────────────────────────────────
+  const notesJsonPath = path.join(exportRoot, 'notes.json');
+  if (fs.existsSync(notesJsonPath)) {
+    let manifest: {
+      version: number; workspacePath: string; isMonorepo: boolean;
+      notes: Array<{
+        id: string; localId: string; title: string; status: string;
+        priority: string; editorMode: string; pinned: boolean; tags: string[];
+        folderPath: string; createdAt: string; updatedAt: string; file: string;
+      }>;
+    };
+    try {
+      manifest = JSON.parse(fs.readFileSync(notesJsonPath, 'utf8'));
+    } catch {
+      vscode.window.showErrorMessage('.notevs/notes.json is corrupted and cannot be read.');
+      return;
+    }
+
+    const exportedRoot = manifest.workspacePath ?? '';
+    const rootMatches  = exportedRoot === workspacePath;
+    const isSubPath    = workspacePath.startsWith(exportedRoot + '/') || workspacePath.startsWith(exportedRoot + '\\');
+    if (!rootMatches && !isSubPath) {
+      const action = await vscode.window.showWarningMessage(
+        'This .notevs/ export came from a different project:\n"' + exportedRoot + '"\n\nCurrent workspace:\n"' + workspacePath + '"\n\nImport anyway?',
+        { modal: true }, 'Import anyway', 'Cancel'
+      );
+      if (action !== 'Import anyway') { return; }
+    }
+
+    const existingMeta = readLocalMeta(context);
+    const existingIds  = new Set(existingMeta.noteIndex.map((e: { id: string }) => e.id));
+
+    let imported = 0; let updated = 0; let skipped = 0; let invalid = 0;
+
+    for (const entry of manifest.notes) {
+      if (!entry.id || !entry.file) { invalid++; continue; }
+
+      const mdPath = path.join(exportRoot, entry.file);
+      let content = '';
+      if (fs.existsSync(mdPath)) {
+        try { content = fs.readFileSync(mdPath, 'utf8'); } catch { invalid++; continue; }
+      }
+
+      let folderPath = entry.folderPath || '';
+      if (folderPath && folderPath !== workspacePath && !folderPath.startsWith(workspacePath + '/')) {
+        const relSeg = exportedRoot ? folderPath.replace(exportedRoot, '').replace(/^[\/\\]/, '') : '';
+        folderPath = relSeg ? path.join(workspacePath, relSeg) : workspacePath;
+      }
+
+      // Convert plain text back to Quill delta for internal storage
+      const storedContent = entry.editorMode === 'wysiwyg' ? plainTextToDelta(content) : content;
+      const note: NoteItem = {
+        id: entry.id, localId: entry.localId || randomUUID(),
+        title: entry.title || 'Untitled', status: entry.status || 'open',
+        priority: entry.priority || 'none', editorMode: entry.editorMode || 'wysiwyg',
+        pinned: entry.pinned ?? false, tags: Array.isArray(entry.tags) ? entry.tags : [],
+        folderPath, createdAt: entry.createdAt || new Date().toISOString(),
+        updatedAt: entry.updatedAt || new Date().toISOString(),
+        content: storedContent, deletedAt: null, syncedAt: null,
+        // Silently restore integration & reminder state if present in export
+        ...(entry.exports     ? { exports:     entry.exports     } : {}),
+        ...(entry.reminders   ? { reminders:   entry.reminders   } : {}),
+        ...(entry.annotations ? { annotations: entry.annotations } : {}),
+        ...(entry.filePath    ? { filePath: entry.filePath, lineStart: entry.lineStart, lineEnd: entry.lineEnd, codeSnippet: entry.codeSnippet } : {}),
+      };
+
+      if (existingIds.has(note.id)) {
+        // Re-import: update content if it changed (user edited the .md file)
+        const existing = readLocalNotes(context).find((n: NoteItem) => n.id === note.id);
+        const storedUpdated = note.editorMode === 'wysiwyg' ? plainTextToDelta(content) : content;
+        if (existing && existing.content !== storedUpdated) {
+          // Merge: keep existing integration state, update content + any newly present fields
+          writeLocalNote(context, {
+            ...existing,
+            content: storedUpdated,
+            updatedAt: note.updatedAt,
+            ...(note.exports     ? { exports:     note.exports     } : {}),
+            ...(note.reminders   ? { reminders:   note.reminders   } : {}),
+            ...(note.annotations ? { annotations: note.annotations } : {}),
+          });
+          updated++;
+        } else {
+          skipped++;
+        }
+        continue;
+      }
+
+      writeLocalNote(context, note);
+      existingIds.add(note.id);
+      imported++;
+    }
+
+    const parts: string[] = [];
+    if (imported > 0) { parts.push(imported + ' imported'); }
+    if (updated  > 0) { parts.push(updated  + ' updated'); }
+    if (skipped  > 0) { parts.push(skipped  + ' already up to date'); }
+    if (invalid  > 0) { parts.push(invalid  + ' unreadable'); }
+
+    vscode.window.showInformationMessage('\u2713 Import complete \u2014 ' + parts.join(', ') + '.');
+
+    if (panel) {
+      const pn = workspacePath.split(/[\/\\]/).filter(Boolean).pop() ?? 'Project';
+      panel.webview.html = notesListHtml(pn, readLocalNotesGrouped(context, workspacePath), getSubfolderOptions(context, workspacePath), 'local');
+    }
+    return;
+  }
+
+  // ── v1 legacy format (meta.json + .md with YAML frontmatter) ───────────────
   const metaPath = path.join(exportRoot, 'meta.json');
   if (!fs.existsSync(metaPath)) {
-    vscode.window.showWarningMessage('.notevs/meta.json is missing. This folder may not be a valid NoteVs export.');
+    vscode.window.showWarningMessage('.notevs/ found but no notes.json or meta.json inside. Not a valid NoteVs export.');
     return;
   }
 
@@ -1324,12 +1453,12 @@ async function importNotesFromFolder(context: vscode.ExtensionContext, panel: vs
     return;
   }
 
-  const exportedRoot = exportMeta.workspacePath ?? '';
-  const rootMatches = exportedRoot === workspacePath;
-  const isSubPath = workspacePath.startsWith(exportedRoot + '/') || workspacePath.startsWith(exportedRoot + '\\');
-  if (!rootMatches && !isSubPath) {
+  const exportedRootV1 = exportMeta.workspacePath ?? '';
+  const rootMatchesV1  = exportedRootV1 === workspacePath;
+  const isSubPathV1    = workspacePath.startsWith(exportedRootV1 + '/') || workspacePath.startsWith(exportedRootV1 + '\\');
+  if (!rootMatchesV1 && !isSubPathV1) {
     const action = await vscode.window.showWarningMessage(
-      `This .notevs/ export came from a different project:\n"${exportedRoot}"\n\nCurrent workspace:\n"${workspacePath}"\n\nImport anyway?`,
+      'This .notevs/ export came from a different project:\n"' + exportedRootV1 + '"\n\nCurrent workspace:\n"' + workspacePath + '"\n\nImport anyway?',
       { modal: true }, 'Import anyway', 'Cancel'
     );
     if (action !== 'Import anyway') { return; }
@@ -1348,39 +1477,57 @@ async function importNotesFromFolder(context: vscode.ExtensionContext, panel: vs
   const mdFiles = collectMdFiles(exportRoot);
   if (mdFiles.length === 0) { vscode.window.showInformationMessage('No note files found in .notevs/.'); return; }
 
-  const existingMeta = readLocalMeta(context);
-  const existingIds = new Set(existingMeta.noteIndex.map(e => e.id));
+  const existingMetaV1 = readLocalMeta(context);
+  const existingIdsV1  = new Set(existingMetaV1.noteIndex.map((e: { id: string }) => e.id));
 
-  let imported = 0;
-  let skipped = 0;
-  let invalid = 0;
+  let importedV1 = 0; let skippedV1 = 0; let invalidV1 = 0;
 
   for (const mdFile of mdFiles) {
     let raw: string;
-    try { raw = fs.readFileSync(mdFile, 'utf8'); } catch { invalid++; continue; }
-    const note = markdownToNote(raw);
-    if (!note) { invalid++; continue; }
-    if (existingIds.has(note.id)) { skipped++; continue; }
-    // Fix folderPath if it no longer matches current workspace
-    if (!note.folderPath || (!note.folderPath.startsWith(workspacePath) && note.folderPath !== workspacePath)) {
-      const relSegment = (note.folderPath && exportedRoot)
-        ? note.folderPath.replace(exportedRoot, '').replace(/^[\/\\]/, '')
-        : '';
-      note.folderPath = relSegment ? path.join(workspacePath, relSegment) : workspacePath;
+    try { raw = fs.readFileSync(mdFile, 'utf8'); } catch { invalidV1++; continue; }
+    if (!raw.startsWith('---')) { invalidV1++; continue; }
+    const fmEnd = raw.indexOf('\n---', 4);
+    if (fmEnd === -1) { invalidV1++; continue; }
+    const fm      = raw.slice(4, fmEnd);
+    const content = raw.slice(fmEnd + 4).replace(/^\n/, '');
+    const fField = (key: string) => {
+      const m = fm.match(new RegExp('^' + key + ':\\s*"(.*?)"\\s*$', 'm'));
+      return m ? m[1].replace(/""/g, '"') : '';
+    };
+    const fBool = (key: string) => {
+      const m = fm.match(new RegExp('^' + key + ':\\s*(true|false)\\s*$', 'm'));
+      return m ? m[1] === 'true' : false;
+    };
+    const id = fField('id');
+    if (!id) { invalidV1++; continue; }
+    if (existingIdsV1.has(id)) { skippedV1++; continue; }
+    const tagsRaw  = fField('tags');
+    const tags     = tagsRaw ? tagsRaw.split(',').map((t: string) => t.trim()).filter(Boolean) : [];
+    let folderPath = fField('folderPath') || '';
+    if (folderPath && folderPath !== workspacePath && !folderPath.startsWith(workspacePath + '/')) {
+      const rel = exportedRootV1 ? folderPath.replace(exportedRootV1, '').replace(/^[\/\\]/, '') : '';
+      folderPath = rel ? path.join(workspacePath, rel) : workspacePath;
     }
-    writeLocalNote(context, note);
-    existingIds.add(note.id);
-    imported++;
+    writeLocalNote(context, {
+      id, localId: fField('localId') || randomUUID(),
+      title: fField('title') || 'Untitled', status: fField('status') || 'open',
+      priority: fField('priority') || 'none', editorMode: fField('editorMode') || 'wysiwyg',
+      pinned: fBool('pinned'), tags, folderPath,
+      createdAt: fField('createdAt') || new Date().toISOString(),
+      updatedAt: fField('updatedAt') || new Date().toISOString(),
+      content, deletedAt: null, syncedAt: null,
+    });
+    existingIdsV1.add(id);
+    importedV1++;
   }
 
-  const parts: string[] = [];
-  if (imported > 0) { parts.push(`${imported} imported`); }
-  if (skipped > 0) { parts.push(`${skipped} already existed`); }
-  if (invalid > 0) { parts.push(`${invalid} unreadable`); }
+  const partsV1: string[] = [];
+  if (importedV1 > 0) { partsV1.push(importedV1 + ' imported'); }
+  if (skippedV1  > 0) { partsV1.push(skippedV1  + ' already existed'); }
+  if (invalidV1  > 0) { partsV1.push(invalidV1  + ' unreadable'); }
 
-  vscode.window.showInformationMessage(`\u2713 Import complete \u2014 ${parts.join(', ')}.`);
+  vscode.window.showInformationMessage('\u2713 Import complete \u2014 ' + partsV1.join(', ') + '.');
 
-  // Refresh sidebar
   if (panel) {
     const pn = workspacePath.split(/[\/\\]/).filter(Boolean).pop() ?? 'Project';
     panel.webview.html = notesListHtml(pn, readLocalNotesGrouped(context, workspacePath), getSubfolderOptions(context, workspacePath), 'local');

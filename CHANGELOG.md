@@ -2,6 +2,16 @@
 
 All notable changes to NoteVs will be documented here.
 
+## [0.15.0] - 2026-06-20
+
+### Added
+- **Export notes to `.notevs/`** — new Export / Import button (the `|→` icon in the sidebar toolbar) lets you export all notes for a project into a `.notevs/` folder at the repo root. Each note is written as a clean, human-readable `.md` file containing only the note text (no frontmatter). All metadata (title, status, priority, tags, reminders, Notion/Obsidian export state, Google Tasks / Todoist links, annotations) is stored separately in a single `notes.json` index file that points to each `.md` file
+- **Monorepo-aware export structure** — in a monorepo, `.notevs/` mirrors the sub-package layout: notes scoped to `packages/api` land in `.notevs/packages/api/`, notes scoped to `packages/web` in `.notevs/packages/web/`, and root-level notes in `.notevs/root/`. Single repos export flat into `.notevs/root/`
+- **Import notes from `.notevs/`** — triggered from the same Export / Import dropdown. NoteVs reads `notes.json`, validates it belongs to the current workspace, then restores every note including all integration state (Notion badge, Todoist/Google Tasks reminder badges, annotations) silently — no manual re-linking needed. Skips notes that already exist; updates content for notes whose `.md` file was edited externally since the last export
+- **Export / Import dropdown** — the toolbar now uses a single `|→` button that opens a two-item dropdown (Export notes / Import notes) instead of two separate icons, keeping the toolbar uncluttered
+- **Backward-compatible import** — the importer also handles v1 exports (the old format that embedded YAML frontmatter directly in the `.md` files), so older exports still work
+- **Plain-text `.md` files** — note content is extracted from Quill delta JSON and written as plain text so the exported files are genuinely editable in any editor. On import, plain text is wrapped back into a Quill delta automatically
+
 ## [0.9.0] - 2026-06-09
 
 ### Added
