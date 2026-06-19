@@ -51,6 +51,14 @@
       {
         "command": "notevs.openNoteById",
         "title": "NoteVs: Open Note"
+      },
+      {
+        "command": "notevs.exportNotes",
+        "title": "NoteVs: Export Notes to .notevs/"
+      },
+      {
+        "command": "notevs.importNotes",
+        "title": "NoteVs: Import Notes from .notevs/"
       }
     ],
     "menus": {
