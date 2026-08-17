@@ -243,9 +243,12 @@ export function registerAgentChatCommand(
     }
   }
 
-  // Writes the current transcript to .notevsagent/history/<timestamp>.md in
-  // the project root and clears it — a no-op if there's no open folder
-  // (nowhere sensible to write) or nothing said yet.
+  // Writes the current transcript to .notevsagent/history/<timestamp>.{md,json}
+  // in the project root and clears it — a no-op if there's no open folder
+  // (nowhere sensible to write) or nothing said yet. .md is for a human
+  // reading the file directly (grep/editor); .json is the structured copy
+  // the panel's own History dropdown reads back so it can re-render the
+  // conversation as real chat bubbles instead of parsing markdown.
   function archiveTranscript() {
     if (!transcript.length) { return; }
     const folderPath = getFolderPath();
@@ -254,12 +257,55 @@ export function registerAgentChatCommand(
       const dir = ensureHistoryDir(folderPath);
       const stamp = new Date().toISOString().replace(/[:.]/g, '-');
       fs.writeFileSync(path.join(dir, `${stamp}.md`), transcriptToMarkdown(transcript), 'utf8');
+      fs.writeFileSync(
+        path.join(dir, `${stamp}.json`),
+        JSON.stringify({ savedAt: new Date().toISOString(), entries: transcript }, null, 2),
+        'utf8',
+      );
     } catch (err) {
       // Best-effort — losing a history file isn't worth blocking New Chat
       // over, but worth a trace for anyone debugging it later.
       console.error('[NoteVs Agent] Failed to archive chat history:', err);
     }
     transcript = [];
+  }
+
+  interface HistoryListItem { file: string; label: string; savedAt: string }
+
+  function listHistoryEntries(): HistoryListItem[] {
+    const folderPath = getFolderPath();
+    if (!folderPath) { return []; }
+    const dir = path.join(folderPath, '.notevsagent', 'history');
+    if (!fs.existsSync(dir)) { return []; }
+    const items: HistoryListItem[] = [];
+    for (const file of fs.readdirSync(dir)) {
+      if (!file.endsWith('.json')) { continue; }
+      try {
+        const parsed = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8')) as { savedAt?: string; entries?: TranscriptEntry[] };
+        const savedAt = parsed.savedAt ?? new Date(0).toISOString();
+        const firstUser = parsed.entries?.find((e) => e.role === 'user')?.text ?? '(empty conversation)';
+        const label = firstUser.length > 60 ? `${firstUser.slice(0, 60)}…` : firstUser;
+        items.push({ file, label, savedAt });
+      } catch { /* skip a corrupt entry rather than fail the whole list */ }
+    }
+    return items.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+  }
+
+  function readHistoryEntry(file: string): TranscriptEntry[] | undefined {
+    const folderPath = getFolderPath();
+    if (!folderPath) { return undefined; }
+    // Reject anything that isn't a bare filename we generated ourselves —
+    // this value arrives via a webview postMessage, and even though this
+    // panel's own script is the only thing that should send it, treat it
+    // as untrusted input rather than trusting the source.
+    if (!/^[\w.:-]+\.json$/.test(file)) { return undefined; }
+    const filePath = path.join(folderPath, '.notevsagent', 'history', file);
+    try {
+      const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8')) as { entries?: TranscriptEntry[] };
+      return parsed.entries;
+    } catch {
+      return undefined;
+    }
   }
 
   function startNewChat() {
@@ -278,23 +324,12 @@ export function registerAgentChatCommand(
 
   const newChatCommand = vscode.commands.registerCommand('notevs.newAgentChat', () => { startNewChat(); });
 
-  // Read-only: opens an archived transcript in Markdown Preview rather than
-  // resuming it — browsing old history is a separate thing from continuing
-  // a live conversation, per the user's explicit "read only" ask.
-  const viewHistoryCommand = vscode.commands.registerCommand('notevs.viewAgentHistory', async () => {
-    const folderPath = getFolderPath();
-    if (!folderPath) { void vscode.window.showInformationMessage('Open a project folder first.'); return; }
-    const dir = path.join(folderPath, '.notevsagent', 'history');
-    if (!fs.existsSync(dir)) { void vscode.window.showInformationMessage('No past NoteVs Agent chats yet.'); return; }
-    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md')).sort().reverse();
-    if (!files.length) { void vscode.window.showInformationMessage('No past NoteVs Agent chats yet.'); return; }
-    const picked = await vscode.window.showQuickPick(
-      files.map((f) => ({ label: f.replace(/\.md$/, ''), file: f })),
-      { placeHolder: 'Select a past NoteVs Agent chat to view (read-only)' },
-    );
-    if (!picked) { return; }
-    const uri = vscode.Uri.file(path.join(dir, picked.file));
-    await vscode.commands.executeCommand('markdown.showPreview', uri);
+  // The Command Palette / editor-title entry point just brings the panel
+  // forward — the actual history browsing happens in-panel via the History
+  // button, same UI whether you got there by clicking it directly or via
+  // this command, rather than a second, different (QuickPick-based) flow.
+  const viewHistoryCommand = vscode.commands.registerCommand('notevs.viewAgentHistory', () => {
+    void vscode.commands.executeCommand('notevs.openAgentChat');
   });
 
   const openCommand = vscode.commands.registerCommand('notevs.openAgentChat', () => {
@@ -321,7 +356,7 @@ export function registerAgentChatCommand(
     agentPanel.onDidDispose(() => { agentPanel = undefined; }, null, context.subscriptions);
     void primeSessionWhenReady();
 
-    agentPanel.webview.onDidReceiveMessage(async (msg: { type: string; text?: string }) => {
+    agentPanel.webview.onDidReceiveMessage(async (msg: { type: string; text?: string; file?: string }) => {
       if (msg.type === 'ready') {
         postStatus();
         if (transcript.length && agentPanel) {
@@ -336,7 +371,19 @@ export function registerAgentChatCommand(
       // round-tripped back exactly like user-typed text.
       if (msg.type === 'buttonClick' && msg.text) { await handleUserText(msg.text); return; }
       if (msg.type === 'newChat') { startNewChat(); return; }
-      if (msg.type === 'viewHistory') { void vscode.commands.executeCommand('notevs.viewAgentHistory'); return; }
+      if (msg.type === 'requestHistoryList') {
+        agentPanel?.webview.postMessage({ type: 'historyList', items: listHistoryEntries() });
+        return;
+      }
+      if (msg.type === 'openHistoryEntry' && msg.file) {
+        const entries = readHistoryEntry(msg.file);
+        agentPanel?.webview.postMessage({ type: 'historyEntries', entries: entries ?? [] });
+        return;
+      }
+      if (msg.type === 'requestReturnToLive') {
+        agentPanel?.webview.postMessage({ type: 'restoreTranscript', entries: transcript });
+        return;
+      }
     });
   });
 

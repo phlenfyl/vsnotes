@@ -15,7 +15,7 @@ export function agentChatHtml(projectName: string): string {
   '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/>' +
   '<style>' +
   'body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:0;margin:0;height:100vh;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box}' +
-  '.toolbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0}' +
+  '.toolbar{position:relative;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0}' +
   '.project-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--vscode-descriptionForeground)}' +
   '.title-row{display:flex;align-items:center;gap:8px}' +
   '.title-row .agent-title{font-size:13px;font-weight:600}' +
@@ -61,6 +61,18 @@ export function agentChatHtml(projectName: string): string {
   '.toolbar-actions{display:flex;align-items:center;gap:6px}' +
   '.icon-btn{background:none;border:1px solid transparent;color:var(--vscode-foreground);border-radius:6px;padding:4px 6px;cursor:pointer;display:flex;align-items:center}' +
   '.icon-btn:hover{background:var(--vscode-toolbar-hoverBackground, rgba(127,127,127,.15));border-color:var(--vscode-panel-border)}' +
+  '.history-dropdown{position:absolute;top:100%;right:12px;margin-top:4px;width:280px;max-height:320px;overflow-y:auto;background:var(--vscode-dropdown-background, var(--vscode-editor-background));border:1px solid var(--vscode-panel-border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.35);z-index:10}' +
+  '.history-dropdown.hidden{display:none}' +
+  '.history-item{padding:8px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--vscode-panel-border)}' +
+  '.history-item:last-child{border-bottom:none}' +
+  '.history-item:hover{background:var(--vscode-list-hoverBackground)}' +
+  '.history-item .h-label{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+  '.history-item .h-time{display:block;color:var(--vscode-descriptionForeground);font-size:10px;margin-top:2px}' +
+  '.history-empty{padding:12px;font-size:12px;color:var(--vscode-descriptionForeground);text-align:center}' +
+  '.history-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;background:rgba(59,130,246,.12);border-bottom:1px solid rgba(59,130,246,.4);font-size:11px;flex-shrink:0}' +
+  '.history-banner.hidden{display:none}' +
+  '.history-banner button{font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid var(--vscode-panel-border);background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);cursor:pointer;flex-shrink:0}' +
+  '#msgInput:disabled,#sendBtn:disabled{opacity:.5}' +
   '</style></head><body>' +
   '<div class="toolbar">' +
     '<div class="title-row"><i class="codicon codicon-comment-discussion"></i><span class="agent-title">NoteVs Agent</span></div>' +
@@ -69,9 +81,14 @@ export function agentChatHtml(projectName: string): string {
       '<button class="icon-btn" id="newChatBtn" title="New chat (saves this one to history)"><i class="codicon codicon-add"></i></button>' +
       '<div class="status-pill" id="statusPill"><span class="status-dot" id="rasaDot"></span><span id="statusText">Checking&hellip;</span></div>' +
     '</div>' +
+    '<div class="history-dropdown hidden" id="historyDropdown"></div>' +
   '</div>' +
   '<div class="project-name" style="padding:6px 12px 0">' + safeProject + '</div>' +
   '<div id="statusDetail" style="display:none;padding:6px 12px;font-size:11px;line-height:1.5;color:var(--vscode-descriptionForeground);border-bottom:1px solid var(--vscode-panel-border)"></div>' +
+  '<div class="history-banner hidden" id="historyBanner">' +
+    '<span><i class="codicon codicon-eye"></i> Viewing a past chat (read-only)</span>' +
+    '<button id="backToLiveBtn">Back to current chat</button>' +
+  '</div>' +
   '<div class="messages" id="messages">' +
     '<div class="empty-hint">Ask about your notes, create or edit one, or send a note to Notion, Obsidian, Todoist, or Google Tasks. Anything that leaves NoteVs or deletes a note will ask you to confirm first.</div>' +
   '</div>' +
@@ -89,7 +106,11 @@ export function agentChatHtml(projectName: string): string {
   'const statusText = document.getElementById("statusText");' +
   'const newChatBtn = document.getElementById("newChatBtn");' +
   'const historyBtn = document.getElementById("historyBtn");' +
+  'const historyDropdown = document.getElementById("historyDropdown");' +
+  'const historyBanner = document.getElementById("historyBanner");' +
+  'const backToLiveBtn = document.getElementById("backToLiveBtn");' +
   'let thinkingEl = null;' +
+  'let viewingHistory = false;' +
   'function scrollDown(){messagesEl.scrollTop = messagesEl.scrollHeight;}' +
   'const BACKTICK = String.fromCharCode(96);' +
   'function escapeHtml(s){' +
@@ -202,7 +223,41 @@ export function agentChatHtml(projectName: string): string {
     'inputEl.style.height = "auto";' +
     'inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px";' +
   '}' +
+  'function setViewingHistory(on){' +
+    'viewingHistory = on;' +
+    'historyBanner.className = on ? "history-banner" : "history-banner hidden";' +
+    'inputEl.disabled = on;' +
+    'sendBtn.disabled = on;' +
+    'inputEl.placeholder = on ? "Return to the current chat to send a message" : "Message the NoteVs agent\\u2026";' +
+  '}' +
+  'function renderHistoryList(items){' +
+    'historyDropdown.innerHTML = "";' +
+    'if(!items || !items.length){' +
+      'const empty = document.createElement("div");' +
+      'empty.className = "history-empty";' +
+      'empty.textContent = "No past chats yet.";' +
+      'historyDropdown.appendChild(empty);' +
+      'return;' +
+    '}' +
+    'items.forEach(function(item){' +
+      'const row = document.createElement("div");' +
+      'row.className = "history-item";' +
+      'const label = document.createElement("span");' +
+      'label.className = "h-label";' +
+      'label.textContent = item.label || "(untitled)";' +
+      'const time = document.createElement("span");' +
+      'time.className = "h-time";' +
+      'try { time.textContent = new Date(item.savedAt).toLocaleString(); } catch(e) { time.textContent = ""; }' +
+      'row.appendChild(label); row.appendChild(time);' +
+      'row.addEventListener("click", function(){' +
+        'historyDropdown.className = "history-dropdown hidden";' +
+        'vscode.postMessage({type:"openHistoryEntry", file: item.file});' +
+      '});' +
+      'historyDropdown.appendChild(row);' +
+    '});' +
+  '}' +
   'function send(){' +
+    'if(viewingHistory) return;' +
     'const text = inputEl.value.trim();' +
     'if(!text) return;' +
     'addMsg(text, "user");' +
@@ -211,8 +266,28 @@ export function agentChatHtml(projectName: string): string {
     'vscode.postMessage({type:"sendMessage", text: text});' +
   '}' +
   'sendBtn.addEventListener("click", send);' +
-  'newChatBtn.addEventListener("click", function(){ vscode.postMessage({type:"newChat"}); });' +
-  'historyBtn.addEventListener("click", function(){ vscode.postMessage({type:"viewHistory"}); });' +
+  'newChatBtn.addEventListener("click", function(){' +
+    'historyDropdown.className = "history-dropdown hidden";' +
+    'vscode.postMessage({type:"newChat"});' +
+  '});' +
+  'historyBtn.addEventListener("click", function(){' +
+    'const isHidden = historyDropdown.className.indexOf("hidden") !== -1;' +
+    'if(isHidden){' +
+      'historyDropdown.className = "history-dropdown";' +
+      'historyDropdown.innerHTML = "<div class=\\"history-empty\\">Loading\\u2026</div>";' +
+      'vscode.postMessage({type:"requestHistoryList"});' +
+    '} else {' +
+      'historyDropdown.className = "history-dropdown hidden";' +
+    '}' +
+  '});' +
+  'backToLiveBtn.addEventListener("click", function(){' +
+    'vscode.postMessage({type:"requestReturnToLive"});' +
+  '});' +
+  'document.addEventListener("click", function(e){' +
+    'if(historyDropdown.className.indexOf("hidden") !== -1) return;' +
+    'if(historyDropdown.contains(e.target) || e.target === historyBtn || historyBtn.contains(e.target)) return;' +
+    'historyDropdown.className = "history-dropdown hidden";' +
+  '});' +
   'inputEl.addEventListener("input", autoGrow);' +
   'inputEl.addEventListener("keydown", function(e){' +
     'if(e.key === "Enter" && !e.shiftKey){e.preventDefault(); send();}' +
@@ -267,6 +342,11 @@ export function agentChatHtml(projectName: string): string {
     '} else if(msg.type === "thinking"){' +
       'setThinking(msg.value);' +
     '} else if(msg.type === "botMessages"){' +
+      // A background reply (e.g. the session-priming greeting) can land
+      // while a past chat is on screen — drop it visually rather than
+      // corrupt the read-only view; it is already saved server-side and
+      // will show up once the user returns to the live chat.
+      'if(viewingHistory) { return; }' +
       '(msg.messages || []).forEach(function(m){' +
         'if(m.buttons && m.buttons.length){' +
           'addConfirmCard(m.text, m.buttons);' +
@@ -275,17 +355,41 @@ export function agentChatHtml(projectName: string): string {
         '}' +
       '});' +
     '} else if(msg.type === "clearChat"){' +
+      'setViewingHistory(false);' +
       'messagesEl.innerHTML = "";' +
       'const hint = document.createElement("div");' +
       'hint.className = "empty-hint";' +
       'hint.textContent = "New chat started \\u2014 the previous conversation was saved to .notevsagent/history/ in your project.";' +
       'messagesEl.appendChild(hint);' +
     '} else if(msg.type === "restoreTranscript"){' +
-      // Reopening the panel replays the still-live session's messages:
-      // the underlying Rasa conversation never stopped, so the display
-      // should not look like it did either.
+      // Reopening the panel (or returning from a past chat) replays the
+      // still-live session's messages: the underlying Rasa conversation
+      // never stopped, so the display should not look like it did either.
+      'setViewingHistory(false);' +
       'messagesEl.innerHTML = "";' +
-      '(msg.entries || []).forEach(function(e){ addMsg(e.text, e.role === "user" ? "user" : "bot"); });' +
+      'const entries = msg.entries || [];' +
+      'if(!entries.length){' +
+        'const hint = document.createElement("div");' +
+        'hint.className = "empty-hint";' +
+        'hint.textContent = "Ask about your notes, create or edit one, or send a note to Notion, Obsidian, Todoist, or Google Tasks. Anything that leaves NoteVs or deletes a note will ask you to confirm first.";' +
+        'messagesEl.appendChild(hint);' +
+      '} else {' +
+        'entries.forEach(function(e){ addMsg(e.text, e.role === "user" ? "user" : "bot"); });' +
+      '}' +
+    '} else if(msg.type === "historyList"){' +
+      'renderHistoryList(msg.items);' +
+    '} else if(msg.type === "historyEntries"){' +
+      'setViewingHistory(true);' +
+      'messagesEl.innerHTML = "";' +
+      'const entries = msg.entries || [];' +
+      'if(!entries.length){' +
+        'const empty = document.createElement("div");' +
+        'empty.className = "empty-hint";' +
+        'empty.textContent = "(empty conversation)";' +
+        'messagesEl.appendChild(empty);' +
+      '} else {' +
+        'entries.forEach(function(e){ addMsg(e.text, e.role === "user" ? "user" : "bot"); });' +
+      '}' +
     '}' +
   '});' +
   'vscode.postMessage({type:"ready"});' +
