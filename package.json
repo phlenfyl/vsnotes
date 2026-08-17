@@ -163,10 +163,11 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run build && npm run build:bridge",
+    "vscode:prepublish": "npm run vendor:voice && npm run build && npm run build:bridge",
     "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:audify --format=cjs --platform=node",
     "build:bridge": "esbuild src/mcpBridge.ts --bundle --outfile=dist/mcp-bridge.cjs --format=cjs --platform=node",
     "dev": "npm run build -- --watch",
+    "vendor:voice": "rm -rf node_modules/audify node_modules/bindings node_modules/file-uri-to-path && mkdir -p node_modules/audify node_modules/bindings node_modules/file-uri-to-path && cp -R ../node_modules/audify/build node_modules/audify/build && cp ../node_modules/audify/index.js ../node_modules/audify/index.d.ts ../node_modules/audify/package.json node_modules/audify/ && cp -R ../node_modules/bindings/. node_modules/bindings/ && cp -R ../node_modules/file-uri-to-path/. node_modules/file-uri-to-path/",
     "package": "vsce package --no-dependencies",
     "publish": "vsce publish --no-dependencies"
   },

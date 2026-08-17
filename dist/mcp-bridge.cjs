@@ -25,7 +25,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 // src/mcpBridge.ts
 var http = __toESM(require("http"));
 var readline = __toESM(require("readline"));
-var PORT = 37491;
+var PORT = 37492;
 var BASE = `http://127.0.0.1:${PORT}`;
 function httpGet(path) {
   return new Promise((resolve, reject) => {
@@ -133,7 +133,7 @@ async function main() {
   });
   const alive = await checkExtension();
   process.stderr.write(alive ? `[NoteVs MCP] Connected. Scoping notes to: ${process.cwd()}
-` : "[NoteVs MCP] Warning: VS Code extension not detected on port 37491.\n");
+` : "[NoteVs MCP] Warning: VS Code extension not detected on port 37492.\n");
 }
 main().catch((err) => {
   process.stderr.write(`[NoteVs MCP] Fatal: ${err}

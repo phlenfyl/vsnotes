@@ -16422,7 +16422,6 @@ function agentChatHtml(projectName) {
 }
 
 // src/voice.ts
-var import_audify = require("audify");
 var SAMPLE_RATE = 16e3;
 var CHANNELS = 1;
 function pcmToWav(pcm) {
@@ -16455,12 +16454,13 @@ var VoiceRecorder = class {
     if (this.rtAudio) {
       return;
     }
-    const rt = new import_audify.RtAudio();
+    const audify = require("audify");
+    const rt = new audify.RtAudio();
     this.chunks = [];
     rt.openStream(
       null,
       { deviceId: rt.getDefaultInputDevice(), nChannels: CHANNELS },
-      import_audify.RtAudioFormat.RTAUDIO_SINT16,
+      audify.RtAudioFormat.RTAUDIO_SINT16,
       SAMPLE_RATE,
       1024,
       "notevs-agent-mic",

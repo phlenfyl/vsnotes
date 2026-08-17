@@ -24,7 +24,16 @@
  * agentPanel.ts) reuses everything already built and working.
  */
 
-import { RtAudio, RtAudioFormat } from 'audify';
+// Loaded lazily inside start(), not at module scope: this is a native
+// binary (see file header) that may not be present in every install (e.g.
+// a packaging gap, or an unsupported platform/arch). A top-level `import`
+// would run `require('audify')` the moment this file is first loaded —
+// which happens during extension activation, since agentPanel.ts imports
+// it unconditionally — and a missing/broken native module would then take
+// down the *entire* extension (notes, everything), not just voice. Lazy
+// loading confines that failure to start(), which already reports it back
+// to the webview as a normal "couldn't access the microphone" message.
+import type { RtAudio as RtAudioType } from 'audify';
 
 const SAMPLE_RATE = 16000; // Whisper's native rate; avoids server-side resampling.
 const CHANNELS = 1;
@@ -49,7 +58,7 @@ function pcmToWav(pcm: Buffer): Buffer {
 }
 
 export class VoiceRecorder {
-  private rtAudio: RtAudio | null = null;
+  private rtAudio: RtAudioType | null = null;
   private chunks: Buffer[] = [];
 
   isRecording(): boolean {
@@ -58,12 +67,14 @@ export class VoiceRecorder {
 
   start(): void {
     if (this.rtAudio) { return; }
-    const rt = new RtAudio();
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const audify: { RtAudio: new () => RtAudioType; RtAudioFormat: Record<string, number> } = require('audify');
+    const rt = new audify.RtAudio();
     this.chunks = [];
     rt.openStream(
       null,
       { deviceId: rt.getDefaultInputDevice(), nChannels: CHANNELS },
-      RtAudioFormat.RTAUDIO_SINT16,
+      audify.RtAudioFormat.RTAUDIO_SINT16,
       SAMPLE_RATE,
       1024,
       'notevs-agent-mic',

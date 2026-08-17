@@ -3,7 +3,6 @@ src/**
 docs/**
 CLAUDE.md
 interface/**
-node_modules/**
 .gitignore
 tsconfig.json
 esbuild*
@@ -12,3 +11,6 @@ dist/mcp-bridge.mjs
 .env
 screenshots/
 screenshot/
+.notevs/**
+.notevsagent/**
+.DS_Store
