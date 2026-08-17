@@ -16543,8 +16543,15 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager) 
     recordUserMessage(text);
     try {
       const messages = await sendToRasa(senderId, text);
-      agentPanel.webview.postMessage({ type: "botMessages", messages });
-      recordBotMessages(messages);
+      if (messages.length) {
+        agentPanel.webview.postMessage({ type: "botMessages", messages });
+        recordBotMessages(messages);
+      } else {
+        agentPanel.webview.postMessage({
+          type: "botMessages",
+          messages: [{ text: "Didn't get a reply back \u2014 the agent hit an error or rate limit processing that. Check the NoteVs Agent output channel for details, or just try again." }]
+        });
+      }
     } catch (err) {
       agentPanel.webview.postMessage({
         type: "botMessages",
@@ -16633,6 +16640,9 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager) 
     postStatus();
     void primeSessionWhenReady();
   });
+  const statusPollTimer = setInterval(() => {
+    void postStatus();
+  }, 3e3);
   const newChatCommand = vscode3.commands.registerCommand("notevs.newAgentChat", () => {
     startNewChat();
   });
@@ -16697,7 +16707,8 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager) 
       }
     });
   });
-  return vscode3.Disposable.from(openCommand, newChatCommand, viewHistoryCommand, statusSub);
+  const statusPollDisposable = { dispose: () => clearInterval(statusPollTimer) };
+  return vscode3.Disposable.from(openCommand, newChatCommand, viewHistoryCommand, statusSub, statusPollDisposable);
 }
 
 // src/agentProcess.ts

@@ -230,8 +230,22 @@ export function registerAgentChatCommand(
     recordUserMessage(text);
     try {
       const messages = await sendToRasa(senderId, text);
-      agentPanel.webview.postMessage({ type: 'botMessages', messages });
-      recordBotMessages(messages);
+      if (messages.length) {
+        agentPanel.webview.postMessage({ type: 'botMessages', messages });
+        recordBotMessages(messages);
+      } else {
+        // The HTTP request succeeded (200) but Rasa returned no messages —
+        // this is what a failed turn looks like from the REST channel's
+        // side (e.g. an LLM error or Groq rate limit killed the turn
+        // server-side; confirmed live via calm_v2.turn.failed in the
+        // Output channel while the webhook itself still returned 200).
+        // Silence here reads as the extension being broken, not the LLM
+        // call — say so plainly instead of leaving the user guessing.
+        agentPanel.webview.postMessage({
+          type: 'botMessages',
+          messages: [{ text: "Didn't get a reply back — the agent hit an error or rate limit processing that. Check the NoteVs Agent output channel for details, or just try again." }],
+        });
+      }
     } catch (err: unknown) {
       agentPanel.webview.postMessage({
         type: 'botMessages',
@@ -322,6 +336,17 @@ export function registerAgentChatCommand(
   // extension's whole lifetime.
   const statusSub = agentProcessManager.onStatusChange(() => { postStatus(); void primeSessionWhenReady(); });
 
+  // Without this, the pill only refreshes on the discrete events above
+  // (panel open, a process-manager phase change, or after a chat turn) —
+  // agentProcessManager's phase flips to 'running' the moment `rasa run`
+  // is spawned, well before Rasa has actually finished loading the model
+  // and started accepting requests, and nothing re-checks after that
+  // until one of those events happens to fire again. Confirmed live: the
+  // Output channel showed "Rasa server is up and running" while the pill
+  // still said "Starting…" until the user sent a message. Poll while the
+  // panel's open so the pill catches up on its own.
+  const statusPollTimer = setInterval(() => { void postStatus(); }, 3000);
+
   const newChatCommand = vscode.commands.registerCommand('notevs.newAgentChat', () => { startNewChat(); });
 
   // The Command Palette / editor-title entry point just brings the panel
@@ -387,5 +412,7 @@ export function registerAgentChatCommand(
     });
   });
 
-  return vscode.Disposable.from(openCommand, newChatCommand, viewHistoryCommand, statusSub);
+  const statusPollDisposable = { dispose: () => clearInterval(statusPollTimer) };
+
+  return vscode.Disposable.from(openCommand, newChatCommand, viewHistoryCommand, statusSub, statusPollDisposable);
 }
