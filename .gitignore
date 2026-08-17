@@ -1,7 +1,4 @@
-node_modules/*
-!node_modules/audify/
-!node_modules/bindings/
-!node_modules/file-uri-to-path/
+node_modules/
 interface/
 *.vsix
 EOF

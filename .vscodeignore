@@ -1,4 +1,5 @@
 .vscode/**
+scripts/**
 src/**
 docs/**
 CLAUDE.md
