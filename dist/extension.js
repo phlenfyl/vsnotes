@@ -16418,7 +16418,115 @@ var import_crypto3 = require("crypto");
 // src/agentPanelHtml.ts
 function agentChatHtml(projectName) {
   const safeProject = projectName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/><style>body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:0;margin:0;height:100vh;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box}.toolbar{position:relative;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0}.project-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--vscode-descriptionForeground)}.title-row{display:flex;align-items:center;gap:8px}.title-row .agent-title{font-size:13px;font-weight:600}.status-pill{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--vscode-descriptionForeground);padding:3px 8px;border-radius:10px;border:1px solid var(--vscode-panel-border);cursor:default}.status-dot{width:7px;height:7px;border-radius:50%;background:#888;flex-shrink:0}.status-dot.up{background:#3fb950}.status-dot.down{background:#f85149}.status-dot.busy{background:#d29922;animation:pulse 1.4s ease-in-out infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}.messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}.msg{max-width:85%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.45;word-wrap:break-word}.msg.user{align-self:flex-end;background:var(--vscode-button-background);color:var(--vscode-button-foreground);white-space:pre-wrap}.msg.bot{align-self:flex-start;background:var(--vscode-input-background);border:1px solid var(--vscode-panel-border)}.msg.system{align-self:center;font-size:11px;color:var(--vscode-descriptionForeground);background:none;padding:2px;white-space:pre-wrap}.msg.bot p{margin:0 0 6px 0}.msg.bot p:last-child{margin-bottom:0}.msg.bot ul,.msg.bot ol{margin:4px 0 8px 20px;padding:0}.msg.bot li{margin:2px 0}.msg.bot code{background:var(--vscode-textCodeBlock-background,rgba(127,127,127,.2));padding:1px 4px;border-radius:4px;font-family:var(--vscode-editor-font-family,monospace);font-size:12px}.msg.bot pre{background:var(--vscode-textCodeBlock-background,rgba(127,127,127,.15));padding:8px 10px;border-radius:6px;overflow-x:auto;margin:6px 0}.msg.bot pre code{background:none;padding:0}.msg.bot table{border-collapse:collapse;margin:6px 0;font-size:12px;width:100%}.msg.bot th,.msg.bot td{border:1px solid var(--vscode-panel-border);padding:4px 8px;text-align:left}.msg.bot th{background:rgba(127,127,127,.1)}.msg.bot strong{font-weight:600}.confirm-card{align-self:flex-start;max-width:90%;padding:12px;border-radius:10px;background:rgba(251,191,36,0.10);border:1.5px solid rgba(251,191,36,0.55);display:flex;flex-direction:column;gap:8px}.confirm-card .confirm-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#d29922;display:flex;align-items:center;gap:5px}.confirm-card .confirm-text{font-size:13px;line-height:1.45}.confirm-buttons{display:flex;gap:8px}.confirm-buttons button{font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid var(--vscode-panel-border);background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);cursor:pointer}.confirm-buttons button.primary{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border-color:transparent}.confirm-buttons button:hover{opacity:.85}.thinking{align-self:flex-start;display:flex;gap:4px;padding:8px 12px}.thinking span{width:6px;height:6px;border-radius:50%;background:var(--vscode-descriptionForeground);opacity:.5;animation:bounce 1.2s infinite}.thinking span:nth-child(2){animation-delay:.15s}.thinking span:nth-child(3){animation-delay:.3s}@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}.input-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--vscode-panel-border);flex-shrink:0}#msgInput{flex:1;background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border, var(--vscode-panel-border));border-radius:6px;padding:7px 10px;font-size:13px;font-family:var(--vscode-font-family);resize:none;max-height:160px;overflow-y:auto;line-height:1.4}#sendBtn{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:none;border-radius:6px;padding:0 14px;cursor:pointer}#sendBtn:disabled{opacity:.5;cursor:default}.empty-hint{align-self:center;color:var(--vscode-descriptionForeground);font-size:12px;text-align:center;margin-top:20px;max-width:80%}.toolbar-actions{display:flex;align-items:center;gap:6px}.icon-btn{background:none;border:1px solid transparent;color:var(--vscode-foreground);border-radius:6px;padding:4px 6px;cursor:pointer;display:flex;align-items:center}.icon-btn:hover{background:var(--vscode-toolbar-hoverBackground, rgba(127,127,127,.15));border-color:var(--vscode-panel-border)}.history-dropdown{position:absolute;top:100%;right:12px;margin-top:4px;width:280px;max-height:320px;overflow-y:auto;background:var(--vscode-dropdown-background, var(--vscode-editor-background));border:1px solid var(--vscode-panel-border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.35);z-index:10}.history-dropdown.hidden{display:none}.history-item{padding:8px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--vscode-panel-border)}.history-item:last-child{border-bottom:none}.history-item:hover{background:var(--vscode-list-hoverBackground)}.history-item .h-label{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.history-item .h-time{display:block;color:var(--vscode-descriptionForeground);font-size:10px;margin-top:2px}.history-empty{padding:12px;font-size:12px;color:var(--vscode-descriptionForeground);text-align:center}#msgInput:disabled,#sendBtn:disabled{opacity:.5}</style></head><body><div class="toolbar"><div class="title-row"><i class="codicon codicon-comment-discussion"></i><span class="agent-title">NoteVs Agent</span></div><div class="toolbar-actions"><button class="icon-btn" id="historyBtn" title="View past chats"><i class="codicon codicon-history"></i></button><button class="icon-btn" id="newChatBtn" title="New chat (saves this one to history)"><i class="codicon codicon-add"></i></button><div class="status-pill" id="statusPill"><span class="status-dot" id="rasaDot"></span><span id="statusText">Checking&hellip;</span></div></div><div class="history-dropdown hidden" id="historyDropdown"></div></div><div class="project-name" style="padding:6px 12px 0">' + safeProject + '</div><div id="statusDetail" style="display:none;padding:6px 12px;font-size:11px;line-height:1.5;color:var(--vscode-descriptionForeground);border-bottom:1px solid var(--vscode-panel-border)"></div><div class="messages" id="messages"><div class="empty-hint">Ask about your notes, create or edit one, or send a note to Notion, Obsidian, Todoist, or Google Tasks. Anything that leaves NoteVs or deletes a note will ask you to confirm first.</div></div><div class="input-row"><textarea id="msgInput" rows="1" placeholder="Message the NoteVs agent&hellip;"></textarea><button id="sendBtn"><i class="codicon codicon-send"></i></button></div><script>(function(){const vscode = acquireVsCodeApi();const messagesEl = document.getElementById("messages");const inputEl = document.getElementById("msgInput");const sendBtn = document.getElementById("sendBtn");const rasaDot = document.getElementById("rasaDot");const statusText = document.getElementById("statusText");const newChatBtn = document.getElementById("newChatBtn");const historyBtn = document.getElementById("historyBtn");const historyDropdown = document.getElementById("historyDropdown");let thinkingEl = null;function scrollDown(){messagesEl.scrollTop = messagesEl.scrollHeight;}const BACKTICK = String.fromCharCode(96);function escapeHtml(s){return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");}function mdToHtml(raw){const blocks = [];let text = escapeHtml(raw);const fence = new RegExp(BACKTICK + BACKTICK + BACKTICK + "([a-zA-Z0-9]*)\\\\n?([\\\\s\\\\S]*?)" + BACKTICK + BACKTICK + BACKTICK, "g");text = text.replace(fence, function(_, lang, code){const idx = blocks.length;blocks.push("<pre><code>" + code.replace(/\\n$/, "") + "</code></pre>");return "\\u0000B" + idx + "\\u0000";});const inlineCode = new RegExp(BACKTICK + "([^" + BACKTICK + "\\\\n]+)" + BACKTICK, "g");text = text.replace(inlineCode, function(_, code){ return "<code>" + code + "</code>"; });text = text.replace(/\\*\\*([^*]+)\\*\\*/g, "<strong>$1</strong>");text = text.replace(/(^|[^*])\\*([^*\\n]+)\\*(?!\\*)/g, "$1<em>$2</em>");const lines = text.split("\\n");let html = "";let i = 0;function isBullet(l){ return /^\\s*[-*]\\s+/.test(l); }function isNumbered(l){ return /^\\s*\\d+\\.\\s+/.test(l); }function isTableRow(l){ return /^\\s*\\|.*\\|\\s*$/.test(l); }function splitRow(l){const cells = l.split("|").map(function(c){ return c.trim(); });if(cells.length && cells[0] === ""){ cells.shift(); }if(cells.length && cells[cells.length - 1] === ""){ cells.pop(); }return cells;}while(i < lines.length){const line = lines[i];if(isBullet(line)){const items = [];while(i < lines.length && isBullet(lines[i])){ items.push("<li>" + lines[i].replace(/^\\s*[-*]\\s+/, "") + "</li>"); i++; }html += "<ul>" + items.join("") + "</ul>";continue;}if(isNumbered(line)){const items = [];while(i < lines.length && isNumbered(lines[i])){ items.push("<li>" + lines[i].replace(/^\\s*\\d+\\.\\s+/, "") + "</li>"); i++; }html += "<ol>" + items.join("") + "</ol>";continue;}if(isTableRow(line) && i + 1 < lines.length && /^[\\s|:-]+$/.test(lines[i + 1]) && lines[i + 1].indexOf("-") !== -1){const header = splitRow(line);i += 2;const rows = [];while(i < lines.length && isTableRow(lines[i])){ rows.push("<tr>" + splitRow(lines[i]).map(function(c){ return "<td>" + c + "</td>"; }).join("") + "</tr>"); i++; }html += "<table><thead><tr>" + header.map(function(c){ return "<th>" + c + "</th>"; }).join("") + "</tr></thead><tbody>" + rows.join("") + "</tbody></table>";continue;}if(line.trim() === ""){ i++; continue; }if(line.indexOf("\\u0000B") === 0){ html += line; i++; continue; }const para = [line];i++;while(i < lines.length && lines[i].trim() !== "" && !isBullet(lines[i]) && !isNumbered(lines[i]) && !isTableRow(lines[i]) && lines[i].indexOf("\\u0000B") !== 0){ para.push(lines[i]); i++; }html += "<p>" + para.join("<br>") + "</p>";}html = html.replace(/\\u0000B(\\d+)\\u0000/g, function(_, idx){ return blocks[Number(idx)]; });return html;}function addMsg(text, cls){const d = document.createElement("div");d.className = "msg " + cls;if(cls === "bot"){ d.innerHTML = mdToHtml(text); } else { d.textContent = text; }messagesEl.appendChild(d);scrollDown();}function addConfirmCard(text, buttons){const wrap = document.createElement("div");wrap.className = "confirm-card";const label = document.createElement("div");label.className = "confirm-label";label.innerHTML = "<i class=\\"codicon codicon-warning\\"></i> Needs your confirmation";const body = document.createElement("div");body.className = "confirm-text";body.textContent = text || "Proceed?";const btnRow = document.createElement("div");btnRow.className = "confirm-buttons";(buttons || []).forEach(function(b, i){const btn = document.createElement("button");btn.textContent = b.title || "OK";if(i === 0){btn.className = "primary";}btn.addEventListener("click", function(){btnRow.querySelectorAll("button").forEach(function(x){x.disabled = true;});addMsg(b.title || "OK", "user");vscode.postMessage({type:"buttonClick", text: b.payload});});btnRow.appendChild(btn);});wrap.appendChild(label); wrap.appendChild(body); wrap.appendChild(btnRow);messagesEl.appendChild(wrap);scrollDown();}function setThinking(on){if(on && !thinkingEl){thinkingEl = document.createElement("div");thinkingEl.className = "thinking";thinkingEl.innerHTML = "<span></span><span></span><span></span>";messagesEl.appendChild(thinkingEl);scrollDown();} else if(!on && thinkingEl){thinkingEl.remove();thinkingEl = null;}sendBtn.disabled = !!on;}function autoGrow(){inputEl.style.height = "auto";inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px";}function renderHistoryList(items){historyDropdown.innerHTML = "";if(!items || !items.length){const empty = document.createElement("div");empty.className = "history-empty";empty.textContent = "No past chats yet.";historyDropdown.appendChild(empty);return;}items.forEach(function(item){const row = document.createElement("div");row.className = "history-item";const label = document.createElement("span");label.className = "h-label";label.textContent = item.label || "(untitled)";const time = document.createElement("span");time.className = "h-time";try { time.textContent = new Date(item.savedAt).toLocaleString(); } catch(e) { time.textContent = ""; }row.appendChild(label); row.appendChild(time);row.addEventListener("click", function(){historyDropdown.className = "history-dropdown hidden";vscode.postMessage({type:"openHistoryEntry", file: item.file});});historyDropdown.appendChild(row);});}function send(){const text = inputEl.value.trim();if(!text) return;addMsg(text, "user");inputEl.value = "";autoGrow();vscode.postMessage({type:"sendMessage", text: text});}sendBtn.addEventListener("click", send);newChatBtn.addEventListener("click", function(){historyDropdown.className = "history-dropdown hidden";vscode.postMessage({type:"newChat"});});historyBtn.addEventListener("click", function(){const isHidden = historyDropdown.className.indexOf("hidden") !== -1;if(isHidden){historyDropdown.className = "history-dropdown";historyDropdown.innerHTML = "<div class=\\"history-empty\\">Loading\\u2026</div>";vscode.postMessage({type:"requestHistoryList"});} else {historyDropdown.className = "history-dropdown hidden";}});document.addEventListener("click", function(e){if(historyDropdown.className.indexOf("hidden") !== -1) return;if(historyDropdown.contains(e.target) || e.target === historyBtn || historyBtn.contains(e.target)) return;historyDropdown.className = "history-dropdown hidden";});inputEl.addEventListener("input", autoGrow);inputEl.addEventListener("keydown", function(e){if(e.key === "Enter" && !e.shiftKey){e.preventDefault(); send();}});window.addEventListener("message", function(event){const msg = event.data;if(msg.type === "status"){const PHASE_LABELS = {missing_credentials: "Add credentials in Settings",extracting: "Setting up\\u2026",creating_venv: "Creating environment\\u2026",installing: "Installing (first time)\\u2026",training: "Training (first time)\\u2026",starting: "Starting\\u2026",crashed: "Agent crashed \\u2014 retrying",error: "Setup failed"};const statusPill = document.getElementById("statusPill");const statusDetail = document.getElementById("statusDetail");function showDetail(text, isError){if(!text){statusDetail.style.display = "none"; return;}statusDetail.textContent = text;statusDetail.style.color = isError ? "#f85149" : "var(--vscode-descriptionForeground)";statusDetail.style.display = "block";}if(msg.phase === "running" && msg.rasaUp && msg.notevsUp){rasaDot.className = "status-dot up";statusText.textContent = "Agent ready";statusPill.title = "";showDetail("");} else if(msg.phase === "running" && !msg.notevsUp){rasaDot.className = "status-dot down";statusText.textContent = "NoteVs not running";statusPill.title = "";showDetail("");} else if(msg.phase === "running"){rasaDot.className = "status-dot busy";statusText.textContent = "Starting\\u2026";statusPill.title = msg.message || "";showDetail(msg.message, false);} else if(msg.phase === "error" || msg.phase === "crashed"){rasaDot.className = "status-dot down";statusText.textContent = PHASE_LABELS[msg.phase] || "Agent offline";statusPill.title = msg.message || "";showDetail(msg.message, true);} else {rasaDot.className = "status-dot busy";statusText.textContent = PHASE_LABELS[msg.phase] || "Agent offline";statusPill.title = msg.message || "";showDetail(msg.message, false);}} else if(msg.type === "thinking"){setThinking(msg.value);} else if(msg.type === "botMessages"){(msg.messages || []).forEach(function(m){if(m.buttons && m.buttons.length){addConfirmCard(m.text, m.buttons);} else if(m.text){addMsg(m.text, "bot");}});} else if(msg.type === "clearChat"){messagesEl.innerHTML = "";const hint = document.createElement("div");hint.className = "empty-hint";hint.textContent = "New chat started \\u2014 the previous conversation was saved to .notevsagent/history/ in your project.";messagesEl.appendChild(hint);} else if(msg.type === "restoreTranscript"){messagesEl.innerHTML = "";const entries = msg.entries || [];if(!entries.length){const hint = document.createElement("div");hint.className = "empty-hint";hint.textContent = "Ask about your notes, create or edit one, or send a note to Notion, Obsidian, Todoist, or Google Tasks. Anything that leaves NoteVs or deletes a note will ask you to confirm first.";messagesEl.appendChild(hint);} else {entries.forEach(function(e){ addMsg(e.text, e.role === "user" ? "user" : "bot"); });}} else if(msg.type === "historyList"){renderHistoryList(msg.items);}});vscode.postMessage({type:"ready"});inputEl.focus();})();</script></body></html>';
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/><style>body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:0;margin:0;height:100vh;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box}.toolbar{position:relative;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0}.project-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--vscode-descriptionForeground)}.title-row{display:flex;align-items:center;gap:8px}.title-row .agent-title{font-size:13px;font-weight:600}.status-pill{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--vscode-descriptionForeground);padding:3px 8px;border-radius:10px;border:1px solid var(--vscode-panel-border);cursor:default}.status-dot{width:7px;height:7px;border-radius:50%;background:#888;flex-shrink:0}.status-dot.up{background:#3fb950}.status-dot.down{background:#f85149}.status-dot.busy{background:#d29922;animation:pulse 1.4s ease-in-out infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}.messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}.msg{max-width:85%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.45;word-wrap:break-word}.msg.user{align-self:flex-end;background:var(--vscode-button-background);color:var(--vscode-button-foreground);white-space:pre-wrap}.msg.bot{align-self:flex-start;background:var(--vscode-input-background);border:1px solid var(--vscode-panel-border)}.msg.system{align-self:center;font-size:11px;color:var(--vscode-descriptionForeground);background:none;padding:2px;white-space:pre-wrap}.msg.bot p{margin:0 0 6px 0}.msg.bot p:last-child{margin-bottom:0}.msg.bot ul,.msg.bot ol{margin:4px 0 8px 20px;padding:0}.msg.bot li{margin:2px 0}.msg.bot code{background:var(--vscode-textCodeBlock-background,rgba(127,127,127,.2));padding:1px 4px;border-radius:4px;font-family:var(--vscode-editor-font-family,monospace);font-size:12px}.msg.bot pre{background:var(--vscode-textCodeBlock-background,rgba(127,127,127,.15));padding:8px 10px;border-radius:6px;overflow-x:auto;margin:6px 0}.msg.bot pre code{background:none;padding:0}.msg.bot table{border-collapse:collapse;margin:6px 0;font-size:12px;width:100%}.msg.bot th,.msg.bot td{border:1px solid var(--vscode-panel-border);padding:4px 8px;text-align:left}.msg.bot th{background:rgba(127,127,127,.1)}.msg.bot strong{font-weight:600}.confirm-card{align-self:flex-start;max-width:90%;padding:12px;border-radius:10px;background:rgba(251,191,36,0.10);border:1.5px solid rgba(251,191,36,0.55);display:flex;flex-direction:column;gap:8px}.confirm-card .confirm-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#d29922;display:flex;align-items:center;gap:5px}.confirm-card .confirm-text{font-size:13px;line-height:1.45}.confirm-buttons{display:flex;gap:8px}.confirm-buttons button{font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid var(--vscode-panel-border);background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);cursor:pointer}.confirm-buttons button.primary{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border-color:transparent}.confirm-buttons button:hover{opacity:.85}.thinking{align-self:flex-start;display:flex;gap:4px;padding:8px 12px}.thinking span{width:6px;height:6px;border-radius:50%;background:var(--vscode-descriptionForeground);opacity:.5;animation:bounce 1.2s infinite}.thinking span:nth-child(2){animation-delay:.15s}.thinking span:nth-child(3){animation-delay:.3s}@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}.input-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--vscode-panel-border);flex-shrink:0}#msgInput{flex:1;background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border, var(--vscode-panel-border));border-radius:6px;padding:7px 10px;font-size:13px;font-family:var(--vscode-font-family);resize:none;max-height:160px;overflow-y:auto;line-height:1.4}#sendBtn{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:none;border-radius:6px;padding:0 14px;cursor:pointer}#sendBtn:disabled{opacity:.5;cursor:default}.empty-hint{align-self:center;color:var(--vscode-descriptionForeground);font-size:12px;text-align:center;margin-top:20px;max-width:80%}.toolbar-actions{display:flex;align-items:center;gap:6px}.icon-btn{background:none;border:1px solid transparent;color:var(--vscode-foreground);border-radius:6px;padding:4px 6px;cursor:pointer;display:flex;align-items:center}.icon-btn:hover{background:var(--vscode-toolbar-hoverBackground, rgba(127,127,127,.15));border-color:var(--vscode-panel-border)}.history-dropdown{position:absolute;top:100%;right:12px;margin-top:4px;width:280px;max-height:320px;overflow-y:auto;background:var(--vscode-dropdown-background, var(--vscode-editor-background));border:1px solid var(--vscode-panel-border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.35);z-index:10}.history-dropdown.hidden{display:none}.history-item{padding:8px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--vscode-panel-border)}.history-item:last-child{border-bottom:none}.history-item:hover{background:var(--vscode-list-hoverBackground)}.history-item .h-label{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.history-item .h-time{display:block;color:var(--vscode-descriptionForeground);font-size:10px;margin-top:2px}.history-empty{padding:12px;font-size:12px;color:var(--vscode-descriptionForeground);text-align:center}#msgInput:disabled,#sendBtn:disabled{opacity:.5}#micBtn.recording{background:#f85149;border-color:#f85149;color:#fff;animation:pulse 1.2s ease-in-out infinite}</style></head><body><div class="toolbar"><div class="title-row"><i class="codicon codicon-comment-discussion"></i><span class="agent-title">NoteVs Agent</span></div><div class="toolbar-actions"><button class="icon-btn" id="historyBtn" title="View past chats"><i class="codicon codicon-history"></i></button><button class="icon-btn" id="newChatBtn" title="New chat (saves this one to history)"><i class="codicon codicon-add"></i></button><div class="status-pill" id="statusPill"><span class="status-dot" id="rasaDot"></span><span id="statusText">Checking&hellip;</span></div></div><div class="history-dropdown hidden" id="historyDropdown"></div></div><div class="project-name" style="padding:6px 12px 0">' + safeProject + '</div><div id="statusDetail" style="display:none;padding:6px 12px;font-size:11px;line-height:1.5;color:var(--vscode-descriptionForeground);border-bottom:1px solid var(--vscode-panel-border)"></div><div class="messages" id="messages"><div class="empty-hint">Ask about your notes, create or edit one, or send a note to Notion, Obsidian, Todoist, or Google Tasks. Anything that leaves NoteVs or deletes a note will ask you to confirm first.</div></div><div class="input-row"><button class="icon-btn" id="micBtn" title="Tap to talk"><i class="codicon codicon-mic"></i></button><textarea id="msgInput" rows="1" placeholder="Message the NoteVs agent&hellip;"></textarea><button id="sendBtn"><i class="codicon codicon-send"></i></button></div><audio id="ttsPlayer" style="display:none"></audio><script>(function(){const vscode = acquireVsCodeApi();const messagesEl = document.getElementById("messages");const inputEl = document.getElementById("msgInput");const sendBtn = document.getElementById("sendBtn");const rasaDot = document.getElementById("rasaDot");const statusText = document.getElementById("statusText");const newChatBtn = document.getElementById("newChatBtn");const historyBtn = document.getElementById("historyBtn");const historyDropdown = document.getElementById("historyDropdown");const micBtn = document.getElementById("micBtn");const ttsPlayer = document.getElementById("ttsPlayer");let recording = false;let thinkingEl = null;function scrollDown(){messagesEl.scrollTop = messagesEl.scrollHeight;}const BACKTICK = String.fromCharCode(96);function escapeHtml(s){return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");}function mdToHtml(raw){const blocks = [];let text = escapeHtml(raw);const fence = new RegExp(BACKTICK + BACKTICK + BACKTICK + "([a-zA-Z0-9]*)\\\\n?([\\\\s\\\\S]*?)" + BACKTICK + BACKTICK + BACKTICK, "g");text = text.replace(fence, function(_, lang, code){const idx = blocks.length;blocks.push("<pre><code>" + code.replace(/\\n$/, "") + "</code></pre>");return "\\u0000B" + idx + "\\u0000";});const inlineCode = new RegExp(BACKTICK + "([^" + BACKTICK + "\\\\n]+)" + BACKTICK, "g");text = text.replace(inlineCode, function(_, code){ return "<code>" + code + "</code>"; });text = text.replace(/\\*\\*([^*]+)\\*\\*/g, "<strong>$1</strong>");text = text.replace(/(^|[^*])\\*([^*\\n]+)\\*(?!\\*)/g, "$1<em>$2</em>");const lines = text.split("\\n");let html = "";let i = 0;function isBullet(l){ return /^\\s*[-*]\\s+/.test(l); }function isNumbered(l){ return /^\\s*\\d+\\.\\s+/.test(l); }function isTableRow(l){ return /^\\s*\\|.*\\|\\s*$/.test(l); }function splitRow(l){const cells = l.split("|").map(function(c){ return c.trim(); });if(cells.length && cells[0] === ""){ cells.shift(); }if(cells.length && cells[cells.length - 1] === ""){ cells.pop(); }return cells;}while(i < lines.length){const line = lines[i];if(isBullet(line)){const items = [];while(i < lines.length && isBullet(lines[i])){ items.push("<li>" + lines[i].replace(/^\\s*[-*]\\s+/, "") + "</li>"); i++; }html += "<ul>" + items.join("") + "</ul>";continue;}if(isNumbered(line)){const items = [];while(i < lines.length && isNumbered(lines[i])){ items.push("<li>" + lines[i].replace(/^\\s*\\d+\\.\\s+/, "") + "</li>"); i++; }html += "<ol>" + items.join("") + "</ol>";continue;}if(isTableRow(line) && i + 1 < lines.length && /^[\\s|:-]+$/.test(lines[i + 1]) && lines[i + 1].indexOf("-") !== -1){const header = splitRow(line);i += 2;const rows = [];while(i < lines.length && isTableRow(lines[i])){ rows.push("<tr>" + splitRow(lines[i]).map(function(c){ return "<td>" + c + "</td>"; }).join("") + "</tr>"); i++; }html += "<table><thead><tr>" + header.map(function(c){ return "<th>" + c + "</th>"; }).join("") + "</tr></thead><tbody>" + rows.join("") + "</tbody></table>";continue;}if(line.trim() === ""){ i++; continue; }if(line.indexOf("\\u0000B") === 0){ html += line; i++; continue; }const para = [line];i++;while(i < lines.length && lines[i].trim() !== "" && !isBullet(lines[i]) && !isNumbered(lines[i]) && !isTableRow(lines[i]) && lines[i].indexOf("\\u0000B") !== 0){ para.push(lines[i]); i++; }html += "<p>" + para.join("<br>") + "</p>";}html = html.replace(/\\u0000B(\\d+)\\u0000/g, function(_, idx){ return blocks[Number(idx)]; });return html;}function addMsg(text, cls){const d = document.createElement("div");d.className = "msg " + cls;if(cls === "bot"){ d.innerHTML = mdToHtml(text); } else { d.textContent = text; }messagesEl.appendChild(d);scrollDown();}function addConfirmCard(text, buttons){const wrap = document.createElement("div");wrap.className = "confirm-card";const label = document.createElement("div");label.className = "confirm-label";label.innerHTML = "<i class=\\"codicon codicon-warning\\"></i> Needs your confirmation";const body = document.createElement("div");body.className = "confirm-text";body.textContent = text || "Proceed?";const btnRow = document.createElement("div");btnRow.className = "confirm-buttons";(buttons || []).forEach(function(b, i){const btn = document.createElement("button");btn.textContent = b.title || "OK";if(i === 0){btn.className = "primary";}btn.addEventListener("click", function(){btnRow.querySelectorAll("button").forEach(function(x){x.disabled = true;});addMsg(b.title || "OK", "user");vscode.postMessage({type:"buttonClick", text: b.payload});});btnRow.appendChild(btn);});wrap.appendChild(label); wrap.appendChild(body); wrap.appendChild(btnRow);messagesEl.appendChild(wrap);scrollDown();}function setThinking(on){if(on && !thinkingEl){thinkingEl = document.createElement("div");thinkingEl.className = "thinking";thinkingEl.innerHTML = "<span></span><span></span><span></span>";messagesEl.appendChild(thinkingEl);scrollDown();} else if(!on && thinkingEl){thinkingEl.remove();thinkingEl = null;}sendBtn.disabled = !!on;}function autoGrow(){inputEl.style.height = "auto";inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px";}function renderHistoryList(items){historyDropdown.innerHTML = "";if(!items || !items.length){const empty = document.createElement("div");empty.className = "history-empty";empty.textContent = "No past chats yet.";historyDropdown.appendChild(empty);return;}items.forEach(function(item){const row = document.createElement("div");row.className = "history-item";const label = document.createElement("span");label.className = "h-label";label.textContent = item.label || "(untitled)";const time = document.createElement("span");time.className = "h-time";try { time.textContent = new Date(item.savedAt).toLocaleString(); } catch(e) { time.textContent = ""; }row.appendChild(label); row.appendChild(time);row.addEventListener("click", function(){historyDropdown.className = "history-dropdown hidden";vscode.postMessage({type:"openHistoryEntry", file: item.file});});historyDropdown.appendChild(row);});}function send(){const text = inputEl.value.trim();if(!text) return;addMsg(text, "user");inputEl.value = "";autoGrow();vscode.postMessage({type:"sendMessage", text: text});}sendBtn.addEventListener("click", send);micBtn.addEventListener("click", function(){if(recording){ vscode.postMessage({type:"stopRecording"}); } else { vscode.postMessage({type:"startRecording"}); }});newChatBtn.addEventListener("click", function(){historyDropdown.className = "history-dropdown hidden";vscode.postMessage({type:"newChat"});});historyBtn.addEventListener("click", function(){const isHidden = historyDropdown.className.indexOf("hidden") !== -1;if(isHidden){historyDropdown.className = "history-dropdown";historyDropdown.innerHTML = "<div class=\\"history-empty\\">Loading\\u2026</div>";vscode.postMessage({type:"requestHistoryList"});} else {historyDropdown.className = "history-dropdown hidden";}});document.addEventListener("click", function(e){if(historyDropdown.className.indexOf("hidden") !== -1) return;if(historyDropdown.contains(e.target) || e.target === historyBtn || historyBtn.contains(e.target)) return;historyDropdown.className = "history-dropdown hidden";});inputEl.addEventListener("input", autoGrow);inputEl.addEventListener("keydown", function(e){if(e.key === "Enter" && !e.shiftKey){e.preventDefault(); send();}});window.addEventListener("message", function(event){const msg = event.data;if(msg.type === "status"){const PHASE_LABELS = {missing_credentials: "Add credentials in Settings",extracting: "Setting up\\u2026",creating_venv: "Creating environment\\u2026",installing: "Installing (first time)\\u2026",training: "Training (first time)\\u2026",starting: "Starting\\u2026",crashed: "Agent crashed \\u2014 retrying",error: "Setup failed"};const statusPill = document.getElementById("statusPill");const statusDetail = document.getElementById("statusDetail");function showDetail(text, isError){if(!text){statusDetail.style.display = "none"; return;}statusDetail.textContent = text;statusDetail.style.color = isError ? "#f85149" : "var(--vscode-descriptionForeground)";statusDetail.style.display = "block";}if(msg.phase === "running" && msg.rasaUp && msg.notevsUp){rasaDot.className = "status-dot up";statusText.textContent = "Agent ready";statusPill.title = "";showDetail("");} else if(msg.phase === "running" && !msg.notevsUp){rasaDot.className = "status-dot down";statusText.textContent = "NoteVs not running";statusPill.title = "";showDetail("");} else if(msg.phase === "running"){rasaDot.className = "status-dot busy";statusText.textContent = "Starting\\u2026";statusPill.title = msg.message || "";showDetail(msg.message, false);} else if(msg.phase === "error" || msg.phase === "crashed"){rasaDot.className = "status-dot down";statusText.textContent = PHASE_LABELS[msg.phase] || "Agent offline";statusPill.title = msg.message || "";showDetail(msg.message, true);} else {rasaDot.className = "status-dot busy";statusText.textContent = PHASE_LABELS[msg.phase] || "Agent offline";statusPill.title = msg.message || "";showDetail(msg.message, false);}} else if(msg.type === "thinking"){setThinking(msg.value);} else if(msg.type === "botMessages"){(msg.messages || []).forEach(function(m){if(m.buttons && m.buttons.length){addConfirmCard(m.text, m.buttons);} else if(m.text){addMsg(m.text, "bot");}});} else if(msg.type === "clearChat"){messagesEl.innerHTML = "";const hint = document.createElement("div");hint.className = "empty-hint";hint.textContent = "New chat started \\u2014 the previous conversation was saved to .notevsagent/history/ in your project.";messagesEl.appendChild(hint);} else if(msg.type === "restoreTranscript"){messagesEl.innerHTML = "";const entries = msg.entries || [];if(!entries.length){const hint = document.createElement("div");hint.className = "empty-hint";hint.textContent = "Ask about your notes, create or edit one, or send a note to Notion, Obsidian, Todoist, or Google Tasks. Anything that leaves NoteVs or deletes a note will ask you to confirm first.";messagesEl.appendChild(hint);} else {entries.forEach(function(e){ addMsg(e.text, e.role === "user" ? "user" : "bot"); });}} else if(msg.type === "historyList"){renderHistoryList(msg.items);} else if(msg.type === "userMessage"){addMsg(msg.text, "user");} else if(msg.type === "recordingState"){recording = !!msg.recording;micBtn.className = recording ? "icon-btn recording" : "icon-btn";if(msg.error){ addMsg(msg.error, "system"); }} else if(msg.type === "ttsAudio"){ttsPlayer.src = msg.dataUri;ttsPlayer.play().catch(function(){});}});vscode.postMessage({type:"ready"});inputEl.focus();})();</script></body></html>';
+}
+
+// src/voice.ts
+var import_audify = require("audify");
+var SAMPLE_RATE = 16e3;
+var CHANNELS = 1;
+function pcmToWav(pcm) {
+  const header = Buffer.alloc(44);
+  const dataSize = pcm.length;
+  header.write("RIFF", 0, "ascii");
+  header.writeUInt32LE(36 + dataSize, 4);
+  header.write("WAVE", 8, "ascii");
+  header.write("fmt ", 12, "ascii");
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(CHANNELS, 22);
+  header.writeUInt32LE(SAMPLE_RATE, 24);
+  header.writeUInt32LE(SAMPLE_RATE * CHANNELS * 2, 28);
+  header.writeUInt16LE(CHANNELS * 2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write("data", 36, "ascii");
+  header.writeUInt32LE(dataSize, 40);
+  return Buffer.concat([header, pcm]);
+}
+var VoiceRecorder = class {
+  constructor() {
+    this.rtAudio = null;
+    this.chunks = [];
+  }
+  isRecording() {
+    return this.rtAudio !== null;
+  }
+  start() {
+    if (this.rtAudio) {
+      return;
+    }
+    const rt = new import_audify.RtAudio();
+    this.chunks = [];
+    rt.openStream(
+      null,
+      { deviceId: rt.getDefaultInputDevice(), nChannels: CHANNELS },
+      import_audify.RtAudioFormat.RTAUDIO_SINT16,
+      SAMPLE_RATE,
+      1024,
+      "notevs-agent-mic",
+      (data) => {
+        this.chunks.push(Buffer.from(data));
+      },
+      null
+    );
+    rt.start();
+    this.rtAudio = rt;
+  }
+  // Returns undefined if nothing was ever recording, or if the recording
+  // was effectively silent (a mis-tap) — not worth a round-trip to Groq.
+  stop() {
+    if (!this.rtAudio) {
+      return void 0;
+    }
+    const rt = this.rtAudio;
+    this.rtAudio = null;
+    try {
+      rt.stop();
+      rt.closeStream();
+    } catch {
+    }
+    const pcm = Buffer.concat(this.chunks);
+    this.chunks = [];
+    const minBytes = SAMPLE_RATE * CHANNELS * 2 * 0.2;
+    if (pcm.length < minBytes) {
+      return void 0;
+    }
+    return pcmToWav(pcm);
+  }
+};
+async function transcribeAudio(wav, apiKey) {
+  const form = new FormData();
+  form.append("file", new Blob([wav], { type: "audio/wav" }), "speech.wav");
+  form.append("model", "whisper-large-v3-turbo");
+  form.append("response_format", "text");
+  const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form
+  });
+  if (!res.ok) {
+    throw new Error(`Groq transcription failed: ${res.status} ${await res.text()}`);
+  }
+  const text = await res.text();
+  return text.trim();
+}
+async function synthesizeSpeech(text, apiKey) {
+  const res = await fetch("https://api.groq.com/openai/v1/audio/speech", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "canopylabs/orpheus-v1-english",
+      input: text.slice(0, 2e3),
+      // keep TTS cost/latency bounded for a long reply
+      voice: "austin",
+      response_format: "wav"
+    })
+  });
+  if (!res.ok) {
+    throw new Error(`Groq speech synthesis failed: ${res.status} ${await res.text()}`);
+  }
+  const buf = Buffer.from(await res.arrayBuffer());
+  return `data:audio/wav;base64,${buf.toString("base64")}`;
 }
 
 // src/agentPanel.ts
@@ -16481,6 +16589,7 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager) 
   let senderId = (0, import_crypto3.randomUUID)();
   let transcript = [];
   let currentHistoryFile;
+  const voiceRecorder = new VoiceRecorder();
   function recordUserMessage(text) {
     transcript.push({ role: "user", text, at: (/* @__PURE__ */ new Date()).toISOString() });
   }
@@ -16536,7 +16645,26 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager) 
     const [rasaUp, notevsUp] = pipeline.phase === "running" ? await Promise.all([checkRasaStatus(), checkNoteVsStatus()]) : [false, await checkNoteVsStatus()];
     agentPanel.webview.postMessage({ type: "status", phase: pipeline.phase, message: pipeline.message, rasaUp, notevsUp });
   }
-  async function handleUserText(text) {
+  async function speakReply(messages) {
+    if (!agentPanel) {
+      return;
+    }
+    const text = messages.map((m) => m.text).filter(Boolean).join(" ");
+    if (!text) {
+      return;
+    }
+    const apiKey = await context.secrets.get("groqApiKey");
+    if (!apiKey) {
+      return;
+    }
+    try {
+      const dataUri = await synthesizeSpeech(text, apiKey);
+      agentPanel.webview.postMessage({ type: "ttsAudio", dataUri });
+    } catch (err) {
+      console.error("[NoteVs Agent] TTS synthesis failed:", err);
+    }
+  }
+  async function handleUserText(text, viaVoice = false) {
     if (!agentPanel) {
       return;
     }
@@ -16548,6 +16676,9 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager) 
       if (messages.length) {
         agentPanel.webview.postMessage({ type: "botMessages", messages });
         recordBotMessages(messages);
+        if (viaVoice) {
+          void speakReply(messages);
+        }
       } else {
         agentPanel.webview.postMessage({
           type: "botMessages",
@@ -16696,6 +16827,7 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager) 
     agentPanel.webview.html = agentChatHtml(projectName);
     agentPanel.onDidDispose(() => {
       agentPanel = void 0;
+      voiceRecorder.stop();
     }, null, context.subscriptions);
     void primeSessionWhenReady();
     agentPanel.webview.onDidReceiveMessage(async (msg) => {
@@ -16728,6 +16860,47 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager) 
       }
       if (msg.type === "openHistoryEntry" && msg.file) {
         resumeHistoryEntry(msg.file);
+        return;
+      }
+      if (msg.type === "startRecording") {
+        try {
+          voiceRecorder.start();
+          agentPanel?.webview.postMessage({ type: "recordingState", recording: true });
+        } catch (err) {
+          agentPanel?.webview.postMessage({
+            type: "recordingState",
+            recording: false,
+            error: `Couldn't access the microphone (${err instanceof Error ? err.message : String(err)})`
+          });
+        }
+        return;
+      }
+      if (msg.type === "stopRecording") {
+        agentPanel?.webview.postMessage({ type: "recordingState", recording: false });
+        const wav = voiceRecorder.stop();
+        if (!wav) {
+          return;
+        }
+        const apiKey = await context.secrets.get("groqApiKey");
+        if (!apiKey) {
+          agentPanel?.webview.postMessage({
+            type: "botMessages",
+            messages: [{ text: "Voice needs a Groq API key \u2014 add one in NoteVs Settings \u2192 Agent, same key the agent already uses." }]
+          });
+          return;
+        }
+        try {
+          const text = await transcribeAudio(wav, apiKey);
+          if (text) {
+            agentPanel?.webview.postMessage({ type: "userMessage", text });
+            await handleUserText(text, true);
+          }
+        } catch (err) {
+          agentPanel?.webview.postMessage({
+            type: "botMessages",
+            messages: [{ text: `Couldn't transcribe that \u2014 ${err instanceof Error ? err.message : String(err)}` }]
+          });
+        }
         return;
       }
     });

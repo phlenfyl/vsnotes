@@ -36,6 +36,7 @@ import { randomUUID } from 'crypto';
 import { agentChatHtml } from './agentPanelHtml';
 import { MCP_PORT } from './mcpServer';
 import type { AgentProcessManager } from './agentProcess';
+import { VoiceRecorder, transcribeAudio, synthesizeSpeech } from './voice';
 
 interface RasaBotMessage {
   text?: string;
@@ -138,6 +139,7 @@ export function registerAgentChatCommand(
   // stamping a fresh file per save) is what makes continuing a past chat
   // update that same .md/.json in place instead of forking a duplicate.
   let currentHistoryFile: string | undefined;
+  const voiceRecorder = new VoiceRecorder();
 
   function recordUserMessage(text: string) {
     transcript.push({ role: 'user', text, at: new Date().toISOString() });
@@ -226,7 +228,24 @@ export function registerAgentChatCommand(
     agentPanel.webview.postMessage({ type: 'status', phase: pipeline.phase, message: pipeline.message, rasaUp, notevsUp });
   }
 
-  async function handleUserText(text: string) {
+  // Voice replies only for voice-originated turns (viaVoice) — typed
+  // messages stay text-only, same as ChatGPT/Claude's voice mode: voice in
+  // implies voice out, typing doesn't suddenly start talking at you.
+  async function speakReply(messages: RasaBotMessage[]) {
+    if (!agentPanel) { return; }
+    const text = messages.map((m) => m.text).filter(Boolean).join(' ');
+    if (!text) { return; }
+    const apiKey = await context.secrets.get('groqApiKey');
+    if (!apiKey) { return; }
+    try {
+      const dataUri = await synthesizeSpeech(text, apiKey);
+      agentPanel.webview.postMessage({ type: 'ttsAudio', dataUri });
+    } catch (err) {
+      console.error('[NoteVs Agent] TTS synthesis failed:', err);
+    }
+  }
+
+  async function handleUserText(text: string, viaVoice = false) {
     if (!agentPanel) { return; }
     agentPanel.webview.postMessage({ type: 'thinking', value: true });
     // Bounded wait, not indefinite: if the agent still isn't reachable
@@ -240,6 +259,7 @@ export function registerAgentChatCommand(
       if (messages.length) {
         agentPanel.webview.postMessage({ type: 'botMessages', messages });
         recordBotMessages(messages);
+        if (viaVoice) { void speakReply(messages); }
       } else {
         // The HTTP request succeeded (200) but Rasa returned no messages —
         // this is what a failed turn looks like from the REST channel's
@@ -418,7 +438,7 @@ export function registerAgentChatCommand(
     // Only startNewChat() (the explicit "New Chat" action) archives and
     // resets. A closed/reopened panel just gets its live transcript
     // replayed back in below.
-    agentPanel.onDidDispose(() => { agentPanel = undefined; }, null, context.subscriptions);
+    agentPanel.onDidDispose(() => { agentPanel = undefined; voiceRecorder.stop(); }, null, context.subscriptions);
     void primeSessionWhenReady();
 
     agentPanel.webview.onDidReceiveMessage(async (msg: { type: string; text?: string; file?: string }) => {
@@ -442,6 +462,49 @@ export function registerAgentChatCommand(
       }
       if (msg.type === 'openHistoryEntry' && msg.file) {
         resumeHistoryEntry(msg.file);
+        return;
+      }
+      if (msg.type === 'startRecording') {
+        try {
+          voiceRecorder.start();
+          agentPanel?.webview.postMessage({ type: 'recordingState', recording: true });
+        } catch (err) {
+          agentPanel?.webview.postMessage({
+            type: 'recordingState',
+            recording: false,
+            error: `Couldn't access the microphone (${err instanceof Error ? err.message : String(err)})`,
+          });
+        }
+        return;
+      }
+      if (msg.type === 'stopRecording') {
+        agentPanel?.webview.postMessage({ type: 'recordingState', recording: false });
+        const wav = voiceRecorder.stop();
+        if (!wav) { return; }
+        const apiKey = await context.secrets.get('groqApiKey');
+        if (!apiKey) {
+          agentPanel?.webview.postMessage({
+            type: 'botMessages',
+            messages: [{ text: 'Voice needs a Groq API key — add one in NoteVs Settings → Agent, same key the agent already uses.' }],
+          });
+          return;
+        }
+        try {
+          const text = await transcribeAudio(wav, apiKey);
+          if (text) {
+            // Typed messages get their bubble added optimistically by the
+            // webview's own send() before it posts sendMessage — voice has
+            // no text to show until transcription comes back, so this is
+            // the one path where the extension host has to add it instead.
+            agentPanel?.webview.postMessage({ type: 'userMessage', text });
+            await handleUserText(text, true);
+          }
+        } catch (err) {
+          agentPanel?.webview.postMessage({
+            type: 'botMessages',
+            messages: [{ text: `Couldn't transcribe that — ${err instanceof Error ? err.message : String(err)}` }],
+          });
+        }
         return;
       }
     });

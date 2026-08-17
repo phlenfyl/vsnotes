@@ -70,6 +70,7 @@ export function agentChatHtml(projectName: string): string {
   '.history-item .h-time{display:block;color:var(--vscode-descriptionForeground);font-size:10px;margin-top:2px}' +
   '.history-empty{padding:12px;font-size:12px;color:var(--vscode-descriptionForeground);text-align:center}' +
   '#msgInput:disabled,#sendBtn:disabled{opacity:.5}' +
+  '#micBtn.recording{background:#f85149;border-color:#f85149;color:#fff;animation:pulse 1.2s ease-in-out infinite}' +
   '</style></head><body>' +
   '<div class="toolbar">' +
     '<div class="title-row"><i class="codicon codicon-comment-discussion"></i><span class="agent-title">NoteVs Agent</span></div>' +
@@ -86,9 +87,11 @@ export function agentChatHtml(projectName: string): string {
     '<div class="empty-hint">Ask about your notes, create or edit one, or send a note to Notion, Obsidian, Todoist, or Google Tasks. Anything that leaves NoteVs or deletes a note will ask you to confirm first.</div>' +
   '</div>' +
   '<div class="input-row">' +
+    '<button class="icon-btn" id="micBtn" title="Tap to talk"><i class="codicon codicon-mic"></i></button>' +
     '<textarea id="msgInput" rows="1" placeholder="Message the NoteVs agent&hellip;"></textarea>' +
     '<button id="sendBtn"><i class="codicon codicon-send"></i></button>' +
   '</div>' +
+  '<audio id="ttsPlayer" style="display:none"></audio>' +
   '<script>' +
   '(function(){' +
   'const vscode = acquireVsCodeApi();' +
@@ -100,6 +103,9 @@ export function agentChatHtml(projectName: string): string {
   'const newChatBtn = document.getElementById("newChatBtn");' +
   'const historyBtn = document.getElementById("historyBtn");' +
   'const historyDropdown = document.getElementById("historyDropdown");' +
+  'const micBtn = document.getElementById("micBtn");' +
+  'const ttsPlayer = document.getElementById("ttsPlayer");' +
+  'let recording = false;' +
   'let thinkingEl = null;' +
   'function scrollDown(){messagesEl.scrollTop = messagesEl.scrollHeight;}' +
   'const BACKTICK = String.fromCharCode(96);' +
@@ -248,6 +254,9 @@ export function agentChatHtml(projectName: string): string {
     'vscode.postMessage({type:"sendMessage", text: text});' +
   '}' +
   'sendBtn.addEventListener("click", send);' +
+  'micBtn.addEventListener("click", function(){' +
+    'if(recording){ vscode.postMessage({type:"stopRecording"}); } else { vscode.postMessage({type:"startRecording"}); }' +
+  '});' +
   'newChatBtn.addEventListener("click", function(){' +
     'historyDropdown.className = "history-dropdown hidden";' +
     'vscode.postMessage({type:"newChat"});' +
@@ -351,6 +360,15 @@ export function agentChatHtml(projectName: string): string {
       '}' +
     '} else if(msg.type === "historyList"){' +
       'renderHistoryList(msg.items);' +
+    '} else if(msg.type === "userMessage"){' +
+      'addMsg(msg.text, "user");' +
+    '} else if(msg.type === "recordingState"){' +
+      'recording = !!msg.recording;' +
+      'micBtn.className = recording ? "icon-btn recording" : "icon-btn";' +
+      'if(msg.error){ addMsg(msg.error, "system"); }' +
+    '} else if(msg.type === "ttsAudio"){' +
+      'ttsPlayer.src = msg.dataUri;' +
+      'ttsPlayer.play().catch(function(){});' +
     '}' +
   '});' +
   'vscode.postMessage({type:"ready"});' +

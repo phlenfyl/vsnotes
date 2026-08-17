@@ -164,7 +164,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run build && npm run build:bridge",
-    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:audify --format=cjs --platform=node",
     "build:bridge": "esbuild src/mcpBridge.ts --bundle --outfile=dist/mcp-bridge.cjs --format=cjs --platform=node",
     "dev": "npm run build -- --watch",
     "package": "vsce package --no-dependencies",
@@ -175,6 +175,7 @@
     "url": "https://github.com/MESHEmugles/vsnotes"
   },
   "dependencies": {
+    "audify": "^1.10.1",
     "axios": "^1.6.7"
   },
   "devDependencies": {
