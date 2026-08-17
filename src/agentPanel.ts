@@ -130,8 +130,14 @@ export function registerAgentChatCommand(
   // reusing one fixed id forever would mean Rasa's own session_expiration
   // is the only thing separating "old" from "new", which doesn't line up
   // with the user clicking a button to say "start over now".
-  let senderId = randomUUID();
+  let senderId: string = randomUUID();
   let transcript: TranscriptEntry[] = [];
+  // The history file this live transcript writes through to, once it has
+  // one — set on the first persisted message of a brand-new chat, or
+  // immediately on resuming a past one. Keeping it stable (rather than
+  // stamping a fresh file per save) is what makes continuing a past chat
+  // update that same .md/.json in place instead of forking a duplicate.
+  let currentHistoryFile: string | undefined;
 
   function recordUserMessage(text: string) {
     transcript.push({ role: 'user', text, at: new Date().toISOString() });
@@ -184,6 +190,7 @@ export function registerAgentChatCommand(
             if (agentPanel && messages.length) {
               agentPanel.webview.postMessage({ type: 'botMessages', messages });
               recordBotMessages(messages);
+              persistTranscript();
             }
           } catch {
             // transient — fall through to the retry delay below
@@ -253,35 +260,41 @@ export function registerAgentChatCommand(
       });
     } finally {
       agentPanel.webview.postMessage({ type: 'thinking', value: false });
+      persistTranscript();
       postStatus();
     }
   }
 
-  // Writes the current transcript to .notevsagent/history/<timestamp>.{md,json}
-  // in the project root and clears it — a no-op if there's no open folder
-  // (nowhere sensible to write) or nothing said yet. .md is for a human
-  // reading the file directly (grep/editor); .json is the structured copy
-  // the panel's own History dropdown reads back so it can re-render the
-  // conversation as real chat bubbles instead of parsing markdown.
-  function archiveTranscript() {
+  // Writes the current transcript to .notevsagent/history/<stamp>.{md,json}
+  // in the project root, without clearing it — a no-op if there's no open
+  // folder (nowhere sensible to write) or nothing said yet. .md is for a
+  // human reading the file directly (grep/editor); .json is the structured
+  // copy the panel's own History dropdown reads back so it can re-render
+  // the conversation as real chat bubbles instead of parsing markdown.
+  // Writes through to currentHistoryFile every time rather than stamping a
+  // new file per save, so continuing a resumed past chat keeps updating
+  // that same file instead of forking a duplicate on every turn.
+  function persistTranscript() {
     if (!transcript.length) { return; }
     const folderPath = getFolderPath();
-    if (!folderPath) { transcript = []; return; }
+    if (!folderPath) { return; }
     try {
       const dir = ensureHistoryDir(folderPath);
-      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-      fs.writeFileSync(path.join(dir, `${stamp}.md`), transcriptToMarkdown(transcript), 'utf8');
+      if (!currentHistoryFile) {
+        currentHistoryFile = `${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+      }
+      const base = currentHistoryFile.replace(/\.json$/, '');
+      fs.writeFileSync(path.join(dir, `${base}.md`), transcriptToMarkdown(transcript), 'utf8');
       fs.writeFileSync(
-        path.join(dir, `${stamp}.json`),
-        JSON.stringify({ savedAt: new Date().toISOString(), entries: transcript }, null, 2),
+        path.join(dir, `${base}.json`),
+        JSON.stringify({ savedAt: new Date().toISOString(), senderId, entries: transcript }, null, 2),
         'utf8',
       );
     } catch (err) {
-      // Best-effort — losing a history file isn't worth blocking New Chat
+      // Best-effort — losing a history file isn't worth blocking the chat
       // over, but worth a trace for anyone debugging it later.
-      console.error('[NoteVs Agent] Failed to archive chat history:', err);
+      console.error('[NoteVs Agent] Failed to persist chat history:', err);
     }
-    transcript = [];
   }
 
   interface HistoryListItem { file: string; label: string; savedAt: string }
@@ -305,7 +318,7 @@ export function registerAgentChatCommand(
     return items.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
   }
 
-  function readHistoryEntry(file: string): TranscriptEntry[] | undefined {
+  function readHistoryEntry(file: string): { entries: TranscriptEntry[]; senderId?: string } | undefined {
     const folderPath = getFolderPath();
     if (!folderPath) { return undefined; }
     // Reject anything that isn't a bare filename we generated ourselves —
@@ -315,16 +328,43 @@ export function registerAgentChatCommand(
     if (!/^[\w.:-]+\.json$/.test(file)) { return undefined; }
     const filePath = path.join(folderPath, '.notevsagent', 'history', file);
     try {
-      const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8')) as { entries?: TranscriptEntry[] };
-      return parsed.entries;
+      const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8')) as { entries?: TranscriptEntry[]; senderId?: string };
+      if (!parsed.entries) { return undefined; }
+      return { entries: parsed.entries, senderId: parsed.senderId };
     } catch {
       return undefined;
     }
   }
 
+  // Switches the live chat to a saved one so the user can keep talking in
+  // it — not a read-only preview. Reuses the saved senderId when we have
+  // one so the underlying Rasa tracker (server-side memory) picks up where
+  // it left off instead of starting a cold session under a fresh id; older
+  // history files saved before senderId was recorded fall back to a new
+  // session (transcript still resumes, the agent just won't remember it).
+  function resumeHistoryEntry(file: string) {
+    if (!agentPanel) { return; }
+    const result = readHistoryEntry(file);
+    if (!result) { return; }
+    persistTranscript();
+    transcript = result.entries;
+    currentHistoryFile = file;
+    if (result.senderId) {
+      senderId = result.senderId;
+      sessionPrimed = true;
+    } else {
+      senderId = randomUUID();
+      sessionPrimed = false;
+      void primeSessionWhenReady();
+    }
+    agentPanel.webview.postMessage({ type: 'restoreTranscript', entries: transcript });
+  }
+
   function startNewChat() {
     if (!agentPanel) { return; }
-    archiveTranscript();
+    persistTranscript();
+    transcript = [];
+    currentHistoryFile = undefined;
     senderId = randomUUID();
     sessionPrimed = false;
     agentPanel.webview.postMessage({ type: 'clearChat' });
@@ -401,12 +441,7 @@ export function registerAgentChatCommand(
         return;
       }
       if (msg.type === 'openHistoryEntry' && msg.file) {
-        const entries = readHistoryEntry(msg.file);
-        agentPanel?.webview.postMessage({ type: 'historyEntries', entries: entries ?? [] });
-        return;
-      }
-      if (msg.type === 'requestReturnToLive') {
-        agentPanel?.webview.postMessage({ type: 'restoreTranscript', entries: transcript });
+        resumeHistoryEntry(msg.file);
         return;
       }
     });
