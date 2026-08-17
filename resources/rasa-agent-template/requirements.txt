@@ -1,0 +1,8 @@
+# Pinned to the Maestro/skills-architecture dev build (confirmed installable
+# via `pip index versions rasa-pro --pre` on 2026-08-17; not yet GA — the
+# changelog at this pin's release still marks it "unreleased"/dev). Bump this
+# pin manually as newer .devN builds come out; don't unpin to `rasa-pro`
+# unmodified since that would silently resolve back to the classic-engine
+# 3.18.x line. RASA_LICENSE / RASA_PRO_LICENSE env var handling unchanged —
+# see start.sh. Python 3.10-3.13 required.
+rasa-pro==3.19.0.dev5

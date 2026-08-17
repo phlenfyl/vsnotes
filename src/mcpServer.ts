@@ -13,7 +13,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import axios from 'axios';
 
-export const MCP_PORT = 37491;
+export const MCP_PORT = 37492;
 
 /** Callback fired whenever notes are mutated via MCP (create/save/delete/annotate). */
 export type OnNoteMutated = () => void;
@@ -84,7 +84,12 @@ function readAllNotes(storagePath: string, folderPath: string): NoteItem[] {
   const meta = readLocalMeta(storagePath);
   const notes: NoteItem[] = [];
   for (const entry of meta.noteIndex) {
-    if (entry.folderPath !== folderPath) { continue; }
+    // Match the sidebar's monorepo behavior (readLocalNotesGrouped in
+    // extension.ts): a workspace-root folderPath should also pick up notes
+    // scoped to its subfolders, not just an exact match — otherwise a
+    // monorepo's subfolder notes are invisible to MCP tools even though the
+    // sidebar shows them right there grouped under the same workspace.
+    if (entry.folderPath !== folderPath && !entry.folderPath.startsWith(folderPath + '/')) { continue; }
     const note = readLocalNote(storagePath, entry.id);
     if (note && !note.deletedAt) { notes.push(note); }
   }
@@ -570,6 +575,59 @@ function handleSearchNotes(storagePath: string, folderPath: string, query: strin
   }).map(n => ({ id: n.id, title: n.title, tags: n.tags, priority: n.priority, status: n.status, updatedAt: n.updatedAt }));
 }
 
+// ── Human-readable text for the MCP `content` field ───────────────────────────
+// The Rasa flows read `result.content[0].text` verbatim into a response slot
+// (see rasa-notevs-agent/data/flows/*.yml) — there's no LLM rephrasing step
+// in between, so whatever's returned here is shown to the user exactly as-is.
+// `structuredContent` (set separately, always the raw result) is what flows
+// use instead when they need to extract a specific field like a note id.
+function formatResultText(tool: string, result: unknown): string {
+  const list = (r: unknown) => Array.isArray(r) ? r as Array<{ id: string; title: string; priority: string; status: string; tags: string[] }> : [];
+  switch (tool) {
+    case 'notevs_list_notes':
+    case 'notevs_search_notes': {
+      const notes = list(result);
+      if (notes.length === 0) { return tool === 'notevs_search_notes' ? 'No notes matched that search.' : "You don't have any notes yet."; }
+      return notes.map(n => {
+        const bits = [n.priority && n.priority !== 'none' ? `priority: ${n.priority}` : null, n.status && n.status !== 'open' ? `status: ${n.status}` : null, n.tags?.length ? `tags: ${n.tags.join(', ')}` : null].filter(Boolean).join(', ');
+        return `- "${n.title}" (id: ${n.id})${bits ? ` — ${bits}` : ''}`;
+      }).join('\n');
+    }
+    case 'notevs_get_note': {
+      const n = result as { title: string; content: string; id: string; tags?: string[]; annotations?: Array<{ filePath: string; lineStart: number; lineEnd: number; comment: string }> };
+      let text = `"${n.title}" (id: ${n.id})\n\n${n.content || '(empty)'}`;
+      if (n.annotations?.length) { text += `\n\nAnnotations:\n` + n.annotations.map(a => `- ${a.filePath}:${a.lineStart}-${a.lineEnd} — ${a.comment}`).join('\n'); }
+      return text;
+    }
+    case 'notevs_create_note': {
+      const n = result as { title: string; id: string };
+      return `Created "${n.title}" (id: ${n.id}).`;
+    }
+    case 'notevs_save_note': {
+      const n = result as { title: string };
+      return `Saved "${n.title}".`;
+    }
+    case 'notevs_delete_note':
+      return 'Note deleted.';
+    case 'notevs_add_annotation':
+      return 'Annotation added.';
+    case 'notevs_export_to_notion': {
+      const r = result as { pageUrl: string };
+      return `Exported to Notion: ${r.pageUrl}`;
+    }
+    case 'notevs_export_to_obsidian': {
+      const r = result as { filePath: string };
+      return `Exported to Obsidian: ${r.filePath}`;
+    }
+    case 'notevs_set_reminder': {
+      const r = result as { provider: string; taskUrl?: string };
+      return `Reminder created in ${r.provider === 'google' ? 'Google Tasks' : 'Todoist'}.${r.taskUrl ? ` ${r.taskUrl}` : ''}`;
+    }
+    default:
+      return JSON.stringify(result, null, 2);
+  }
+}
+
 // ── HTTP Server ───────────────────────────────────────────────────────────────
 
 function readBody(req: http.IncomingMessage): Promise<string> {
@@ -583,6 +641,14 @@ function readBody(req: http.IncomingMessage): Promise<string> {
 
 export function startMcpServer(context: vscode.ExtensionContext, onNoteMutated?: OnNoteMutated): http.Server {
   const storagePath = context.globalStorageUri.fsPath;
+
+  // MCP Streamable HTTP transport requires session negotiation: the server
+  // hands out a session id on `initialize` (Mcp-Session-Id response header),
+  // and the client is expected to echo it back on every subsequent request
+  // on this connection. Without this, strict clients (like rasa-pro's MCP
+  // client) fail during their internal handshake with an opaque error
+  // ("unhandled errors in a TaskGroup") instead of a useful message.
+  const mcpSessions = new Set<string>();
 
   /** Resolve which folder to scope notes to.
    *  Priority: 1) args.folderPath from agent  2) VS Code open folder */
@@ -616,34 +682,113 @@ export function startMcpServer(context: vscode.ExtensionContext, onNoteMutated?:
         return;
       }
 
+      // ── Shared tool dispatch: used by both the plain /call endpoint (mcpBridge.ts,
+      // the stdio MCP bridge for Claude Code/Cursor) and /mcp (JSON-RPC-over-HTTP,
+      // for external MCP clients like a Rasa agent that only support http/https
+      // MCP server transport, not stdio). ────────────────────────────────────────
+      async function callTool(tool: string, args: Record<string, unknown>): Promise<unknown> {
+        const folderPath = resolveFolderPath(args.folderPath as string | undefined);
+        if (!folderPath) {
+          throw new Error('Could not determine project folder. Pass folderPath in args or open a folder in VS Code.');
+        }
+        switch (tool) {
+          case 'notevs_list_notes':   return handleListNotes(storagePath, folderPath);
+          case 'notevs_get_note':     return handleGetNote(storagePath, args.id as string);
+          case 'notevs_create_note':  { const r = handleCreateNote(storagePath, folderPath, args as Parameters<typeof handleCreateNote>[2]); onNoteMutated?.(); return r; }
+          case 'notevs_save_note':    { const r = handleSaveNote(storagePath, args as Parameters<typeof handleSaveNote>[1]); onNoteMutated?.(); return r; }
+          case 'notevs_delete_note':  { const r = handleDeleteNote(storagePath, args.id as string); onNoteMutated?.(); return r; }
+          case 'notevs_add_annotation': { const r = handleAddAnnotation(storagePath, args as Parameters<typeof handleAddAnnotation>[1]); onNoteMutated?.(); return r; }
+          case 'notevs_search_notes': return handleSearchNotes(storagePath, folderPath, args.query as string);
+          case 'notevs_export_to_notion':  { const r = await handleExportToNotion(context.secrets, context.globalState, storagePath, args.id as string); onNoteMutated?.(); return r; }
+          case 'notevs_export_to_obsidian': { const r = await handleExportToObsidian(context.secrets, context.globalState, storagePath, args.id as string); onNoteMutated?.(); return r; }
+          case 'notevs_set_reminder': { const r = await handleSetReminder(context.secrets, storagePath, args as Parameters<typeof handleSetReminder>[2]); onNoteMutated?.(); return r; }
+          default: throw new Error(`Unknown tool: ${tool}`);
+        }
+      }
+
       if (req.method === 'POST' && req.url === '/call') {
         const body = await readBody(req);
         const { tool, args } = JSON.parse(body) as { tool: string; args: Record<string, unknown> };
-
-        // ── Resolve folderPath: agent cwd wins over VS Code open folder ──────
-        const folderPath = resolveFolderPath(args.folderPath as string | undefined);
-
-        if (!folderPath) {
-          send(400, { error: 'Could not determine project folder. Pass folderPath in args or open a folder in VS Code.' });
-          return;
+        try {
+          const result = await callTool(tool, args);
+          send(200, { result });
+        } catch (err: unknown) {
+          send(400, { error: err instanceof Error ? err.message : String(err) });
         }
+        return;
+      }
 
-        let result: unknown;
-        switch (tool) {
-          case 'notevs_list_notes':   result = handleListNotes(storagePath, folderPath); break;
-          case 'notevs_get_note':     result = handleGetNote(storagePath, args.id as string); break;
-          case 'notevs_create_note':  result = handleCreateNote(storagePath, folderPath, args as Parameters<typeof handleCreateNote>[2]); onNoteMutated?.(); break;
-          case 'notevs_save_note':    result = handleSaveNote(storagePath, args as Parameters<typeof handleSaveNote>[1]); onNoteMutated?.(); break;
-          case 'notevs_delete_note':  result = handleDeleteNote(storagePath, args.id as string); onNoteMutated?.(); break;
-          case 'notevs_add_annotation': result = handleAddAnnotation(storagePath, args as Parameters<typeof handleAddAnnotation>[1]); onNoteMutated?.(); break;
-          case 'notevs_search_notes': result = handleSearchNotes(storagePath, folderPath, args.query as string); break;
-          case 'notevs_export_to_notion':  result = await handleExportToNotion(context.secrets, context.globalState, storagePath, args.id as string); onNoteMutated?.(); break;
-          case 'notevs_export_to_obsidian': result = await handleExportToObsidian(context.secrets, context.globalState, storagePath, args.id as string); onNoteMutated?.(); break;
-          case 'notevs_set_reminder': result = await handleSetReminder(context.secrets, storagePath, args as Parameters<typeof handleSetReminder>[2]); onNoteMutated?.(); break;
-          default: send(400, { error: `Unknown tool: ${tool}` }); return;
+      // ── /mcp: real MCP JSON-RPC 2.0 over HTTP (Streamable HTTP transport,
+      // single request → single JSON response, no SSE). Mirrors the same
+      // initialize/tools/list/tools/call methods mcpBridge.ts implements over
+      // stdio for Claude Code/Cursor, so any real MCP client (e.g. a Rasa
+      // `mcp_servers:` entry with type: http) can use the exact same 10 tools. ──
+      if (req.method === 'GET' && req.url === '/mcp') {
+        // No server-initiated messages to stream — this transport is
+        // request/response only, so there's nothing to open an SSE stream
+        // for. 405 tells clients that probe this not to expect one.
+        res.writeHead(405, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'SSE streaming not supported; use POST' }));
+        return;
+      }
+
+      if (req.method === 'DELETE' && req.url === '/mcp') {
+        const sid = req.headers['mcp-session-id'];
+        if (typeof sid === 'string') { mcpSessions.delete(sid); }
+        res.writeHead(204); res.end();
+        return;
+      }
+
+      if (req.method === 'POST' && req.url === '/mcp') {
+        const body = await readBody(req);
+        let rpcId: number | string | null = null;
+        try {
+          const rpc = JSON.parse(body) as { jsonrpc: '2.0'; id: number | string | null; method: string; params?: unknown };
+          rpcId = rpc.id;
+          switch (rpc.method) {
+            case 'initialize': {
+              const sessionId = randomUUID();
+              mcpSessions.add(sessionId);
+              res.writeHead(200, { 'Content-Type': 'application/json', 'Mcp-Session-Id': sessionId });
+              res.end(JSON.stringify({ jsonrpc: '2.0', id: rpcId, result: { protocolVersion: '2024-11-05', capabilities: { tools: {} }, serverInfo: { name: 'notevs-mcp', version: '1.0.0' } } }));
+              return;
+            }
+            case 'notifications/initialized':
+              res.writeHead(202); res.end();
+              return;
+            case 'tools/list':
+              send(200, { jsonrpc: '2.0', id: rpcId, result: { tools: TOOL_DEFINITIONS } });
+              return;
+            case 'tools/call': {
+              const { name, arguments: callArgs = {} } = (rpc.params ?? {}) as { name: string; arguments?: Record<string, unknown> };
+              try {
+                const result = await callTool(name, callArgs);
+                // structuredContent (real MCP field, alongside content) lets
+                // declarative clients like a Rasa flow's `mapping: output:`
+                // pull individual fields (e.g. result.structuredContent.id)
+                // instead of only getting the whole result as serialized text.
+                // Per the MCP spec, structuredContent must be a JSON *object*
+                // — list_notes/search_notes return arrays, which rasa-pro's
+                // pydantic-validated client rejects outright, so those get
+                // wrapped under an `items` key here (content/text is
+                // untouched — it still serializes the raw array).
+                const structuredContent = Array.isArray(result) ? { items: result } : result;
+                send(200, { jsonrpc: '2.0', id: rpcId, result: { content: [{ type: 'text', text: formatResultText(name, result) }], structuredContent, isError: false } });
+              } catch (err: unknown) {
+                send(200, { jsonrpc: '2.0', id: rpcId, error: { code: -32603, message: err instanceof Error ? err.message : String(err) } });
+              }
+              return;
+            }
+            case 'ping':
+              send(200, { jsonrpc: '2.0', id: rpcId, result: {} });
+              return;
+            default:
+              send(200, { jsonrpc: '2.0', id: rpcId, error: { code: -32601, message: `Method not found: ${rpc.method}` } });
+              return;
+          }
+        } catch (err: unknown) {
+          send(200, { jsonrpc: '2.0', id: rpcId, error: { code: -32700, message: err instanceof Error ? err.message : 'Parse error' } });
         }
-
-        send(200, { result });
         return;
       }
 

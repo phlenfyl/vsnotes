@@ -5,6 +5,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { installMcpBridge } from './mcpInstaller';
 import { startMcpServer, type OnNoteMutated } from './mcpServer';
+import { registerAgentChatCommand } from './agentPanel';
+import { registerAgentProcessManager } from './agentProcess';
 import {
   sendToNotion, clearNotionToken, resetNotionPage, hasNotionToken,
   sendToObsidian, clearObsidianApiKey, clearObsidianVaultPath, getObsidianStatus,
@@ -375,6 +377,8 @@ function settingsHtml(
   notionAutoSync?: boolean,
   todoistConnected?: boolean,
   googleTasksConnected?: boolean,
+  groqKeySet?: boolean,
+  rasaLicenseSet?: boolean,
 ): string {
   const swatches = BG_COLORS.map(c => `
     <div class="swatch${c.bg === noteBgColor ? ' active' : ''}" data-bg="${c.bg}" data-text="${c.text}"
@@ -546,6 +550,27 @@ function settingsHtml(
     <div class="int-hint" style="margin-top:10px">If both Todoist and Google Tasks are connected, you&rsquo;ll be asked which to use when you click &ldquo;Remind me&rdquo;.</div>
   </div>
 
+  <div class="collapse-header" id="agentToggle">
+    <span class="collapse-label">Agent</span>
+    <i class="codicon codicon-chevron-right collapse-chevron" id="agentChevron"></i>
+  </div>
+  <div class="collapse-body" id="agentBody">
+    <div class="int-hint" style="margin-top:4px">Add both keys to have NoteVs start and manage the local agent server for you &mdash; no manual setup once these are set and an agent repo path is configured.</div>
+
+    <div style="font-size:12px;font-weight:600;margin:8px 0 6px;color:var(--vscode-foreground)">Groq API key</div>
+    ${groqKeySet
+      ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Key saved</span><button class="int-btn danger" id="groqClear">Clear</button></div>`
+      : `<div class="int-row"><input class="int-input" id="groqKeyInput" type="password" placeholder="Paste your Groq API key…"/><button class="int-btn" id="groqSave">Save</button></div>`
+    }
+
+    <div style="font-size:12px;font-weight:600;margin:14px 0 6px;color:var(--vscode-foreground)">Rasa license key</div>
+    ${rasaLicenseSet
+      ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Key saved</span><button class="int-btn danger" id="rasaClear">Clear</button></div>`
+      : `<div class="int-row"><input class="int-input" id="rasaKeyInput" type="password" placeholder="Paste your Rasa license key…"/><button class="int-btn" id="rasaSave">Save</button></div>`
+    }
+    <div class="int-hint">That&rsquo;s it &mdash; once both keys are saved, NoteVs sets up and starts the agent for you automatically (first run installs a few things in the background, so it can take a couple minutes).</div>
+  </div>
+
   ${logoutHtml}
   <script>
     const vscode=acquireVsCodeApi();
@@ -589,6 +614,7 @@ function settingsHtml(
     bindCollapse('colourToggle','colourBody','colourChevron');
     bindCollapse('exportingToggle','exportingBody','exportingChevron');
     bindCollapse('tasksToggle','tasksBody','tasksChevron');
+    bindCollapse('agentToggle','agentBody','agentChevron');
 
     // ── Steps toggles ─────────────────────────────────────────────────────────
     function bindStepsToggle(btnId, boxId, labelOpen, labelClose) {
@@ -625,6 +651,16 @@ function settingsHtml(
     if(googleConnectBtn){googleConnectBtn.addEventListener('click',()=>vscode.postMessage({type:'connectGoogleTasks'}));}
     const googleDisconnectBtn=document.getElementById('googleTasksDisconnect');
     if(googleDisconnectBtn){googleDisconnectBtn.addEventListener('click',()=>vscode.postMessage({type:'disconnectGoogleTasks'}));}
+
+    // ── Agent credentials ────────────────────────────────────────────────────
+    const groqSaveBtn=document.getElementById('groqSave');
+    if(groqSaveBtn){groqSaveBtn.addEventListener('click',()=>{const v=document.getElementById('groqKeyInput').value.trim();if(v){vscode.postMessage({type:'saveGroqKey',key:v});}});}
+    const groqClearBtn=document.getElementById('groqClear');
+    if(groqClearBtn){groqClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearGroqKey'}));}
+    const rasaSaveBtn=document.getElementById('rasaSave');
+    if(rasaSaveBtn){rasaSaveBtn.addEventListener('click',()=>{const v=document.getElementById('rasaKeyInput').value.trim();if(v){vscode.postMessage({type:'saveRasaLicense',key:v});}});}
+    const rasaClearBtn=document.getElementById('rasaClear');
+    if(rasaClearBtn){rasaClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearRasaLicense'}));}
   <\/script></body></html>`;
 }
 
@@ -803,6 +839,7 @@ function notesListHtml(
     <span class="project-name" title="${projectName}">${projectName}</span>
     <div class="toolbar-right">
       <button class="icon-btn" id="newBtn" title="New note"><i class="codicon codicon-add"></i></button>
+      <button class="icon-btn" id="agentChatBtn" title="Chat with NoteVs Agent"><i class="codicon codicon-comment-discussion"></i></button>
       <div class="dropdown-wrap" id="exportWrap">
         <button class="icon-btn" id="exportBtn" title="Export / Import notes"><i class="codicon codicon-export"></i></button>
         <div class="dropdown-menu" id="exportMenu">
@@ -851,6 +888,7 @@ function notesListHtml(
       }
     });
     document.getElementById('settingsBtn').addEventListener('click',()=>vscode.postMessage({type:'openSettings'}));
+    document.getElementById('agentChatBtn').addEventListener('click',()=>vscode.postMessage({type:'openAgentChat'}));
     const exportMenu = document.getElementById('exportMenu');
     document.getElementById('exportBtn').addEventListener('click', e => {
       e.stopPropagation();
@@ -2005,6 +2043,10 @@ export async function activate(context: vscode.ExtensionContext) {
             }
             break;
           }
+          case 'openAgentChat': {
+            vscode.commands.executeCommand('notevs.openAgentChat');
+            break;
+          }
           case 'openSettings': {
             const config = vscode.workspace.getConfiguration('notevs');
             const syncEnabledSettings = context.globalState.get<boolean>('notevs.syncEnabled') ?? false;
@@ -2015,7 +2057,9 @@ export async function activate(context: vscode.ExtensionContext) {
             const obsStatus = await getObsidianStatus(secrets, context.globalState);
             const todoistConn = await hasTodoistToken(secrets);
             const googleConn = await isGoogleTasksConnected(secrets);
-            webviewView.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath, config.get('notionAutoSync', false), todoistConn, googleConn);
+            const groqSet = !!(await secrets.get('groqApiKey'));
+            const rasaSet = !!(await secrets.get('rasaLicense'));
+            webviewView.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath, config.get('notionAutoSync', false), todoistConn, googleConn, groqSet, rasaSet);
             break;
           }
           case 'saveNotionToken': {
@@ -2114,6 +2158,44 @@ export async function activate(context: vscode.ExtensionContext) {
             const todoistG2 = await hasTodoistToken(secrets);
             webviewView.webview.html = settingsHtml(cfgG2.get('autoShow', true), cfgG2.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsG2.apiKey, obsG2.vaultPath, cfgG2.get('notionAutoSync', false), todoistG2, false);
             vscode.window.showInformationMessage('Google Tasks disconnected.');
+            break;
+          }
+          case 'saveGroqKey': {
+            if (msg.key) { await secrets.store('groqApiKey', msg.key.trim()); }
+            const cfgA1 = vscode.workspace.getConfiguration('notevs');
+            const obsA1 = await getObsidianStatus(secrets, context.globalState);
+            const todoistA1 = await hasTodoistToken(secrets);
+            const googleA1 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgA1.get('autoShow', true), cfgA1.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsA1.apiKey, obsA1.vaultPath, cfgA1.get('notionAutoSync', false), todoistA1, googleA1, true, !!(await secrets.get('rasaLicense')));
+            vscode.window.showInformationMessage('Groq API key saved.');
+            break;
+          }
+          case 'clearGroqKey': {
+            await secrets.delete('groqApiKey');
+            const cfgA2 = vscode.workspace.getConfiguration('notevs');
+            const obsA2 = await getObsidianStatus(secrets, context.globalState);
+            const todoistA2 = await hasTodoistToken(secrets);
+            const googleA2 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgA2.get('autoShow', true), cfgA2.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsA2.apiKey, obsA2.vaultPath, cfgA2.get('notionAutoSync', false), todoistA2, googleA2, false, !!(await secrets.get('rasaLicense')));
+            break;
+          }
+          case 'saveRasaLicense': {
+            if (msg.key) { await secrets.store('rasaLicense', msg.key.trim()); }
+            const cfgA3 = vscode.workspace.getConfiguration('notevs');
+            const obsA3 = await getObsidianStatus(secrets, context.globalState);
+            const todoistA3 = await hasTodoistToken(secrets);
+            const googleA3 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgA3.get('autoShow', true), cfgA3.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsA3.apiKey, obsA3.vaultPath, cfgA3.get('notionAutoSync', false), todoistA3, googleA3, !!(await secrets.get('groqApiKey')), true);
+            vscode.window.showInformationMessage('Rasa license key saved.');
+            break;
+          }
+          case 'clearRasaLicense': {
+            await secrets.delete('rasaLicense');
+            const cfgA4 = vscode.workspace.getConfiguration('notevs');
+            const obsA4 = await getObsidianStatus(secrets, context.globalState);
+            const todoistA4 = await hasTodoistToken(secrets);
+            const googleA4 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgA4.get('autoShow', true), cfgA4.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsA4.apiKey, obsA4.vaultPath, cfgA4.get('notionAutoSync', false), todoistA4, googleA4, !!(await secrets.get('groqApiKey')), false);
             break;
           }
           case 'openExternal': {
@@ -2414,6 +2496,9 @@ export async function activate(context: vscode.ExtensionContext) {
   };
   const mcpServer = startMcpServer(context, onNoteMutated);
   context.subscriptions.push({ dispose: () => mcpServer.close() });
+  const agentProcessManager = registerAgentProcessManager(context);
+  context.subscriptions.push(...agentProcessManager.disposables);
+  context.subscriptions.push(registerAgentChatCommand(context, getFolderPath, agentProcessManager));
 
   flushOfflineQueue().catch(() => {});
   context.subscriptions.push(
@@ -2428,7 +2513,9 @@ export async function activate(context: vscode.ExtensionContext) {
         const obsStatus = await getObsidianStatus(secrets, context.globalState);
         const todoistConn = await hasTodoistToken(secrets);
         const googleConn = await isGoogleTasksConnected(secrets);
-        panel.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), false, null, null, notionConn, obsStatus.apiKey, obsStatus.vaultPath, config.get('notionAutoSync', false), todoistConn, googleConn);
+        const groqSet = !!(await secrets.get('groqApiKey'));
+        const rasaSet = !!(await secrets.get('rasaLicense'));
+        panel.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), false, null, null, notionConn, obsStatus.apiKey, obsStatus.vaultPath, config.get('notionAutoSync', false), todoistConn, googleConn, groqSet, rasaSet);
       }
     }),
   );

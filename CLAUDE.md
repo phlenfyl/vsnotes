@@ -24,11 +24,47 @@ The build uses esbuild with `--loader:.ts=ts`. **Never put literal backtick char
 ```
 src/
   extension.ts     ← ENTIRE extension — HTML generators, commands, providers, all logic
-  mcpServer.ts     ← Local HTTP MCP server (localhost:37491); exports OnNoteMutated callback type
-  mcpBridge.ts     ← stdio bridge for Claude Code / Cursor
+  mcpServer.ts     ← Local HTTP MCP server (localhost:37492); exports OnNoteMutated callback type.
+                      /call is the plain REST endpoint; /mcp is the same 10 tools over real
+                      MCP JSON-RPC (initialize/tools/list/tools/call), for external MCP
+                      clients that only support http/https transport (e.g. Rasa's
+                      mcp_servers: config — see ../../rasa-notevs-agent)
+  mcpBridge.ts     ← stdio MCP bridge for Claude Code / Cursor
   mcpInstaller.ts  ← Auto-registers MCP bridge in ~/.claude.json, ~/.cursor/mcp.json etc.
   taskIntegrations.ts ← Todoist + Google Tasks OAuth + task creation (UI-driven, used by editor)
   integrations.ts  ← Notion + Obsidian export helpers (used by both editor and MCP server)
+  agentPanel.ts    ← WebviewPanel for the NoteVs Agent chat (notevs.openAgentChat); talks to
+                      the local Rasa server (notevs.agentUrl) and to /health for status
+  agentPanelHtml.ts ← HTML/CSS/JS for the agent chat panel (status pill, thinking state,
+                      confirmation cards)
+  agentProcess.ts  ← Fully automates the local Rasa server: once groqApiKey + rasaLicense
+                      secrets are both set (Settings → Agent), extracts
+                      resources/rasa-agent-template into global storage (re-synced every
+                      start so template changes never go stale), creates/revalidates a
+                      Python 3.10-3.13 venv, pip-installs rasa-pro (once, with --pre since
+                      requirements.txt now pins a Maestro dev build), runs `rasa train` if
+                      no models/*.tar.gz exists yet OR if agent.yml/integrations.yml/
+                      skills//tools content has changed since the last trained model
+                      (sha256 hash stored in models/.source_hash — training is otherwise
+                      silently skipped forever, which is what let three flow-mapping
+                      fixes go unnoticed on the old classic-CALM build until this hash
+                      check was added), then runs it — restarts on crash with the real
+                      stderr reason surfaced, no manual terminal steps.
+                      notevs.agentRepoPath is an optional override.
+resources/
+  rasa-agent-template/ ← Bundled copy of the rasa-notevs-agent project, on the Maestro
+                      (calm_v2) skills architecture as of 2026-08-17: agent.yml,
+                      integrations.yml, skills/*/skill.md, tools/notevs_tools.py
+                      (shared @tool wrappers that POST to mcpServer.ts's /call
+                      endpoint), requirements.txt (pins rasa-pro==3.19.0.dev5 — Maestro
+                      isn't GA yet, this is a dev build, bump the pin as newer .devN
+                      builds land). The retired classic-CALM files (domain.yml,
+                      config.yml, endpoints.yml, credentials.yml, data/flows/) live in
+                      ../../rasa-notevs-agent/classic-engine-backup/ for reference, not
+                      bundled here. agentProcess.ts extracts/re-syncs this per-user on
+                      every start. Keep in sync with the standalone ../../rasa-notevs-agent
+                      repo (the Rasa Heroes submission source of truth) when either
+                      changes.
 dist/
   extension.js     ← Built output (never edit this directly)
   mcp-bridge.cjs   ← Compiled stdio bridge
@@ -50,7 +86,13 @@ The file is structured in this order:
 9. `deactivate()`
 
 ## MCP server (`mcpServer.ts`)
-The MCP server runs on `localhost:37491` and exposes 10 tools:
+The MCP server runs on `localhost:37492` and exposes 10 tools. (Port moved from
+37491 → 37492: if two VS Code windows both have NoteVs active, only one can
+bind a given port — a stale window's older build silently wins the race and
+every other window's agent gets an opaque connection failure. Changing the
+port doesn't fix the underlying multi-window collision risk, just sidesteps
+today's stuck one; the real fix would be picking a free port dynamically per
+window and writing it somewhere the agent can discover.)
 
 | Tool | Notes |
 |---|---|
@@ -96,6 +138,7 @@ NoteVs is local-first. Notes are stored as JSON files on disk in `context.global
 | `notevs.openNoteById` | Hover popup "Open note →" link |
 | `notevs.exportNotes` | Command palette / sidebar `|→` dropdown |
 | `notevs.importNotes` | Command palette / sidebar `|→` dropdown |
+| `notevs.openAgentChat` | Command palette / sidebar chat icon — opens the agent chat WebviewPanel beside the editor |
 
 ## Auth storage
 Tokens are stored in VS Code `SecretStorage` (not localStorage). Keys: `accessToken`, `refreshToken`, `user`.

@@ -59,6 +59,25 @@
       {
         "command": "notevs.importNotes",
         "title": "NoteVs: Import Notes from .notevs/"
+      },
+      {
+        "command": "notevs.openAgentChat",
+        "title": "NoteVs: Chat with Agent",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "notevs.newAgentChat",
+        "title": "NoteVs: New Agent Chat (archive current)",
+        "icon": "$(add)"
+      },
+      {
+        "command": "notevs.viewAgentHistory",
+        "title": "NoteVs: View Past Agent Chats",
+        "icon": "$(history)"
+      },
+      {
+        "command": "notevs.configureAgentPath",
+        "title": "NoteVs: Configure Agent Path"
       }
     ],
     "menus": {
@@ -67,6 +86,30 @@
           "command": "notevs.annotateSelection",
           "when": "editorHasSelection",
           "group": "notevs@1"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "notevs.openAgentChat",
+          "group": "navigation@1",
+          "when": "activeWebviewPanelId != 'notevs.agentChat'"
+        },
+        {
+          "command": "notevs.newAgentChat",
+          "group": "navigation@2",
+          "when": "activeWebviewPanelId == 'notevs.agentChat'"
+        },
+        {
+          "command": "notevs.viewAgentHistory",
+          "group": "navigation@3",
+          "when": "activeWebviewPanelId == 'notevs.agentChat'"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "notevs.openAgentChat",
+          "group": "navigation@1",
+          "when": "view == notevs.notesView"
         }
       ]
     },
@@ -105,6 +148,16 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically push note updates to Notion 60s after you stop typing (only for notes already exported to Notion)"
+        },
+        "notevs.agentUrl": {
+          "type": "string",
+          "default": "http://localhost:5005",
+          "description": "Local Rasa server URL for the NoteVs Agent chat panel"
+        },
+        "notevs.agentRepoPath": {
+          "type": "string",
+          "default": "",
+          "description": "Optional. Point at your own agent.yml-containing folder to override NoteVs's built-in managed agent. Leave empty (default) — once both keys are set in Settings → Agent, NoteVs sets up and runs a bundled agent automatically, no manual steps needed."
         }
       }
     }

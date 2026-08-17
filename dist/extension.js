@@ -8877,11 +8877,11 @@ var require_mime_types = __commonJS({
       }
       return exts[0];
     }
-    function lookup(path5) {
-      if (!path5 || typeof path5 !== "string") {
+    function lookup(path7) {
+      if (!path7 || typeof path7 !== "string") {
         return false;
       }
-      var extension2 = extname("x." + path5).toLowerCase().substr(1);
+      var extension2 = extname("x." + path7).toLowerCase().substr(1);
       if (!extension2) {
         return false;
       }
@@ -9986,11 +9986,11 @@ var require_form_data = __commonJS({
     "use strict";
     var CombinedStream = require_combined_stream();
     var util3 = require("util");
-    var path5 = require("path");
+    var path7 = require("path");
     var http5 = require("http");
     var https3 = require("https");
     var parseUrl2 = require("url").parse;
-    var fs5 = require("fs");
+    var fs7 = require("fs");
     var Stream = require("stream").Stream;
     var crypto3 = require("crypto");
     var mime = require_mime_types();
@@ -10057,7 +10057,7 @@ var require_form_data = __commonJS({
         if (value.end != void 0 && value.end != Infinity && value.start != void 0) {
           callback(null, value.end + 1 - (value.start ? value.start : 0));
         } else {
-          fs5.stat(value.path, function(err, stat) {
+          fs7.stat(value.path, function(err, stat) {
             if (err) {
               callback(err);
               return;
@@ -10114,11 +10114,11 @@ var require_form_data = __commonJS({
     FormData3.prototype._getContentDisposition = function(value, options) {
       var filename;
       if (typeof options.filepath === "string") {
-        filename = path5.normalize(options.filepath).replace(/\\/g, "/");
+        filename = path7.normalize(options.filepath).replace(/\\/g, "/");
       } else if (options.filename || value && (value.name || value.path)) {
-        filename = path5.basename(options.filename || value && (value.name || value.path));
+        filename = path7.basename(options.filename || value && (value.name || value.path));
       } else if (value && value.readable && hasOwn(value, "httpVersion")) {
-        filename = path5.basename(value.client._httpMessage.path || "");
+        filename = path7.basename(value.client._httpMessage.path || "");
       }
       if (filename) {
         return 'filename="' + filename + '"';
@@ -10508,8 +10508,8 @@ var require_common = __commonJS({
         }
         return debug;
       }
-      function extend2(namespace, delimiter) {
-        const newDebug = createDebug(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
+      function extend2(namespace, delimiter2) {
+        const newDebug = createDebug(this.namespace + (typeof delimiter2 === "undefined" ? ":" : delimiter2) + namespace);
         newDebug.log = this.log;
         return newDebug;
       }
@@ -11612,7 +11612,7 @@ __export(extension_exports, {
   deactivate: () => deactivate
 });
 module.exports = __toCommonJS(extension_exports);
-var vscode5 = __toESM(require("vscode"));
+var vscode7 = __toESM(require("vscode"));
 
 // ../node_modules/axios/lib/helpers/bind.js
 function bind(fn, thisArg) {
@@ -11918,14 +11918,14 @@ var freezeMethods = (obj) => {
     }
   });
 };
-var toObjectSet = (arrayOrString, delimiter) => {
+var toObjectSet = (arrayOrString, delimiter2) => {
   const obj = {};
   const define = (arr) => {
     arr.forEach((value) => {
       obj[value] = true;
     });
   };
-  isArray(arrayOrString) ? define(arrayOrString) : define(String(arrayOrString).split(delimiter));
+  isArray(arrayOrString) ? define(arrayOrString) : define(String(arrayOrString).split(delimiter2));
   return obj;
 };
 var noop = () => {
@@ -12134,9 +12134,9 @@ function isVisitable(thing) {
 function removeBrackets(key) {
   return utils_default.endsWith(key, "[]") ? key.slice(0, -2) : key;
 }
-function renderKey(path5, key, dots) {
-  if (!path5) return key;
-  return path5.concat(key).map(function each(token, i) {
+function renderKey(path7, key, dots) {
+  if (!path7) return key;
+  return path7.concat(key).map(function each(token, i) {
     token = removeBrackets(token);
     return !dots && i ? "[" + token + "]" : token;
   }).join(dots ? "." : "");
@@ -12189,13 +12189,13 @@ function toFormData(obj, formData, options) {
     }
     return value;
   }
-  function defaultVisitor(value, key, path5) {
+  function defaultVisitor(value, key, path7) {
     let arr = value;
     if (utils_default.isReactNative(formData) && utils_default.isReactNativeBlob(value)) {
-      formData.append(renderKey(path5, key, dots), convertValue(value));
+      formData.append(renderKey(path7, key, dots), convertValue(value));
       return false;
     }
-    if (value && !path5 && typeof value === "object") {
+    if (value && !path7 && typeof value === "object") {
       if (utils_default.endsWith(key, "{}")) {
         key = metaTokens ? key : key.slice(0, -2);
         value = JSON.stringify(value);
@@ -12214,7 +12214,7 @@ function toFormData(obj, formData, options) {
     if (isVisitable(value)) {
       return true;
     }
-    formData.append(renderKey(path5, key, dots), convertValue(value));
+    formData.append(renderKey(path7, key, dots), convertValue(value));
     return false;
   }
   const stack = [];
@@ -12223,16 +12223,16 @@ function toFormData(obj, formData, options) {
     convertValue,
     isVisitable
   });
-  function build(value, path5) {
+  function build(value, path7) {
     if (utils_default.isUndefined(value)) return;
     if (stack.indexOf(value) !== -1) {
-      throw Error("Circular reference detected in " + path5.join("."));
+      throw Error("Circular reference detected in " + path7.join("."));
     }
     stack.push(value);
     utils_default.forEach(value, function each(el, key) {
-      const result = !(utils_default.isUndefined(el) || el === null) && visitor.call(formData, el, utils_default.isString(key) ? key.trim() : key, path5, exposedHelpers);
+      const result = !(utils_default.isUndefined(el) || el === null) && visitor.call(formData, el, utils_default.isString(key) ? key.trim() : key, path7, exposedHelpers);
       if (result === true) {
-        build(el, path5 ? path5.concat(key) : [key]);
+        build(el, path7 ? path7.concat(key) : [key]);
       }
     });
     stack.pop();
@@ -12444,7 +12444,7 @@ var platform_default = {
 // ../node_modules/axios/lib/helpers/toURLEncodedForm.js
 function toURLEncodedForm(data, options) {
   return toFormData_default(data, new platform_default.classes.URLSearchParams(), {
-    visitor: function(value, key, path5, helpers) {
+    visitor: function(value, key, path7, helpers) {
       if (platform_default.isNode && utils_default.isBuffer(value)) {
         this.append(key, value.toString("base64"));
         return false;
@@ -12474,11 +12474,11 @@ function arrayToObject(arr) {
   return obj;
 }
 function formDataToJSON(formData) {
-  function buildPath(path5, value, target, index) {
-    let name = path5[index++];
+  function buildPath(path7, value, target, index) {
+    let name = path7[index++];
     if (name === "__proto__") return true;
     const isNumericKey = Number.isFinite(+name);
-    const isLast = index >= path5.length;
+    const isLast = index >= path7.length;
     name = !name && utils_default.isArray(target) ? target.length : name;
     if (isLast) {
       if (utils_default.hasOwnProp(target, name)) {
@@ -12491,7 +12491,7 @@ function formDataToJSON(formData) {
     if (!target[name] || !utils_default.isObject(target[name])) {
       target[name] = [];
     }
-    const result = buildPath(path5, value, target[name], index);
+    const result = buildPath(path7, value, target[name], index);
     if (result && utils_default.isArray(target[name])) {
       target[name] = arrayToObject(target[name]);
     }
@@ -14045,9 +14045,9 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
       auth = urlUsername + ":" + urlPassword;
     }
     auth && headers.delete("authorization");
-    let path5;
+    let path7;
     try {
-      path5 = buildURL(
+      path7 = buildURL(
         parsed.pathname + parsed.search,
         config.params,
         config.paramsSerializer
@@ -14065,7 +14065,7 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
       false
     );
     const options = {
-      path: path5,
+      path: path7,
       method,
       headers: headers.toJSON(),
       agents: { http: config.httpAgent, https: config.httpsAgent },
@@ -14314,14 +14314,14 @@ var isURLSameOrigin_default = platform_default.hasStandardBrowserEnv ? /* @__PUR
 var cookies_default = platform_default.hasStandardBrowserEnv ? (
   // Standard browser envs support document.cookie
   {
-    write(name, value, expires, path5, domain, secure, sameSite) {
+    write(name, value, expires, path7, domain, secure, sameSite) {
       if (typeof document === "undefined") return;
       const cookie = [`${name}=${encodeURIComponent(value)}`];
       if (utils_default.isNumber(expires)) {
         cookie.push(`expires=${new Date(expires).toUTCString()}`);
       }
-      if (utils_default.isString(path5)) {
-        cookie.push(`path=${path5}`);
+      if (utils_default.isString(path7)) {
+        cookie.push(`path=${path7}`);
       }
       if (utils_default.isString(domain)) {
         cookie.push(`domain=${domain}`);
@@ -15578,9 +15578,9 @@ var {
 } = axios_default;
 
 // src/extension.ts
-var import_crypto3 = require("crypto");
-var fs4 = __toESM(require("fs"));
-var path4 = __toESM(require("path"));
+var import_crypto5 = require("crypto");
+var fs6 = __toESM(require("fs"));
+var path6 = __toESM(require("path"));
 
 // src/mcpInstaller.ts
 var vscode = __toESM(require("vscode"));
@@ -15646,7 +15646,7 @@ var vscode2 = __toESM(require("vscode"));
 var import_crypto2 = require("crypto");
 var fs2 = __toESM(require("fs"));
 var path2 = __toESM(require("path"));
-var MCP_PORT = 37491;
+var MCP_PORT = 37492;
 function getNotesDir(storagePath) {
   return path2.join(storagePath, "notes");
 }
@@ -15708,7 +15708,7 @@ function readAllNotes(storagePath, folderPath) {
   const meta = readLocalMeta(storagePath);
   const notes = [];
   for (const entry of meta.noteIndex) {
-    if (entry.folderPath !== folderPath) {
+    if (entry.folderPath !== folderPath && !entry.folderPath.startsWith(folderPath + "/")) {
       continue;
     }
     const note = readLocalNote(storagePath, entry.id);
@@ -16170,6 +16170,61 @@ function handleSearchNotes(storagePath, folderPath, query) {
     return text.toLowerCase().includes(q) || (n.annotations?.some((a) => a.comment.toLowerCase().includes(q)) ?? false);
   }).map((n) => ({ id: n.id, title: n.title, tags: n.tags, priority: n.priority, status: n.status, updatedAt: n.updatedAt }));
 }
+function formatResultText(tool, result) {
+  const list = (r) => Array.isArray(r) ? r : [];
+  switch (tool) {
+    case "notevs_list_notes":
+    case "notevs_search_notes": {
+      const notes = list(result);
+      if (notes.length === 0) {
+        return tool === "notevs_search_notes" ? "No notes matched that search." : "You don't have any notes yet.";
+      }
+      return notes.map((n) => {
+        const bits = [n.priority && n.priority !== "none" ? `priority: ${n.priority}` : null, n.status && n.status !== "open" ? `status: ${n.status}` : null, n.tags?.length ? `tags: ${n.tags.join(", ")}` : null].filter(Boolean).join(", ");
+        return `- "${n.title}" (id: ${n.id})${bits ? ` \u2014 ${bits}` : ""}`;
+      }).join("\n");
+    }
+    case "notevs_get_note": {
+      const n = result;
+      let text = `"${n.title}" (id: ${n.id})
+
+${n.content || "(empty)"}`;
+      if (n.annotations?.length) {
+        text += `
+
+Annotations:
+` + n.annotations.map((a) => `- ${a.filePath}:${a.lineStart}-${a.lineEnd} \u2014 ${a.comment}`).join("\n");
+      }
+      return text;
+    }
+    case "notevs_create_note": {
+      const n = result;
+      return `Created "${n.title}" (id: ${n.id}).`;
+    }
+    case "notevs_save_note": {
+      const n = result;
+      return `Saved "${n.title}".`;
+    }
+    case "notevs_delete_note":
+      return "Note deleted.";
+    case "notevs_add_annotation":
+      return "Annotation added.";
+    case "notevs_export_to_notion": {
+      const r = result;
+      return `Exported to Notion: ${r.pageUrl}`;
+    }
+    case "notevs_export_to_obsidian": {
+      const r = result;
+      return `Exported to Obsidian: ${r.filePath}`;
+    }
+    case "notevs_set_reminder": {
+      const r = result;
+      return `Reminder created in ${r.provider === "google" ? "Google Tasks" : "Todoist"}.${r.taskUrl ? ` ${r.taskUrl}` : ""}`;
+    }
+    default:
+      return JSON.stringify(result, null, 2);
+  }
+}
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let body = "";
@@ -16182,6 +16237,7 @@ function readBody(req) {
 }
 function startMcpServer(context, onNoteMutated) {
   const storagePath = context.globalStorageUri.fsPath;
+  const mcpSessions = /* @__PURE__ */ new Set();
   function resolveFolderPath(argFolderPath) {
     try {
       if (argFolderPath && fs2.existsSync(argFolderPath)) {
@@ -16215,58 +16271,124 @@ function startMcpServer(context, onNoteMutated) {
         send(200, { tools: TOOL_DEFINITIONS });
         return;
       }
+      async function callTool(tool, args) {
+        const folderPath = resolveFolderPath(args.folderPath);
+        if (!folderPath) {
+          throw new Error("Could not determine project folder. Pass folderPath in args or open a folder in VS Code.");
+        }
+        switch (tool) {
+          case "notevs_list_notes":
+            return handleListNotes(storagePath, folderPath);
+          case "notevs_get_note":
+            return handleGetNote(storagePath, args.id);
+          case "notevs_create_note": {
+            const r = handleCreateNote(storagePath, folderPath, args);
+            onNoteMutated?.();
+            return r;
+          }
+          case "notevs_save_note": {
+            const r = handleSaveNote(storagePath, args);
+            onNoteMutated?.();
+            return r;
+          }
+          case "notevs_delete_note": {
+            const r = handleDeleteNote(storagePath, args.id);
+            onNoteMutated?.();
+            return r;
+          }
+          case "notevs_add_annotation": {
+            const r = handleAddAnnotation(storagePath, args);
+            onNoteMutated?.();
+            return r;
+          }
+          case "notevs_search_notes":
+            return handleSearchNotes(storagePath, folderPath, args.query);
+          case "notevs_export_to_notion": {
+            const r = await handleExportToNotion(context.secrets, context.globalState, storagePath, args.id);
+            onNoteMutated?.();
+            return r;
+          }
+          case "notevs_export_to_obsidian": {
+            const r = await handleExportToObsidian(context.secrets, context.globalState, storagePath, args.id);
+            onNoteMutated?.();
+            return r;
+          }
+          case "notevs_set_reminder": {
+            const r = await handleSetReminder(context.secrets, storagePath, args);
+            onNoteMutated?.();
+            return r;
+          }
+          default:
+            throw new Error(`Unknown tool: ${tool}`);
+        }
+      }
       if (req.method === "POST" && req.url === "/call") {
         const body = await readBody(req);
         const { tool, args } = JSON.parse(body);
-        const folderPath = resolveFolderPath(args.folderPath);
-        if (!folderPath) {
-          send(400, { error: "Could not determine project folder. Pass folderPath in args or open a folder in VS Code." });
-          return;
+        try {
+          const result = await callTool(tool, args);
+          send(200, { result });
+        } catch (err) {
+          send(400, { error: err instanceof Error ? err.message : String(err) });
         }
-        let result;
-        switch (tool) {
-          case "notevs_list_notes":
-            result = handleListNotes(storagePath, folderPath);
-            break;
-          case "notevs_get_note":
-            result = handleGetNote(storagePath, args.id);
-            break;
-          case "notevs_create_note":
-            result = handleCreateNote(storagePath, folderPath, args);
-            onNoteMutated?.();
-            break;
-          case "notevs_save_note":
-            result = handleSaveNote(storagePath, args);
-            onNoteMutated?.();
-            break;
-          case "notevs_delete_note":
-            result = handleDeleteNote(storagePath, args.id);
-            onNoteMutated?.();
-            break;
-          case "notevs_add_annotation":
-            result = handleAddAnnotation(storagePath, args);
-            onNoteMutated?.();
-            break;
-          case "notevs_search_notes":
-            result = handleSearchNotes(storagePath, folderPath, args.query);
-            break;
-          case "notevs_export_to_notion":
-            result = await handleExportToNotion(context.secrets, context.globalState, storagePath, args.id);
-            onNoteMutated?.();
-            break;
-          case "notevs_export_to_obsidian":
-            result = await handleExportToObsidian(context.secrets, context.globalState, storagePath, args.id);
-            onNoteMutated?.();
-            break;
-          case "notevs_set_reminder":
-            result = await handleSetReminder(context.secrets, storagePath, args);
-            onNoteMutated?.();
-            break;
-          default:
-            send(400, { error: `Unknown tool: ${tool}` });
-            return;
+        return;
+      }
+      if (req.method === "GET" && req.url === "/mcp") {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "SSE streaming not supported; use POST" }));
+        return;
+      }
+      if (req.method === "DELETE" && req.url === "/mcp") {
+        const sid = req.headers["mcp-session-id"];
+        if (typeof sid === "string") {
+          mcpSessions.delete(sid);
         }
-        send(200, { result });
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+      if (req.method === "POST" && req.url === "/mcp") {
+        const body = await readBody(req);
+        let rpcId = null;
+        try {
+          const rpc = JSON.parse(body);
+          rpcId = rpc.id;
+          switch (rpc.method) {
+            case "initialize": {
+              const sessionId = (0, import_crypto2.randomUUID)();
+              mcpSessions.add(sessionId);
+              res.writeHead(200, { "Content-Type": "application/json", "Mcp-Session-Id": sessionId });
+              res.end(JSON.stringify({ jsonrpc: "2.0", id: rpcId, result: { protocolVersion: "2024-11-05", capabilities: { tools: {} }, serverInfo: { name: "notevs-mcp", version: "1.0.0" } } }));
+              return;
+            }
+            case "notifications/initialized":
+              res.writeHead(202);
+              res.end();
+              return;
+            case "tools/list":
+              send(200, { jsonrpc: "2.0", id: rpcId, result: { tools: TOOL_DEFINITIONS } });
+              return;
+            case "tools/call": {
+              const { name, arguments: callArgs = {} } = rpc.params ?? {};
+              try {
+                const result = await callTool(name, callArgs);
+                const structuredContent = Array.isArray(result) ? { items: result } : result;
+                send(200, { jsonrpc: "2.0", id: rpcId, result: { content: [{ type: "text", text: formatResultText(name, result) }], structuredContent, isError: false } });
+              } catch (err) {
+                send(200, { jsonrpc: "2.0", id: rpcId, error: { code: -32603, message: err instanceof Error ? err.message : String(err) } });
+              }
+              return;
+            }
+            case "ping":
+              send(200, { jsonrpc: "2.0", id: rpcId, result: {} });
+              return;
+            default:
+              send(200, { jsonrpc: "2.0", id: rpcId, error: { code: -32601, message: `Method not found: ${rpc.method}` } });
+              return;
+          }
+        } catch (err) {
+          send(200, { jsonrpc: "2.0", id: rpcId, error: { code: -32700, message: err instanceof Error ? err.message : "Parse error" } });
+        }
         return;
       }
       send(404, { error: "Not found" });
@@ -16287,10 +16409,618 @@ function startMcpServer(context, onNoteMutated) {
   return server;
 }
 
-// src/integrations.ts
+// src/agentPanel.ts
 var vscode3 = __toESM(require("vscode"));
 var fs3 = __toESM(require("fs"));
 var path3 = __toESM(require("path"));
+var import_crypto3 = require("crypto");
+
+// src/agentPanelHtml.ts
+function agentChatHtml(projectName) {
+  const safeProject = projectName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.36/dist/codicon.css"/><style>body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:0;margin:0;height:100vh;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box}.toolbar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--vscode-panel-border);flex-shrink:0}.project-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--vscode-descriptionForeground)}.title-row{display:flex;align-items:center;gap:8px}.title-row .agent-title{font-size:13px;font-weight:600}.status-pill{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--vscode-descriptionForeground);padding:3px 8px;border-radius:10px;border:1px solid var(--vscode-panel-border);cursor:default}.status-dot{width:7px;height:7px;border-radius:50%;background:#888;flex-shrink:0}.status-dot.up{background:#3fb950}.status-dot.down{background:#f85149}.status-dot.busy{background:#d29922;animation:pulse 1.4s ease-in-out infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}.messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}.msg{max-width:85%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.45;word-wrap:break-word}.msg.user{align-self:flex-end;background:var(--vscode-button-background);color:var(--vscode-button-foreground);white-space:pre-wrap}.msg.bot{align-self:flex-start;background:var(--vscode-input-background);border:1px solid var(--vscode-panel-border)}.msg.system{align-self:center;font-size:11px;color:var(--vscode-descriptionForeground);background:none;padding:2px;white-space:pre-wrap}.msg.bot p{margin:0 0 6px 0}.msg.bot p:last-child{margin-bottom:0}.msg.bot ul,.msg.bot ol{margin:4px 0 8px 20px;padding:0}.msg.bot li{margin:2px 0}.msg.bot code{background:var(--vscode-textCodeBlock-background,rgba(127,127,127,.2));padding:1px 4px;border-radius:4px;font-family:var(--vscode-editor-font-family,monospace);font-size:12px}.msg.bot pre{background:var(--vscode-textCodeBlock-background,rgba(127,127,127,.15));padding:8px 10px;border-radius:6px;overflow-x:auto;margin:6px 0}.msg.bot pre code{background:none;padding:0}.msg.bot table{border-collapse:collapse;margin:6px 0;font-size:12px;width:100%}.msg.bot th,.msg.bot td{border:1px solid var(--vscode-panel-border);padding:4px 8px;text-align:left}.msg.bot th{background:rgba(127,127,127,.1)}.msg.bot strong{font-weight:600}.confirm-card{align-self:flex-start;max-width:90%;padding:12px;border-radius:10px;background:rgba(251,191,36,0.10);border:1.5px solid rgba(251,191,36,0.55);display:flex;flex-direction:column;gap:8px}.confirm-card .confirm-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#d29922;display:flex;align-items:center;gap:5px}.confirm-card .confirm-text{font-size:13px;line-height:1.45}.confirm-buttons{display:flex;gap:8px}.confirm-buttons button{font-size:12px;padding:5px 12px;border-radius:6px;border:1px solid var(--vscode-panel-border);background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground);cursor:pointer}.confirm-buttons button.primary{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border-color:transparent}.confirm-buttons button:hover{opacity:.85}.thinking{align-self:flex-start;display:flex;gap:4px;padding:8px 12px}.thinking span{width:6px;height:6px;border-radius:50%;background:var(--vscode-descriptionForeground);opacity:.5;animation:bounce 1.2s infinite}.thinking span:nth-child(2){animation-delay:.15s}.thinking span:nth-child(3){animation-delay:.3s}@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}.input-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--vscode-panel-border);flex-shrink:0}#msgInput{flex:1;background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border, var(--vscode-panel-border));border-radius:6px;padding:7px 10px;font-size:13px;font-family:var(--vscode-font-family);resize:none;max-height:160px;overflow-y:auto;line-height:1.4}#sendBtn{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:none;border-radius:6px;padding:0 14px;cursor:pointer}#sendBtn:disabled{opacity:.5;cursor:default}.empty-hint{align-self:center;color:var(--vscode-descriptionForeground);font-size:12px;text-align:center;margin-top:20px;max-width:80%}.toolbar-actions{display:flex;align-items:center;gap:6px}.icon-btn{background:none;border:1px solid transparent;color:var(--vscode-foreground);border-radius:6px;padding:4px 6px;cursor:pointer;display:flex;align-items:center}.icon-btn:hover{background:var(--vscode-toolbar-hoverBackground, rgba(127,127,127,.15));border-color:var(--vscode-panel-border)}</style></head><body><div class="toolbar"><div class="title-row"><i class="codicon codicon-comment-discussion"></i><span class="agent-title">NoteVs Agent</span></div><div class="toolbar-actions"><button class="icon-btn" id="historyBtn" title="View past chats"><i class="codicon codicon-history"></i></button><button class="icon-btn" id="newChatBtn" title="New chat (saves this one to history)"><i class="codicon codicon-add"></i></button><div class="status-pill" id="statusPill"><span class="status-dot" id="rasaDot"></span><span id="statusText">Checking&hellip;</span></div></div></div><div class="project-name" style="padding:6px 12px 0">' + safeProject + '</div><div id="statusDetail" style="display:none;padding:6px 12px;font-size:11px;line-height:1.5;color:var(--vscode-descriptionForeground);border-bottom:1px solid var(--vscode-panel-border)"></div><div class="messages" id="messages"><div class="empty-hint">Ask about your notes, create or edit one, or send a note to Notion, Obsidian, Todoist, or Google Tasks. Anything that leaves NoteVs or deletes a note will ask you to confirm first.</div></div><div class="input-row"><textarea id="msgInput" rows="1" placeholder="Message the NoteVs agent&hellip;"></textarea><button id="sendBtn"><i class="codicon codicon-send"></i></button></div><script>(function(){const vscode = acquireVsCodeApi();const messagesEl = document.getElementById("messages");const inputEl = document.getElementById("msgInput");const sendBtn = document.getElementById("sendBtn");const rasaDot = document.getElementById("rasaDot");const statusText = document.getElementById("statusText");const newChatBtn = document.getElementById("newChatBtn");const historyBtn = document.getElementById("historyBtn");let thinkingEl = null;function scrollDown(){messagesEl.scrollTop = messagesEl.scrollHeight;}const BACKTICK = String.fromCharCode(96);function escapeHtml(s){return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");}function mdToHtml(raw){const blocks = [];let text = escapeHtml(raw);const fence = new RegExp(BACKTICK + BACKTICK + BACKTICK + "([a-zA-Z0-9]*)\\\\n?([\\\\s\\\\S]*?)" + BACKTICK + BACKTICK + BACKTICK, "g");text = text.replace(fence, function(_, lang, code){const idx = blocks.length;blocks.push("<pre><code>" + code.replace(/\\n$/, "") + "</code></pre>");return "\\u0000B" + idx + "\\u0000";});const inlineCode = new RegExp(BACKTICK + "([^" + BACKTICK + "\\\\n]+)" + BACKTICK, "g");text = text.replace(inlineCode, function(_, code){ return "<code>" + code + "</code>"; });text = text.replace(/\\*\\*([^*]+)\\*\\*/g, "<strong>$1</strong>");text = text.replace(/(^|[^*])\\*([^*\\n]+)\\*(?!\\*)/g, "$1<em>$2</em>");const lines = text.split("\\n");let html = "";let i = 0;function isBullet(l){ return /^\\s*[-*]\\s+/.test(l); }function isNumbered(l){ return /^\\s*\\d+\\.\\s+/.test(l); }function isTableRow(l){ return /^\\s*\\|.*\\|\\s*$/.test(l); }function splitRow(l){const cells = l.split("|").map(function(c){ return c.trim(); });if(cells.length && cells[0] === ""){ cells.shift(); }if(cells.length && cells[cells.length - 1] === ""){ cells.pop(); }return cells;}while(i < lines.length){const line = lines[i];if(isBullet(line)){const items = [];while(i < lines.length && isBullet(lines[i])){ items.push("<li>" + lines[i].replace(/^\\s*[-*]\\s+/, "") + "</li>"); i++; }html += "<ul>" + items.join("") + "</ul>";continue;}if(isNumbered(line)){const items = [];while(i < lines.length && isNumbered(lines[i])){ items.push("<li>" + lines[i].replace(/^\\s*\\d+\\.\\s+/, "") + "</li>"); i++; }html += "<ol>" + items.join("") + "</ol>";continue;}if(isTableRow(line) && i + 1 < lines.length && /^[\\s|:-]+$/.test(lines[i + 1]) && lines[i + 1].indexOf("-") !== -1){const header = splitRow(line);i += 2;const rows = [];while(i < lines.length && isTableRow(lines[i])){ rows.push("<tr>" + splitRow(lines[i]).map(function(c){ return "<td>" + c + "</td>"; }).join("") + "</tr>"); i++; }html += "<table><thead><tr>" + header.map(function(c){ return "<th>" + c + "</th>"; }).join("") + "</tr></thead><tbody>" + rows.join("") + "</tbody></table>";continue;}if(line.trim() === ""){ i++; continue; }if(line.indexOf("\\u0000B") === 0){ html += line; i++; continue; }const para = [line];i++;while(i < lines.length && lines[i].trim() !== "" && !isBullet(lines[i]) && !isNumbered(lines[i]) && !isTableRow(lines[i]) && lines[i].indexOf("\\u0000B") !== 0){ para.push(lines[i]); i++; }html += "<p>" + para.join("<br>") + "</p>";}html = html.replace(/\\u0000B(\\d+)\\u0000/g, function(_, idx){ return blocks[Number(idx)]; });return html;}function addMsg(text, cls){const d = document.createElement("div");d.className = "msg " + cls;if(cls === "bot"){ d.innerHTML = mdToHtml(text); } else { d.textContent = text; }messagesEl.appendChild(d);scrollDown();}function addConfirmCard(text, buttons){const wrap = document.createElement("div");wrap.className = "confirm-card";const label = document.createElement("div");label.className = "confirm-label";label.innerHTML = "<i class=\\"codicon codicon-warning\\"></i> Needs your confirmation";const body = document.createElement("div");body.className = "confirm-text";body.textContent = text || "Proceed?";const btnRow = document.createElement("div");btnRow.className = "confirm-buttons";(buttons || []).forEach(function(b, i){const btn = document.createElement("button");btn.textContent = b.title || "OK";if(i === 0){btn.className = "primary";}btn.addEventListener("click", function(){btnRow.querySelectorAll("button").forEach(function(x){x.disabled = true;});addMsg(b.title || "OK", "user");vscode.postMessage({type:"buttonClick", text: b.payload});});btnRow.appendChild(btn);});wrap.appendChild(label); wrap.appendChild(body); wrap.appendChild(btnRow);messagesEl.appendChild(wrap);scrollDown();}function setThinking(on){if(on && !thinkingEl){thinkingEl = document.createElement("div");thinkingEl.className = "thinking";thinkingEl.innerHTML = "<span></span><span></span><span></span>";messagesEl.appendChild(thinkingEl);scrollDown();} else if(!on && thinkingEl){thinkingEl.remove();thinkingEl = null;}sendBtn.disabled = !!on;}function autoGrow(){inputEl.style.height = "auto";inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + "px";}function send(){const text = inputEl.value.trim();if(!text) return;addMsg(text, "user");inputEl.value = "";autoGrow();vscode.postMessage({type:"sendMessage", text: text});}sendBtn.addEventListener("click", send);newChatBtn.addEventListener("click", function(){ vscode.postMessage({type:"newChat"}); });historyBtn.addEventListener("click", function(){ vscode.postMessage({type:"viewHistory"}); });inputEl.addEventListener("input", autoGrow);inputEl.addEventListener("keydown", function(e){if(e.key === "Enter" && !e.shiftKey){e.preventDefault(); send();}});window.addEventListener("message", function(event){const msg = event.data;if(msg.type === "status"){const PHASE_LABELS = {missing_credentials: "Add credentials in Settings",extracting: "Setting up\\u2026",creating_venv: "Creating environment\\u2026",installing: "Installing (first time)\\u2026",training: "Training (first time)\\u2026",starting: "Starting\\u2026",crashed: "Agent crashed \\u2014 retrying",error: "Setup failed"};const statusPill = document.getElementById("statusPill");const statusDetail = document.getElementById("statusDetail");function showDetail(text, isError){if(!text){statusDetail.style.display = "none"; return;}statusDetail.textContent = text;statusDetail.style.color = isError ? "#f85149" : "var(--vscode-descriptionForeground)";statusDetail.style.display = "block";}if(msg.phase === "running" && msg.rasaUp && msg.notevsUp){rasaDot.className = "status-dot up";statusText.textContent = "Agent ready";statusPill.title = "";showDetail("");} else if(msg.phase === "running" && !msg.notevsUp){rasaDot.className = "status-dot down";statusText.textContent = "NoteVs not running";statusPill.title = "";showDetail("");} else if(msg.phase === "running"){rasaDot.className = "status-dot busy";statusText.textContent = "Starting\\u2026";statusPill.title = msg.message || "";showDetail(msg.message, false);} else if(msg.phase === "error" || msg.phase === "crashed"){rasaDot.className = "status-dot down";statusText.textContent = PHASE_LABELS[msg.phase] || "Agent offline";statusPill.title = msg.message || "";showDetail(msg.message, true);} else {rasaDot.className = "status-dot busy";statusText.textContent = PHASE_LABELS[msg.phase] || "Agent offline";statusPill.title = msg.message || "";showDetail(msg.message, false);}} else if(msg.type === "thinking"){setThinking(msg.value);} else if(msg.type === "botMessages"){(msg.messages || []).forEach(function(m){if(m.buttons && m.buttons.length){addConfirmCard(m.text, m.buttons);} else if(m.text){addMsg(m.text, "bot");}});} else if(msg.type === "clearChat"){messagesEl.innerHTML = "";const hint = document.createElement("div");hint.className = "empty-hint";hint.textContent = "New chat started \\u2014 the previous conversation was saved to .notevsagent/history/ in your project.";messagesEl.appendChild(hint);} else if(msg.type === "restoreTranscript"){messagesEl.innerHTML = "";(msg.entries || []).forEach(function(e){ addMsg(e.text, e.role === "user" ? "user" : "bot"); });}});vscode.postMessage({type:"ready"});inputEl.focus();})();</script></body></html>';
+}
+
+// src/agentPanel.ts
+function getAgentUrl() {
+  return vscode3.workspace.getConfiguration("notevs").get("agentUrl", "http://localhost:5005");
+}
+function ensureHistoryDir(folderPath) {
+  const dir = path3.join(folderPath, ".notevsagent", "history");
+  fs3.mkdirSync(dir, { recursive: true });
+  const gitignorePath = path3.join(folderPath, ".notevsagent", ".gitignore");
+  if (!fs3.existsSync(gitignorePath)) {
+    fs3.writeFileSync(gitignorePath, "*\n", "utf8");
+  }
+  return dir;
+}
+function transcriptToMarkdown(entries) {
+  if (!entries.length) {
+    return "_(empty conversation)_\n";
+  }
+  return entries.map((e) => {
+    const label = e.role === "user" ? "**You**" : "**NoteVs Agent**";
+    return `${label} _(${e.at})_
+
+${e.text}
+`;
+  }).join("\n---\n\n");
+}
+async function checkRasaStatus() {
+  try {
+    const { status } = await axios_default.get(getAgentUrl(), { timeout: 4e3, validateStatus: () => true });
+    return status >= 200 && status < 500;
+  } catch {
+    return false;
+  }
+}
+async function checkNoteVsStatus() {
+  try {
+    const { data } = await axios_default.get(`http://127.0.0.1:${MCP_PORT}/health`, { timeout: 3e3 });
+    return data?.ok === true;
+  } catch {
+    return false;
+  }
+}
+function stripThinkTags(text) {
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, "");
+  cleaned = cleaned.replace(/<think>[\s\S]*$/i, "");
+  return cleaned.replace(/^\s+/, "");
+}
+async function sendToRasa(senderId, text) {
+  const { data } = await axios_default.post(
+    `${getAgentUrl().replace(/\/$/, "")}/webhooks/rest/webhook`,
+    { sender: senderId, message: text },
+    { timeout: 6e4 }
+  );
+  const messages = Array.isArray(data) ? data : [];
+  return messages.map((m) => m.text ? { ...m, text: stripThinkTags(m.text) } : m);
+}
+function registerAgentChatCommand(context, getFolderPath2, agentProcessManager) {
+  let agentPanel;
+  let senderId = (0, import_crypto3.randomUUID)();
+  let transcript = [];
+  function recordUserMessage(text) {
+    transcript.push({ role: "user", text, at: (/* @__PURE__ */ new Date()).toISOString() });
+  }
+  function recordBotMessages(messages) {
+    const at = (/* @__PURE__ */ new Date()).toISOString();
+    for (const m of messages) {
+      if (m.text) {
+        transcript.push({ role: "bot", text: m.text, at });
+      }
+    }
+  }
+  let sessionPrimed = false;
+  let primingPromise = null;
+  function primeSessionWhenReady() {
+    if (sessionPrimed) {
+      return Promise.resolve();
+    }
+    if (primingPromise) {
+      return primingPromise;
+    }
+    primingPromise = (async () => {
+      while (agentPanel && !sessionPrimed) {
+        if (await checkRasaStatus()) {
+          try {
+            const messages = await sendToRasa(senderId, "hello");
+            sessionPrimed = true;
+            if (agentPanel && messages.length) {
+              agentPanel.webview.postMessage({ type: "botMessages", messages });
+              recordBotMessages(messages);
+            }
+          } catch {
+          }
+        }
+        if (!sessionPrimed) {
+          await new Promise((resolve) => setTimeout(resolve, 3e3));
+        }
+      }
+      primingPromise = null;
+    })();
+    return primingPromise;
+  }
+  let lastPhase;
+  async function postStatus() {
+    if (!agentPanel) {
+      return;
+    }
+    const pipeline = agentProcessManager.getStatus();
+    if (pipeline.phase === "starting" && lastPhase !== "starting") {
+      sessionPrimed = false;
+    }
+    lastPhase = pipeline.phase;
+    const [rasaUp, notevsUp] = pipeline.phase === "running" ? await Promise.all([checkRasaStatus(), checkNoteVsStatus()]) : [false, await checkNoteVsStatus()];
+    agentPanel.webview.postMessage({ type: "status", phase: pipeline.phase, message: pipeline.message, rasaUp, notevsUp });
+  }
+  async function handleUserText(text) {
+    if (!agentPanel) {
+      return;
+    }
+    agentPanel.webview.postMessage({ type: "thinking", value: true });
+    await Promise.race([primeSessionWhenReady(), new Promise((resolve) => setTimeout(resolve, 8e3))]);
+    recordUserMessage(text);
+    try {
+      const messages = await sendToRasa(senderId, text);
+      agentPanel.webview.postMessage({ type: "botMessages", messages });
+      recordBotMessages(messages);
+    } catch (err) {
+      agentPanel.webview.postMessage({
+        type: "botMessages",
+        messages: [{ text: `Couldn't reach the NoteVs agent \u2014 is the local Rasa server running? (${err instanceof Error ? err.message : String(err)})` }]
+      });
+    } finally {
+      agentPanel.webview.postMessage({ type: "thinking", value: false });
+      postStatus();
+    }
+  }
+  function archiveTranscript() {
+    if (!transcript.length) {
+      return;
+    }
+    const folderPath = getFolderPath2();
+    if (!folderPath) {
+      transcript = [];
+      return;
+    }
+    try {
+      const dir = ensureHistoryDir(folderPath);
+      const stamp = (/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-");
+      fs3.writeFileSync(path3.join(dir, `${stamp}.md`), transcriptToMarkdown(transcript), "utf8");
+    } catch (err) {
+      console.error("[NoteVs Agent] Failed to archive chat history:", err);
+    }
+    transcript = [];
+  }
+  function startNewChat() {
+    if (!agentPanel) {
+      return;
+    }
+    archiveTranscript();
+    senderId = (0, import_crypto3.randomUUID)();
+    sessionPrimed = false;
+    agentPanel.webview.postMessage({ type: "clearChat" });
+    void primeSessionWhenReady();
+  }
+  const statusSub = agentProcessManager.onStatusChange(() => {
+    postStatus();
+    void primeSessionWhenReady();
+  });
+  const newChatCommand = vscode3.commands.registerCommand("notevs.newAgentChat", () => {
+    startNewChat();
+  });
+  const viewHistoryCommand = vscode3.commands.registerCommand("notevs.viewAgentHistory", async () => {
+    const folderPath = getFolderPath2();
+    if (!folderPath) {
+      void vscode3.window.showInformationMessage("Open a project folder first.");
+      return;
+    }
+    const dir = path3.join(folderPath, ".notevsagent", "history");
+    if (!fs3.existsSync(dir)) {
+      void vscode3.window.showInformationMessage("No past NoteVs Agent chats yet.");
+      return;
+    }
+    const files = fs3.readdirSync(dir).filter((f) => f.endsWith(".md")).sort().reverse();
+    if (!files.length) {
+      void vscode3.window.showInformationMessage("No past NoteVs Agent chats yet.");
+      return;
+    }
+    const picked = await vscode3.window.showQuickPick(
+      files.map((f) => ({ label: f.replace(/\.md$/, ""), file: f })),
+      { placeHolder: "Select a past NoteVs Agent chat to view (read-only)" }
+    );
+    if (!picked) {
+      return;
+    }
+    const uri = vscode3.Uri.file(path3.join(dir, picked.file));
+    await vscode3.commands.executeCommand("markdown.showPreview", uri);
+  });
+  const openCommand = vscode3.commands.registerCommand("notevs.openAgentChat", () => {
+    if (agentPanel) {
+      agentPanel.reveal(vscode3.ViewColumn.Beside);
+      return;
+    }
+    const folderPath = getFolderPath2();
+    const projectName = folderPath?.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
+    agentPanel = vscode3.window.createWebviewPanel(
+      "notevs.agentChat",
+      "NoteVs Agent",
+      vscode3.ViewColumn.Beside,
+      { enableScripts: true, retainContextWhenHidden: true }
+    );
+    agentPanel.iconPath = vscode3.Uri.joinPath(context.extensionUri, "media", "icon.png");
+    agentPanel.webview.html = agentChatHtml(projectName);
+    agentPanel.onDidDispose(() => {
+      agentPanel = void 0;
+    }, null, context.subscriptions);
+    void primeSessionWhenReady();
+    agentPanel.webview.onDidReceiveMessage(async (msg) => {
+      if (msg.type === "ready") {
+        postStatus();
+        if (transcript.length && agentPanel) {
+          agentPanel.webview.postMessage({ type: "restoreTranscript", entries: transcript });
+        }
+        return;
+      }
+      if (msg.type === "checkStatus") {
+        postStatus();
+        return;
+      }
+      if (msg.type === "sendMessage" && msg.text) {
+        await handleUserText(msg.text);
+        return;
+      }
+      if (msg.type === "buttonClick" && msg.text) {
+        await handleUserText(msg.text);
+        return;
+      }
+      if (msg.type === "newChat") {
+        startNewChat();
+        return;
+      }
+      if (msg.type === "viewHistory") {
+        void vscode3.commands.executeCommand("notevs.viewAgentHistory");
+        return;
+      }
+    });
+  });
+  return vscode3.Disposable.from(openCommand, newChatCommand, viewHistoryCommand, statusSub);
+}
+
+// src/agentProcess.ts
+var vscode4 = __toESM(require("vscode"));
+var fs4 = __toESM(require("fs"));
+var path4 = __toESM(require("path"));
+var import_child_process = require("child_process");
+var import_crypto4 = require("crypto");
+var INITIAL_RESTART_DELAY_MS = 3e3;
+var MAX_RESTART_DELAY_MS = 3e4;
+var MIN_HEALTHY_UPTIME_MS = 1e4;
+var DEPS_INSTALLED_MARKER = ".deps_installed_v2";
+function getAgentRepoPathOverride() {
+  return vscode4.workspace.getConfiguration("notevs").get("agentRepoPath", "").trim();
+}
+var EXTRA_PATH_DIRS = ["/opt/homebrew/bin", "/usr/local/bin", path4.join(process.env.HOME ?? "", ".pyenv", "shims")];
+function pathWithExtras() {
+  return [process.env.PATH ?? "", ...EXTRA_PATH_DIRS].join(path4.delimiter);
+}
+function findCompatiblePython(output) {
+  const env4 = { ...process.env, PATH: pathWithExtras() };
+  const candidates = process.platform === "win32" ? ["python3.13", "python3.12", "python3.11", "python3.10", "python"] : ["python3.13", "python3.12", "python3.11", "python3.10", "python3"];
+  for (const candidate of candidates) {
+    const result = (0, import_child_process.spawnSync)(candidate, ["-c", 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'], { env: env4, encoding: "utf8" });
+    if (result.status !== 0 || !result.stdout) {
+      continue;
+    }
+    const version = result.stdout.trim();
+    if (COMPATIBLE_VERSIONS.includes(version)) {
+      output.appendLine(`[NoteVs Agent] Using ${candidate} (Python ${version})`);
+      return candidate;
+    }
+  }
+  return void 0;
+}
+var COMPATIBLE_VERSIONS = ["3.10", "3.11", "3.12", "3.13"];
+function isCompatibleInterpreter(pythonPath) {
+  const result = (0, import_child_process.spawnSync)(pythonPath, ["-c", 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'], { encoding: "utf8" });
+  return result.status === 0 && COMPATIBLE_VERSIONS.includes((result.stdout ?? "").trim());
+}
+function computeTrainingSourceHash(repoPath) {
+  const hash = (0, import_crypto4.createHash)("sha256");
+  const files = [];
+  for (const name of ["agent.yml", "integrations.yml"]) {
+    const p = path4.join(repoPath, name);
+    if (fs4.existsSync(p)) {
+      files.push(p);
+    }
+  }
+  for (const dirName of ["skills", "tools"]) {
+    const dir = path4.join(repoPath, dirName);
+    if (!fs4.existsSync(dir)) {
+      continue;
+    }
+    const walk = (d) => {
+      for (const entry of fs4.readdirSync(d, { withFileTypes: true })) {
+        if (entry.name === "__pycache__") {
+          continue;
+        }
+        const full = path4.join(d, entry.name);
+        if (entry.isDirectory()) {
+          walk(full);
+        } else {
+          files.push(full);
+        }
+      }
+    };
+    walk(dir);
+  }
+  for (const f of files.sort()) {
+    hash.update(f);
+    hash.update(fs4.readFileSync(f));
+  }
+  return hash.digest("hex");
+}
+function venvPython(repoPath) {
+  return process.platform === "win32" ? path4.join(repoPath, ".venv", "Scripts", "python.exe") : path4.join(repoPath, ".venv", "bin", "python");
+}
+function runToCompletion(command, args, cwd, output, env4) {
+  return new Promise((resolve) => {
+    output.appendLine(`[NoteVs Agent] $ ${command} ${args.join(" ")}`);
+    const proc = (0, import_child_process.spawn)(command, args, { cwd, env: env4 ?? process.env });
+    proc.stdout?.on("data", (chunk) => output.append(chunk.toString()));
+    proc.stderr?.on("data", (chunk) => output.append(chunk.toString()));
+    proc.on("error", (err) => {
+      output.appendLine(`[NoteVs Agent] Failed to run ${command}: ${err.message}`);
+      resolve(1);
+    });
+    proc.on("exit", (code) => resolve(code ?? 1));
+  });
+}
+function registerAgentProcessManager(context) {
+  const output = vscode4.window.createOutputChannel("NoteVs Agent");
+  const managedRepoPath = path4.join(context.globalStorageUri.fsPath, "rasa-agent");
+  const templatePath = path4.join(context.extensionUri.fsPath, "resources", "rasa-agent-template");
+  const statusEmitter = new vscode4.EventEmitter();
+  let status = { phase: "missing_credentials" };
+  function setStatus(next) {
+    status = next;
+    statusEmitter.fire(status);
+  }
+  let child;
+  let disposed = false;
+  let starting = false;
+  let restartDelay = INITIAL_RESTART_DELAY_MS;
+  let restartTimer;
+  function stopChild() {
+    if (restartTimer) {
+      clearTimeout(restartTimer);
+      restartTimer = void 0;
+    }
+    if (child && !child.killed) {
+      child.kill();
+    }
+    child = void 0;
+  }
+  function scheduleRestart() {
+    if (disposed) {
+      return;
+    }
+    if (restartTimer) {
+      return;
+    }
+    output.appendLine(`[NoteVs Agent] Restarting in ${Math.round(restartDelay / 1e3)}s...`);
+    restartTimer = setTimeout(() => {
+      restartTimer = void 0;
+      void startPipeline();
+    }, restartDelay);
+    restartDelay = Math.min(restartDelay * 2, MAX_RESTART_DELAY_MS);
+  }
+  const RETIRED_CLASSIC_PATHS = ["domain.yml", "config.yml", "endpoints.yml", "credentials.yml", "data"];
+  function ensureExtracted(repoPath) {
+    const isFirstExtract = !fs4.existsSync(path4.join(repoPath, "agent.yml"));
+    if (isFirstExtract) {
+      output.appendLine(`[NoteVs Agent] Setting up agent files in ${repoPath}`);
+      setStatus({ phase: "extracting", message: "Setting up agent files\u2026" });
+    }
+    fs4.mkdirSync(repoPath, { recursive: true });
+    for (const name of RETIRED_CLASSIC_PATHS) {
+      const p = path4.join(repoPath, name);
+      if (fs4.existsSync(p)) {
+        output.appendLine(`[NoteVs Agent] Removing retired classic-engine file: ${name}`);
+        fs4.rmSync(p, { recursive: true, force: true });
+      }
+    }
+    fs4.cpSync(templatePath, repoPath, { recursive: true });
+  }
+  async function ensureVenv(repoPath) {
+    if (fs4.existsSync(venvPython(repoPath))) {
+      if (isCompatibleInterpreter(venvPython(repoPath))) {
+        return true;
+      }
+      output.appendLine("[NoteVs Agent] Existing .venv uses an incompatible Python version \u2014 recreating it.");
+      fs4.rmSync(path4.join(repoPath, ".venv"), { recursive: true, force: true });
+    }
+    setStatus({ phase: "creating_venv", message: "Creating Python virtual environment\u2026" });
+    const pythonCmd = findCompatiblePython(output);
+    if (!pythonCmd) {
+      const message = 'No compatible Python found (need 3.10-3.13). Install one, e.g. "brew install python@3.12", then this restarts automatically.';
+      output.appendLine(`[NoteVs Agent] ${message}`);
+      setStatus({ phase: "error", message });
+      return false;
+    }
+    output.appendLine("[NoteVs Agent] Creating Python virtual environment...");
+    const code = await runToCompletion(pythonCmd, ["-m", "venv", ".venv"], repoPath, output);
+    if (code !== 0) {
+      const message = "Could not create a Python virtual environment \u2014 see the NoteVs Agent output channel for details.";
+      output.appendLine(`[NoteVs Agent] ${message}`);
+      setStatus({ phase: "error", message });
+      return false;
+    }
+    return true;
+  }
+  async function ensureDeps(repoPath) {
+    const marker = path4.join(repoPath, ".venv", DEPS_INSTALLED_MARKER);
+    if (fs4.existsSync(marker)) {
+      return true;
+    }
+    output.appendLine("[NoteVs Agent] Installing rasa-pro \u2014 this can take several minutes the first time...");
+    setStatus({ phase: "installing", message: "Installing the agent (first time only, a few minutes)\u2026" });
+    const code = await vscode4.window.withProgress(
+      { location: vscode4.ProgressLocation.Notification, title: "NoteVs: setting up the local agent (first time only)\u2026" },
+      // --pre is required: requirements.txt pins a .devN pre-release
+      // (rasa-pro==3.19.0.dev5, the Maestro build), and pip excludes
+      // pre-releases by default even when a version is pinned exactly.
+      () => runToCompletion(venvPython(repoPath), ["-m", "pip", "install", "--pre", "-r", "requirements.txt"], repoPath, output)
+    );
+    if (code !== 0) {
+      const message = "Installing the agent failed \u2014 see the NoteVs Agent output channel for details.";
+      output.appendLine(`[NoteVs Agent] ${message}`);
+      setStatus({ phase: "error", message });
+      return false;
+    }
+    fs4.writeFileSync(marker, (/* @__PURE__ */ new Date()).toISOString());
+    output.appendLine("[NoteVs Agent] Install complete.");
+    return true;
+  }
+  async function ensureTrained(repoPath, groqApiKey, rasaLicense) {
+    const modelsDir = path4.join(repoPath, "models");
+    const hashMarker = path4.join(modelsDir, ".source_hash");
+    const hasModel = fs4.existsSync(modelsDir) && fs4.readdirSync(modelsDir).some((f) => f.endsWith(".tar.gz"));
+    const currentHash = computeTrainingSourceHash(repoPath);
+    const isStale = !fs4.existsSync(hashMarker) || fs4.readFileSync(hashMarker, "utf8").trim() !== currentHash;
+    if (hasModel && !isStale) {
+      return true;
+    }
+    if (hasModel && isStale) {
+      output.appendLine("[NoteVs Agent] Flows/domain/config changed since the last trained model \u2014 retraining.");
+      fs4.rmSync(modelsDir, { recursive: true, force: true });
+    }
+    output.appendLine("[NoteVs Agent] Training the agent (classic rasa-pro needs a trained model before it can run) \u2014 this can take a few minutes the first time...");
+    setStatus({ phase: "training", message: "Training the agent (first time only, a few minutes)\u2026" });
+    const trainEnv = { ...process.env, GROQ_API_KEY: groqApiKey, RASA_LICENSE: rasaLicense, RASA_PRO_LICENSE: rasaLicense };
+    const code = await vscode4.window.withProgress(
+      { location: vscode4.ProgressLocation.Notification, title: "NoteVs: training the local agent (first time only)\u2026" },
+      () => runToCompletion(venvPython(repoPath), ["-m", "rasa", "train"], repoPath, output, trainEnv)
+    );
+    if (code !== 0) {
+      const message = "Training the agent failed \u2014 see the NoteVs Agent output channel for details.";
+      output.appendLine(`[NoteVs Agent] ${message}`);
+      setStatus({ phase: "error", message });
+      return false;
+    }
+    fs4.writeFileSync(hashMarker, currentHash);
+    output.appendLine("[NoteVs Agent] Training complete.");
+    return true;
+  }
+  async function startPipeline() {
+    if (disposed || starting) {
+      return;
+    }
+    starting = true;
+    try {
+      let trackStderr2 = function(chunk) {
+        const lines = chunk.toString().split("\n").map((l) => l.trim()).filter(Boolean);
+        recentStderr = [...recentStderr, ...lines].slice(-15);
+      }, lastErrorLine2 = function() {
+        const withError = [...recentStderr].reverse().find((l) => /error/i.test(l));
+        return withError ?? recentStderr[recentStderr.length - 1];
+      };
+      var trackStderr = trackStderr2, lastErrorLine = lastErrorLine2;
+      const groqApiKey = await context.secrets.get("groqApiKey");
+      const rasaLicense = await context.secrets.get("rasaLicense");
+      if (!groqApiKey || !rasaLicense) {
+        output.appendLine("[NoteVs Agent] Add your Groq API key and Rasa license in Settings \u2192 Agent to enable auto-start.");
+        setStatus({ phase: "missing_credentials" });
+        return;
+      }
+      const override = getAgentRepoPathOverride();
+      const repoPath = override || managedRepoPath;
+      if (override) {
+        if (!fs4.existsSync(path4.join(override, "agent.yml"))) {
+          const message = `notevs.agentRepoPath is set to ${override} but no agent.yml was found there.`;
+          output.appendLine(`[NoteVs Agent] ${message}`);
+          setStatus({ phase: "error", message });
+          return;
+        }
+      } else {
+        ensureExtracted(repoPath);
+      }
+      if (!await ensureVenv(repoPath)) {
+        return;
+      }
+      if (!await ensureDeps(repoPath)) {
+        return;
+      }
+      if (!await ensureTrained(repoPath, groqApiKey, rasaLicense)) {
+        return;
+      }
+      if (disposed) {
+        return;
+      }
+      output.appendLine(`[NoteVs Agent] Starting rasa run in ${repoPath}`);
+      setStatus({ phase: "starting", message: "Starting the agent\u2026" });
+      const startedAt = Date.now();
+      child = (0, import_child_process.spawn)(venvPython(repoPath), ["-m", "rasa", "run"], {
+        cwd: repoPath,
+        env: { ...process.env, GROQ_API_KEY: groqApiKey, RASA_LICENSE: rasaLicense, RASA_PRO_LICENSE: rasaLicense }
+      });
+      setStatus({ phase: "running" });
+      let recentStderr = [];
+      child.stdout?.on("data", (chunk) => output.append(chunk.toString()));
+      child.stderr?.on("data", (chunk) => {
+        output.append(chunk.toString());
+        trackStderr2(chunk);
+      });
+      child.on("exit", (code) => {
+        output.appendLine(`[NoteVs Agent] Process exited (code ${code})`);
+        if (Date.now() - startedAt > MIN_HEALTHY_UPTIME_MS) {
+          restartDelay = INITIAL_RESTART_DELAY_MS;
+        }
+        child = void 0;
+        const reason = lastErrorLine2();
+        const message = reason ? `Agent crashed (code ${code}): ${reason.slice(0, 200)}` : `Agent process exited unexpectedly (code ${code}).`;
+        setStatus({ phase: "crashed", message: `${message} Retrying\u2026` });
+        scheduleRestart();
+      });
+      child.on("error", (err) => {
+        output.appendLine(`[NoteVs Agent] Failed to start: ${err.message}`);
+        child = void 0;
+        setStatus({ phase: "crashed", message: `Failed to start: ${err.message}` });
+        scheduleRestart();
+      });
+    } finally {
+      starting = false;
+    }
+  }
+  function restart() {
+    restartDelay = INITIAL_RESTART_DELAY_MS;
+    stopChild();
+    void startPipeline();
+  }
+  void startPipeline();
+  const configWatcher = vscode4.workspace.onDidChangeConfiguration((e) => {
+    if (e.affectsConfiguration("notevs.agentRepoPath")) {
+      output.appendLine("[NoteVs Agent] agentRepoPath changed, restarting...");
+      restart();
+    }
+  });
+  const secretsWatcher = context.secrets.onDidChange((e) => {
+    if (e.key === "groqApiKey" || e.key === "rasaLicense") {
+      restart();
+    }
+  });
+  const configureCommand = vscode4.commands.registerCommand("notevs.configureAgentPath", async () => {
+    const picked = await vscode4.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      openLabel: "Use as agent repo path",
+      title: "Select a folder with your own agent.yml (leave notevs.agentRepoPath empty to use the built-in managed agent instead)"
+    });
+    if (!picked || picked.length === 0) {
+      return;
+    }
+    await vscode4.workspace.getConfiguration("notevs").update("agentRepoPath", picked[0].fsPath, vscode4.ConfigurationTarget.Global);
+    vscode4.window.showInformationMessage(`NoteVs Agent path set to ${picked[0].fsPath}. Restarting...`);
+  });
+  const dispose = {
+    dispose: () => {
+      disposed = true;
+      stopChild();
+    }
+  };
+  return {
+    disposables: [output, statusEmitter, configWatcher, secretsWatcher, configureCommand, dispose],
+    onStatusChange: statusEmitter.event,
+    getStatus: () => status
+  };
+}
+
+// src/integrations.ts
+var vscode5 = __toESM(require("vscode"));
+var fs5 = __toESM(require("fs"));
+var path5 = __toESM(require("path"));
 var https2 = __toESM(require("https"));
 function extractPlainText(note) {
   if (note.editorMode === "markdown") {
@@ -16372,7 +17102,7 @@ async function sendToNotion(secrets, globalState, note, onExported, options = {}
     if (silent) {
       return;
     }
-    const entered = await vscode3.window.showInputBox({
+    const entered = await vscode5.window.showInputBox({
       title: "Connect Notion",
       prompt: "Paste your token below. To get one: go to app.notion.com/developers/connections \u2192 New connection \u2192 Access token \u2192 Create \u2192 copy the token.",
       password: true,
@@ -16385,7 +17115,7 @@ async function sendToNotion(secrets, globalState, note, onExported, options = {}
     }
     await secrets.store("notionToken", entered);
     token = entered;
-    vscode3.window.showInformationMessage("Notion token saved.");
+    vscode5.window.showInformationMessage("Notion token saved.");
   }
   let pages;
   try {
@@ -16395,18 +17125,18 @@ async function sendToNotion(secrets, globalState, note, onExported, options = {}
     if (status === 401 || status === 403) {
       await secrets.delete("notionToken");
       if (!silent) {
-        vscode3.window.showErrorMessage("Notion token is invalid. Cleared \u2014 please export again to re-enter it.");
+        vscode5.window.showErrorMessage("Notion token is invalid. Cleared \u2014 please export again to re-enter it.");
       }
     } else {
       if (!silent) {
-        vscode3.window.showErrorMessage("Could not reach Notion. Check your internet connection.");
+        vscode5.window.showErrorMessage("Could not reach Notion. Check your internet connection.");
       }
     }
     return;
   }
   if (pages.length === 0) {
     if (!silent) {
-      vscode3.window.showWarningMessage(
+      vscode5.window.showWarningMessage(
         'No accessible pages found. Share a Notion page with your integration via "..." menu -> Add connections.'
       );
     }
@@ -16417,7 +17147,7 @@ async function sendToNotion(secrets, globalState, note, onExported, options = {}
     if (silent) {
       return;
     }
-    const picked = await vscode3.window.showQuickPick(
+    const picked = await vscode5.window.showQuickPick(
       pages.map((p) => ({ label: p.title, description: p.id, id: p.id })),
       { title: "Choose a Notion page to export into", ignoreFocusOut: true }
     );
@@ -16460,7 +17190,7 @@ async function sendToNotion(secrets, globalState, note, onExported, options = {}
         }
       } else {
         if (!silent) {
-          vscode3.window.showErrorMessage("Failed to update Notion page. Check your connection.");
+          vscode5.window.showErrorMessage("Failed to update Notion page. Check your connection.");
         }
         return;
       }
@@ -16471,7 +17201,7 @@ async function sendToNotion(secrets, globalState, note, onExported, options = {}
       return;
     }
     if (!parentPageId) {
-      const picked = await vscode3.window.showQuickPick(
+      const picked = await vscode5.window.showQuickPick(
         pages.map((p) => ({ label: p.title, description: p.id, id: p.id })),
         { title: "Choose a Notion page to export into", ignoreFocusOut: true }
       );
@@ -16494,14 +17224,14 @@ async function sendToNotion(secrets, globalState, note, onExported, options = {}
       const status = e?.response?.status;
       if (status === 401) {
         await secrets.delete("notionToken");
-        vscode3.window.showErrorMessage("Notion token is invalid. Cleared \u2014 please export again.");
+        vscode5.window.showErrorMessage("Notion token is invalid. Cleared \u2014 please export again.");
       } else if (status === 404) {
         await globalState.update("notevs.notionParentPageId", "");
-        vscode3.window.showErrorMessage("Parent page not found. Please export again to pick a new page.");
+        vscode5.window.showErrorMessage("Parent page not found. Please export again to pick a new page.");
       } else if (status === 403) {
-        vscode3.window.showErrorMessage('Access denied. Share the parent page with your NoteVs integration via "..." \u2192 Add connections.');
+        vscode5.window.showErrorMessage('Access denied. Share the parent page with your NoteVs integration via "..." \u2192 Add connections.');
       } else {
-        vscode3.window.showErrorMessage("Failed to create Notion page. Check your internet connection.");
+        vscode5.window.showErrorMessage("Failed to create Notion page. Check your internet connection.");
       }
       return;
     }
@@ -16518,12 +17248,12 @@ async function sendToNotion(secrets, globalState, note, onExported, options = {}
   onExported("notion", (/* @__PURE__ */ new Date()).toISOString(), createdPageId, pageUrl);
   if (!silent) {
     const isReExport = !!note.exports?.notion?.pageId;
-    const choice = await vscode3.window.showInformationMessage(
+    const choice = await vscode5.window.showInformationMessage(
       isReExport ? `Updated "${note.title || "Note"}" in Notion` : `Exported "${note.title || "Note"}" to Notion`,
       "Open in Notion"
     );
     if (choice === "Open in Notion" && pageUrl) {
-      vscode3.env.openExternal(vscode3.Uri.parse(pageUrl));
+      vscode5.env.openExternal(vscode5.Uri.parse(pageUrl));
     }
   }
 }
@@ -16574,24 +17304,24 @@ async function writeToObsidianApi(baseUrl, apiKey, filename, content) {
   );
 }
 function writeToObsidianFilesystem(vaultPath, filename, content) {
-  const subdir = path3.join(vaultPath, "NoteNest");
-  if (!fs3.existsSync(subdir)) {
-    fs3.mkdirSync(subdir, { recursive: true });
+  const subdir = path5.join(vaultPath, "NoteNest");
+  if (!fs5.existsSync(subdir)) {
+    fs5.mkdirSync(subdir, { recursive: true });
   }
-  fs3.writeFileSync(path3.join(subdir, `${filename}.md`), content, "utf8");
+  fs5.writeFileSync(path5.join(subdir, `${filename}.md`), content, "utf8");
 }
 async function sendToObsidian(secrets, globalState, note, onExported) {
   const apiKey = await secrets.get("obsidianApiKey") || "";
   const vaultPath = globalState.get("notevs.obsidianVaultPath", "");
   if (!apiKey && !vaultPath) {
-    const choice = await vscode3.window.showInformationMessage(
+    const choice = await vscode5.window.showInformationMessage(
       "Connect Obsidian to NoteNest",
       { modal: false },
       "Use Local REST API plugin",
       "Use vault folder"
     );
     if (choice === "Use Local REST API plugin") {
-      const entered = await vscode3.window.showInputBox({
+      const entered = await vscode5.window.showInputBox({
         title: "Obsidian \u2014 Local REST API key",
         prompt: "Paste your API key from Obsidian -> Settings -> Local REST API",
         password: true,
@@ -16602,9 +17332,9 @@ async function sendToObsidian(secrets, globalState, note, onExported) {
         return;
       }
       await secrets.store("obsidianApiKey", entered);
-      vscode3.window.showInformationMessage("Obsidian API key saved. Click the Obsidian button again to export.");
+      vscode5.window.showInformationMessage("Obsidian API key saved. Click the Obsidian button again to export.");
     } else if (choice === "Use vault folder") {
-      const picked = await vscode3.window.showOpenDialog({
+      const picked = await vscode5.window.showOpenDialog({
         canSelectFolders: true,
         canSelectFiles: false,
         canSelectMany: false,
@@ -16615,7 +17345,7 @@ async function sendToObsidian(secrets, globalState, note, onExported) {
         return;
       }
       await globalState.update("notevs.obsidianVaultPath", picked[0].fsPath);
-      vscode3.window.showInformationMessage("Obsidian vault path saved. Click the Obsidian button again to export.");
+      vscode5.window.showInformationMessage("Obsidian vault path saved. Click the Obsidian button again to export.");
     }
     return;
   }
@@ -16627,29 +17357,29 @@ async function sendToObsidian(secrets, globalState, note, onExported) {
       try {
         await writeToObsidianApi(baseUrl, apiKey, filename, content);
         onExported("obsidian", (/* @__PURE__ */ new Date()).toISOString());
-        vscode3.window.showInformationMessage(
+        vscode5.window.showInformationMessage(
           `Saved "${note.title || "Note"}" to Obsidian (NoteNest/${filename}.md)`
         );
         return;
       } catch {
         if (!vaultPath) {
-          vscode3.window.showErrorMessage(
+          vscode5.window.showErrorMessage(
             "Obsidian REST API returned an error. Make sure Obsidian is open and the Local REST API plugin is enabled."
           );
           return;
         }
-        vscode3.window.showWarningMessage("Obsidian REST API error \u2014 falling back to vault folder write.");
+        vscode5.window.showWarningMessage("Obsidian REST API error \u2014 falling back to vault folder write.");
       }
     } else if (!vaultPath) {
-      vscode3.window.showErrorMessage(
+      vscode5.window.showErrorMessage(
         "Obsidian is not reachable. Make sure Obsidian is open with the Local REST API plugin enabled, or configure a vault folder in Settings."
       );
       return;
     }
   }
   if (vaultPath) {
-    if (!fs3.existsSync(vaultPath)) {
-      vscode3.window.showErrorMessage(
+    if (!fs5.existsSync(vaultPath)) {
+      vscode5.window.showErrorMessage(
         `Vault folder not found: ${vaultPath}
 Update it in NoteNest Settings -> Integrations.`
       );
@@ -16658,11 +17388,11 @@ Update it in NoteNest Settings -> Integrations.`
     try {
       writeToObsidianFilesystem(vaultPath, filename, content);
       onExported("obsidian", (/* @__PURE__ */ new Date()).toISOString());
-      vscode3.window.showInformationMessage(
+      vscode5.window.showInformationMessage(
         `Saved "${note.title || "Note"}" to Obsidian vault (NoteNest/${filename}.md)`
       );
     } catch (e) {
-      vscode3.window.showErrorMessage(`Failed to write to vault: ${e.message}`);
+      vscode5.window.showErrorMessage(`Failed to write to vault: ${e.message}`);
     }
   }
 }
@@ -16679,7 +17409,7 @@ async function getObsidianStatus(secrets, globalState) {
 }
 
 // src/taskIntegrations.ts
-var vscode4 = __toESM(require("vscode"));
+var vscode6 = __toESM(require("vscode"));
 var http4 = __toESM(require("http"));
 var crypto2 = __toESM(require("crypto"));
 var GOOGLE_CLIENT_ID = "REDACTED_CLIENT_ID.apps.googleusercontent.com";
@@ -16747,7 +17477,7 @@ async function pickDueDateTime(forProvider) {
     );
   }
   dateItems.push({ label: "Pick a date\u2026", detail: "Enter a date manually (YYYY-MM-DD)", value: "__pick__" });
-  const datePicked = await vscode4.window.showQuickPick(dateItems, {
+  const datePicked = await vscode6.window.showQuickPick(dateItems, {
     title: forProvider === "todoist" ? "When? (Step 1 of 2)" : "When is this due? (Step 1 of 2)",
     placeHolder: "Select a date",
     ignoreFocusOut: true
@@ -16758,7 +17488,7 @@ async function pickDueDateTime(forProvider) {
   if (datePicked.value.startsWith("__rec_")) {
     let dueString = datePicked.value.slice(6);
     if (dueString === "custom") {
-      const entered = await vscode4.window.showInputBox({
+      const entered = await vscode6.window.showInputBox({
         title: "Custom recurrence",
         prompt: 'Enter a Todoist schedule string, e.g. "every 2 weeks" or "every Monday and Friday"',
         placeHolder: "every Monday",
@@ -16774,7 +17504,7 @@ async function pickDueDateTime(forProvider) {
   }
   let date = datePicked.value;
   if (date === "__pick__") {
-    const entered = await vscode4.window.showInputBox({
+    const entered = await vscode6.window.showInputBox({
       title: "Enter a date",
       prompt: "Format: YYYY-MM-DD",
       placeHolder: fmt(today),
@@ -16797,7 +17527,7 @@ async function pickDueDateTime(forProvider) {
     { label: "Custom time\u2026", detail: "Enter HH:MM", value: "__pick__" }
   ];
   const googleNote = forProvider === "googleTasks" ? "  \u24D8 Google Tasks ignores time \u2014 only the date will be used" : void 0;
-  const timePicked = await vscode4.window.showQuickPick(timeItems, {
+  const timePicked = await vscode6.window.showQuickPick(timeItems, {
     title: forProvider === "todoist" ? "What time? (Step 2 of 2)" : "What time? (Step 2 of 2)",
     placeHolder: googleNote ?? "Select a time (optional)",
     ignoreFocusOut: true
@@ -16809,7 +17539,7 @@ async function pickDueDateTime(forProvider) {
   if (timePicked.value === "__none__") {
     time = null;
   } else if (timePicked.value === "__pick__") {
-    const entered = await vscode4.window.showInputBox({
+    const entered = await vscode6.window.showInputBox({
       title: "Enter a time",
       prompt: "Format: HH:MM (24-hour)",
       placeHolder: "09:00",
@@ -16829,12 +17559,12 @@ async function sendToTaskProvider(secrets, globalState, note, onReminded) {
   const hasTodoist = await hasTodoistToken(secrets);
   const hasGoogle = await isGoogleTasksConnected(secrets);
   if (!hasTodoist && !hasGoogle) {
-    const choice = await vscode4.window.showInformationMessage(
+    const choice = await vscode6.window.showInformationMessage(
       "No task service connected. Go to Settings \u2192 Integrations \u2192 Tasks to connect Todoist or Google Tasks.",
       "Open Settings"
     );
     if (choice === "Open Settings") {
-      vscode4.commands.executeCommand("notevs.showSettings");
+      vscode6.commands.executeCommand("notevs.showSettings");
     }
     return;
   }
@@ -16855,7 +17585,7 @@ async function sendToTaskProvider(secrets, globalState, note, onReminded) {
     await sendToGoogleTasks(secrets, note, onReminded);
     return;
   }
-  const providerPick = await vscode4.window.showQuickPick(
+  const providerPick = await vscode6.window.showQuickPick(
     [
       { label: "$(list-ordered) Todoist", description: "Send to your Todoist inbox", value: "todoist" },
       { label: "$(checklist) Google Tasks", description: "Send to your Google Tasks", value: "google" }
@@ -16865,7 +17595,7 @@ async function sendToTaskProvider(secrets, globalState, note, onReminded) {
   if (!providerPick) {
     return;
   }
-  const rememberPick = await vscode4.window.showQuickPick(
+  const rememberPick = await vscode6.window.showQuickPick(
     [
       { label: "$(check) Yes, remember this choice", value: "yes" },
       { label: "$(close) No, keep asking me", value: "no" }
@@ -16908,7 +17638,7 @@ async function clearTodoistToken(secrets) {
 async function sendToTodoist(secrets, note, onReminded) {
   let token = await secrets.get("todoistToken");
   if (!token) {
-    const entered = await vscode4.window.showInputBox({
+    const entered = await vscode6.window.showInputBox({
       title: "Connect Todoist",
       prompt: "Get your token at: app.todoist.com/app/settings/integrations/developer",
       password: true,
@@ -16921,7 +17651,7 @@ async function sendToTodoist(secrets, note, onReminded) {
     }
     await secrets.store("todoistToken", entered.trim());
     token = entered.trim();
-    vscode4.window.showInformationMessage("Todoist token saved.");
+    vscode6.window.showInformationMessage("Todoist token saved.");
   }
   const due = await pickDueDateTime("todoist");
   if (!due) {
@@ -16950,13 +17680,13 @@ async function sendToTodoist(secrets, note, onReminded) {
     const status = e?.response?.status;
     if (status === 401 || status === 403) {
       await secrets.delete("todoistToken");
-      vscode4.window.showErrorMessage("Invalid Todoist token \u2014 cleared. Click \u201CRemind me\u201D again to re-enter it.");
+      vscode6.window.showErrorMessage("Invalid Todoist token \u2014 cleared. Click \u201CRemind me\u201D again to re-enter it.");
     } else if (status === 429) {
-      vscode4.window.showErrorMessage("Todoist rate limit hit. Try again in a moment.");
+      vscode6.window.showErrorMessage("Todoist rate limit hit. Try again in a moment.");
     } else if (e?.code === "ENOTFOUND" || e?.code === "ECONNREFUSED") {
-      vscode4.window.showErrorMessage("No internet connection. Task not sent.");
+      vscode6.window.showErrorMessage("No internet connection. Task not sent.");
     } else {
-      vscode4.window.showErrorMessage(`Failed to create Todoist task. (${status ?? "network error"})`);
+      vscode6.window.showErrorMessage(`Failed to create Todoist task. (${status ?? "network error"})`);
     }
     return;
   }
@@ -16968,12 +17698,12 @@ async function sendToTodoist(secrets, note, onReminded) {
     recurrence: due.dueString ?? void 0
   });
   const taskUrl = `https://app.todoist.com/app/task/${taskId}`;
-  const choice = await vscode4.window.showInformationMessage(
+  const choice = await vscode6.window.showInformationMessage(
     `\u2713 Reminder set in Todoist \u2014 ${dueLabel}`,
     "Open in Todoist \u2192"
   );
   if (choice === "Open in Todoist \u2192") {
-    vscode4.env.openExternal(vscode4.Uri.parse(taskUrl));
+    vscode6.env.openExternal(vscode6.Uri.parse(taskUrl));
   }
 }
 async function isGoogleTasksConnected(secrets) {
@@ -17046,7 +17776,7 @@ async function connectGoogleTasks(secrets) {
         res.writeHead(400, { "Content-Type": "text/html" });
         res.end(html("Auth failed. Please close this tab and try again."));
         cleanup();
-        vscode4.window.showErrorMessage("Google Tasks: auth failed or was cancelled.");
+        vscode6.window.showErrorMessage("Google Tasks: auth failed or was cancelled.");
         resolve(false);
         return;
       }
@@ -17066,10 +17796,10 @@ async function connectGoogleTasks(secrets) {
         await secrets.store("googleTasksAccessToken", data.access_token);
         await secrets.store("googleTasksRefreshToken", data.refresh_token);
         await secrets.store("googleTasksExpiry", expiry);
-        vscode4.window.showInformationMessage("\u2713 Google Tasks connected!");
+        vscode6.window.showInformationMessage("\u2713 Google Tasks connected!");
         resolve(true);
       } catch {
-        vscode4.window.showErrorMessage("Google Tasks: failed to exchange auth code. Please try again.");
+        vscode6.window.showErrorMessage("Google Tasks: failed to exchange auth code. Please try again.");
         resolve(false);
       }
     });
@@ -17091,17 +17821,17 @@ async function connectGoogleTasks(secrets) {
         prompt: "consent",
         state
       }).toString()}`;
-      vscode4.env.openExternal(vscode4.Uri.parse(authUrl));
-      vscode4.window.showInformationMessage("Complete Google sign-in in your browser\u2026");
+      vscode6.env.openExternal(vscode6.Uri.parse(authUrl));
+      vscode6.window.showInformationMessage("Complete Google sign-in in your browser\u2026");
       timeoutId = setTimeout(() => {
         cleanup();
-        vscode4.window.showErrorMessage("Google Tasks: auth timed out. Please try again.");
+        vscode6.window.showErrorMessage("Google Tasks: auth timed out. Please try again.");
         resolve(false);
       }, 9e4);
     });
     server.on("error", () => {
       cleanup();
-      vscode4.window.showErrorMessage("Google Tasks: could not start auth server. Please try again.");
+      vscode6.window.showErrorMessage("Google Tasks: could not start auth server. Please try again.");
       resolve(false);
     });
   });
@@ -17115,7 +17845,7 @@ async function sendToGoogleTasks(secrets, note, onReminded) {
     }
     token = await ensureGoogleToken(secrets);
     if (!token) {
-      vscode4.window.showErrorMessage("Google Tasks: could not get access token.");
+      vscode6.window.showErrorMessage("Google Tasks: could not get access token.");
       return;
     }
   }
@@ -17131,12 +17861,12 @@ async function sendToGoogleTasks(secrets, note, onReminded) {
     });
     const lists = data.items ?? [];
     if (lists.length === 0) {
-      vscode4.window.showErrorMessage("No task lists found in your Google Tasks account.");
+      vscode6.window.showErrorMessage("No task lists found in your Google Tasks account.");
       return;
     } else if (lists.length === 1) {
       taskListId = lists[0].id;
     } else {
-      const picked = await vscode4.window.showQuickPick(
+      const picked = await vscode6.window.showQuickPick(
         lists.map((l) => ({ label: l.title, value: l.id })),
         { title: "Which task list?", placeHolder: "Choose a Google Tasks list", ignoreFocusOut: true }
       );
@@ -17149,9 +17879,9 @@ async function sendToGoogleTasks(secrets, note, onReminded) {
     const status = e?.response?.status;
     if (status === 401) {
       await disconnectGoogleTasks(secrets);
-      vscode4.window.showErrorMessage("Google Tasks: session expired. Please reconnect in Settings.");
+      vscode6.window.showErrorMessage("Google Tasks: session expired. Please reconnect in Settings.");
     } else {
-      vscode4.window.showErrorMessage("Google Tasks: could not fetch task lists. Check your internet connection.");
+      vscode6.window.showErrorMessage("Google Tasks: could not fetch task lists. Check your internet connection.");
     }
     return;
   }
@@ -17175,13 +17905,13 @@ async function sendToGoogleTasks(secrets, note, onReminded) {
     const status = e?.response?.status;
     if (status === 401) {
       await disconnectGoogleTasks(secrets);
-      vscode4.window.showErrorMessage("Google Tasks: session expired. Please reconnect in Settings.");
+      vscode6.window.showErrorMessage("Google Tasks: session expired. Please reconnect in Settings.");
     } else if (status === 429) {
-      vscode4.window.showErrorMessage("Google Tasks: rate limit hit. Try again in a moment.");
+      vscode6.window.showErrorMessage("Google Tasks: rate limit hit. Try again in a moment.");
     } else if (e?.code === "ENOTFOUND") {
-      vscode4.window.showErrorMessage("No internet connection. Task not sent.");
+      vscode6.window.showErrorMessage("No internet connection. Task not sent.");
     } else {
-      vscode4.window.showErrorMessage(`Failed to create Google Task. (${status ?? "network error"})`);
+      vscode6.window.showErrorMessage(`Failed to create Google Task. (${status ?? "network error"})`);
     }
     return;
   }
@@ -17191,7 +17921,7 @@ async function sendToGoogleTasks(secrets, note, onReminded) {
     taskId: createdTaskId,
     taskListId
   });
-  vscode4.window.showInformationMessage(`\u2713 Added to Google Tasks for ${due.date}${due.time ? ` (time not supported by Google Tasks API)` : ""}`);
+  vscode6.window.showInformationMessage(`\u2713 Added to Google Tasks for ${due.date}${due.time ? ` (time not supported by Google Tasks API)` : ""}`);
 }
 async function manageExistingReminder(secrets, reminder, noteTitle) {
   const providerLabel = reminder.provider === "todoist" ? "Todoist" : "Google Tasks";
@@ -17205,7 +17935,7 @@ async function manageExistingReminder(secrets, reminder, noteTitle) {
     { label: `$(trash) Remove reminder`, detail: `Delete this task from ${providerLabel}`, value: "delete" },
     { label: `$(add) Set another reminder`, detail: "Create an additional task", value: "new" }
   );
-  const picked = await vscode4.window.showQuickPick(items, {
+  const picked = await vscode6.window.showQuickPick(items, {
     title: `\u23F0 ${providerLabel} reminder \u2014 ${dueLabel}`,
     placeHolder: "What would you like to do?",
     ignoreFocusOut: true
@@ -17214,7 +17944,7 @@ async function manageExistingReminder(secrets, reminder, noteTitle) {
     return null;
   }
   if (picked.value === "open" && reminder.provider === "todoist" && reminder.taskId) {
-    vscode4.env.openExternal(vscode4.Uri.parse(`https://app.todoist.com/app/task/${reminder.taskId}`));
+    vscode6.env.openExternal(vscode6.Uri.parse(`https://app.todoist.com/app/task/${reminder.taskId}`));
     return null;
   }
   if (picked.value === "new") {
@@ -17235,13 +17965,13 @@ async function manageExistingReminder(secrets, reminder, noteTitle) {
 }
 async function deleteReminder(secrets, reminder) {
   if (!reminder.taskId) {
-    vscode4.window.showWarningMessage("No task ID stored \u2014 cannot delete. The reminder record will be cleared locally.");
+    vscode6.window.showWarningMessage("No task ID stored \u2014 cannot delete. The reminder record will be cleared locally.");
     return;
   }
   if (reminder.provider === "todoist") {
     const token = await secrets.get("todoistToken");
     if (!token) {
-      vscode4.window.showErrorMessage("Todoist not connected.");
+      vscode6.window.showErrorMessage("Todoist not connected.");
       return;
     }
     try {
@@ -17254,22 +17984,22 @@ async function deleteReminder(secrets, reminder) {
       if (status === 404) {
       } else if (status === 401) {
         await secrets.delete("todoistToken");
-        vscode4.window.showErrorMessage("Todoist token invalid \u2014 cleared.");
+        vscode6.window.showErrorMessage("Todoist token invalid \u2014 cleared.");
         return;
       } else {
-        vscode4.window.showErrorMessage(`Failed to delete Todoist task. (${status ?? "network error"})`);
+        vscode6.window.showErrorMessage(`Failed to delete Todoist task. (${status ?? "network error"})`);
         return;
       }
     }
-    vscode4.window.showInformationMessage("Todoist task deleted.");
+    vscode6.window.showInformationMessage("Todoist task deleted.");
   } else {
     if (!reminder.taskListId) {
-      vscode4.window.showWarningMessage("Task list ID not stored \u2014 clearing reminder locally only.");
+      vscode6.window.showWarningMessage("Task list ID not stored \u2014 clearing reminder locally only.");
       return;
     }
     const token = await ensureGoogleToken(secrets);
     if (!token) {
-      vscode4.window.showErrorMessage("Google Tasks: not connected.");
+      vscode6.window.showErrorMessage("Google Tasks: not connected.");
       return;
     }
     try {
@@ -17281,11 +18011,11 @@ async function deleteReminder(secrets, reminder) {
       const status = e?.response?.status;
       if (status === 404) {
       } else {
-        vscode4.window.showErrorMessage(`Failed to delete Google Task. (${status ?? "network error"})`);
+        vscode6.window.showErrorMessage(`Failed to delete Google Task. (${status ?? "network error"})`);
         return;
       }
     }
-    vscode4.window.showInformationMessage("Google Task deleted.");
+    vscode6.window.showInformationMessage("Google Task deleted.");
   }
 }
 async function updateReminderDue(secrets, reminder) {
@@ -17294,7 +18024,7 @@ async function updateReminderDue(secrets, reminder) {
     return null;
   }
   if (!reminder.taskId) {
-    vscode4.window.showWarningMessage("No task ID stored \u2014 cannot update on service. Reminder date updated locally only.");
+    vscode6.window.showWarningMessage("No task ID stored \u2014 cannot update on service. Reminder date updated locally only.");
     return {
       ts: (/* @__PURE__ */ new Date()).toISOString(),
       due: due.time ? `${due.date}T${due.time}` : due.date,
@@ -17306,7 +18036,7 @@ async function updateReminderDue(secrets, reminder) {
   if (reminder.provider === "todoist") {
     const token = await secrets.get("todoistToken");
     if (!token) {
-      vscode4.window.showErrorMessage("Todoist not connected.");
+      vscode6.window.showErrorMessage("Todoist not connected.");
       return null;
     }
     const payload = {};
@@ -17324,10 +18054,10 @@ async function updateReminderDue(secrets, reminder) {
       });
     } catch (e) {
       const status = e?.response?.status;
-      vscode4.window.showErrorMessage(`Failed to update Todoist task. (${status ?? "network error"})`);
+      vscode6.window.showErrorMessage(`Failed to update Todoist task. (${status ?? "network error"})`);
       return null;
     }
-    vscode4.window.showInformationMessage(`\u2713 Todoist task updated.`);
+    vscode6.window.showInformationMessage(`\u2713 Todoist task updated.`);
     return {
       ts: (/* @__PURE__ */ new Date()).toISOString(),
       due: due.time ? `${due.date}T${due.time}` : due.date,
@@ -17336,11 +18066,11 @@ async function updateReminderDue(secrets, reminder) {
     };
   } else {
     if (!reminder.taskListId) {
-      vscode4.window.showWarningMessage("Task list ID not stored \u2014 updating locally only.");
+      vscode6.window.showWarningMessage("Task list ID not stored \u2014 updating locally only.");
     } else {
       const token = await ensureGoogleToken(secrets);
       if (!token) {
-        vscode4.window.showErrorMessage("Google Tasks: not connected.");
+        vscode6.window.showErrorMessage("Google Tasks: not connected.");
         return null;
       }
       try {
@@ -17351,10 +18081,10 @@ async function updateReminderDue(secrets, reminder) {
         );
       } catch (e) {
         const status = e?.response?.status;
-        vscode4.window.showErrorMessage(`Failed to update Google Task. (${status ?? "network error"})`);
+        vscode6.window.showErrorMessage(`Failed to update Google Task. (${status ?? "network error"})`);
         return null;
       }
-      vscode4.window.showInformationMessage(`\u2713 Google Task updated to ${due.date}.`);
+      vscode6.window.showInformationMessage(`\u2713 Google Task updated to ${due.date}.`);
     }
     return {
       ts: (/* @__PURE__ */ new Date()).toISOString(),
@@ -17367,15 +18097,15 @@ async function updateReminderDue(secrets, reminder) {
 
 // src/extension.ts
 function getApiUrl() {
-  return vscode5.workspace.getConfiguration("notevs").get("apiUrl", "http://localhost:3001");
+  return vscode7.workspace.getConfiguration("notevs").get("apiUrl", "http://localhost:3001");
 }
 function getFolderPath() {
-  const folders = vscode5.workspace.workspaceFolders;
+  const folders = vscode7.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
     return null;
   }
   try {
-    return fs4.realpathSync(folders[0].uri.fsPath);
+    return fs6.realpathSync(folders[0].uri.fsPath);
   } catch {
     return folders[0].uri.fsPath;
   }
@@ -17430,17 +18160,17 @@ async function makeRequest(s, fn) {
 }
 var base = () => getApiUrl();
 var hdr = (t) => ({ Authorization: `Bearer ${t}` });
-async function apiGet(s, path5, params) {
-  return makeRequest(s, (t) => axios_default.get(`${base()}${path5}`, { headers: hdr(t), params }));
+async function apiGet(s, path7, params) {
+  return makeRequest(s, (t) => axios_default.get(`${base()}${path7}`, { headers: hdr(t), params }));
 }
-async function apiPost(s, path5, body) {
-  return makeRequest(s, (t) => axios_default.post(`${base()}${path5}`, body, { headers: hdr(t) }));
+async function apiPost(s, path7, body) {
+  return makeRequest(s, (t) => axios_default.post(`${base()}${path7}`, body, { headers: hdr(t) }));
 }
-async function apiPatch(s, path5, body) {
-  return makeRequest(s, (t) => axios_default.patch(`${base()}${path5}`, body, { headers: hdr(t) }));
+async function apiPatch(s, path7, body) {
+  return makeRequest(s, (t) => axios_default.patch(`${base()}${path7}`, body, { headers: hdr(t) }));
 }
-async function apiDelete(s, path5) {
-  return makeRequest(s, (t) => axios_default.delete(`${base()}${path5}`, { headers: hdr(t) }));
+async function apiDelete(s, path7) {
+  return makeRequest(s, (t) => axios_default.delete(`${base()}${path7}`, { headers: hdr(t) }));
 }
 var PRIORITY_LABEL = {
   emergency: "Emergency",
@@ -17451,35 +18181,35 @@ var PRIORITY_LABEL = {
   none: "None"
 };
 function getNotesDir2(context) {
-  return path4.join(context.globalStorageUri.fsPath, "notes");
+  return path6.join(context.globalStorageUri.fsPath, "notes");
 }
 function getMetaPath2(context) {
-  return path4.join(context.globalStorageUri.fsPath, "meta.json");
+  return path6.join(context.globalStorageUri.fsPath, "meta.json");
 }
 function ensureLocalDirs2(context) {
   const notesDir = getNotesDir2(context);
-  if (!fs4.existsSync(notesDir)) {
-    fs4.mkdirSync(notesDir, { recursive: true });
+  if (!fs6.existsSync(notesDir)) {
+    fs6.mkdirSync(notesDir, { recursive: true });
   }
 }
 function readLocalMeta2(context) {
   const metaPath = getMetaPath2(context);
   try {
-    if (fs4.existsSync(metaPath)) {
-      return JSON.parse(fs4.readFileSync(metaPath, "utf8"));
+    if (fs6.existsSync(metaPath)) {
+      return JSON.parse(fs6.readFileSync(metaPath, "utf8"));
     }
   } catch {
   }
   return { version: 1, noteIndex: [] };
 }
 function writeLocalMeta2(context, meta) {
-  fs4.writeFileSync(getMetaPath2(context), JSON.stringify(meta, null, 2), "utf8");
+  fs6.writeFileSync(getMetaPath2(context), JSON.stringify(meta, null, 2), "utf8");
 }
 function readLocalNote2(context, id) {
-  const notePath = path4.join(getNotesDir2(context), `${id}.json`);
+  const notePath = path6.join(getNotesDir2(context), `${id}.json`);
   try {
-    if (fs4.existsSync(notePath)) {
-      return JSON.parse(fs4.readFileSync(notePath, "utf8"));
+    if (fs6.existsSync(notePath)) {
+      return JSON.parse(fs6.readFileSync(notePath, "utf8"));
     }
   } catch {
   }
@@ -17487,7 +18217,7 @@ function readLocalNote2(context, id) {
 }
 function writeLocalNote2(context, note) {
   ensureLocalDirs2(context);
-  fs4.writeFileSync(path4.join(getNotesDir2(context), `${note.id}.json`), JSON.stringify(note, null, 2), "utf8");
+  fs6.writeFileSync(path6.join(getNotesDir2(context), `${note.id}.json`), JSON.stringify(note, null, 2), "utf8");
   const meta = readLocalMeta2(context);
   const entry = { id: note.id, title: note.title, updatedAt: note.updatedAt, folderPath: note.folderPath || "" };
   const idx = meta.noteIndex.findIndex((e) => e.id === note.id);
@@ -17499,9 +18229,9 @@ function writeLocalNote2(context, note) {
   writeLocalMeta2(context, meta);
 }
 function deleteLocalNote(context, id) {
-  const notePath = path4.join(getNotesDir2(context), `${id}.json`);
-  if (fs4.existsSync(notePath)) {
-    fs4.unlinkSync(notePath);
+  const notePath = path6.join(getNotesDir2(context), `${id}.json`);
+  if (fs6.existsSync(notePath)) {
+    fs6.unlinkSync(notePath);
   }
   const meta = readLocalMeta2(context);
   meta.noteIndex = meta.noteIndex.filter((e) => e.id !== id);
@@ -17584,7 +18314,7 @@ function getSubfolderOptions(context, workspacePath) {
     }
   }
   try {
-    const entries = fs4.readdirSync(workspacePath, { withFileTypes: true });
+    const entries = fs6.readdirSync(workspacePath, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "node_modules") {
         seen.add(entry.name);
@@ -17631,7 +18361,7 @@ function loginHtml(iconUri) {
     document.getElementById('b').addEventListener('click',()=>vscode.postMessage({type:'startLogin'}));
   </script></body></html>`;
 }
-function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyncAt, notionConnected, obsidianApiKey, obsidianVaultPath, notionAutoSync, todoistConnected, googleTasksConnected) {
+function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyncAt, notionConnected, obsidianApiKey, obsidianVaultPath, notionAutoSync, todoistConnected, googleTasksConnected, groqKeySet, rasaLicenseSet) {
   const swatches = BG_COLORS.map((c) => `
     <div class="swatch${c.bg === noteBgColor ? " active" : ""}" data-bg="${c.bg}" data-text="${c.text}"
       style="background:${c.bg};border-color:${c.bg === noteBgColor ? "var(--vscode-focusBorder)" : "transparent"}" title="${c.label}">
@@ -17786,6 +18516,21 @@ function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyn
     <div class="int-hint" style="margin-top:10px">If both Todoist and Google Tasks are connected, you&rsquo;ll be asked which to use when you click &ldquo;Remind me&rdquo;.</div>
   </div>
 
+  <div class="collapse-header" id="agentToggle">
+    <span class="collapse-label">Agent</span>
+    <i class="codicon codicon-chevron-right collapse-chevron" id="agentChevron"></i>
+  </div>
+  <div class="collapse-body" id="agentBody">
+    <div class="int-hint" style="margin-top:4px">Add both keys to have NoteVs start and manage the local agent server for you &mdash; no manual setup once these are set and an agent repo path is configured.</div>
+
+    <div style="font-size:12px;font-weight:600;margin:8px 0 6px;color:var(--vscode-foreground)">Groq API key</div>
+    ${groqKeySet ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Key saved</span><button class="int-btn danger" id="groqClear">Clear</button></div>` : `<div class="int-row"><input class="int-input" id="groqKeyInput" type="password" placeholder="Paste your Groq API key\u2026"/><button class="int-btn" id="groqSave">Save</button></div>`}
+
+    <div style="font-size:12px;font-weight:600;margin:14px 0 6px;color:var(--vscode-foreground)">Rasa license key</div>
+    ${rasaLicenseSet ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Key saved</span><button class="int-btn danger" id="rasaClear">Clear</button></div>` : `<div class="int-row"><input class="int-input" id="rasaKeyInput" type="password" placeholder="Paste your Rasa license key\u2026"/><button class="int-btn" id="rasaSave">Save</button></div>`}
+    <div class="int-hint">That&rsquo;s it &mdash; once both keys are saved, NoteVs sets up and starts the agent for you automatically (first run installs a few things in the background, so it can take a couple minutes).</div>
+  </div>
+
   ${logoutHtml}
   <script>
     const vscode=acquireVsCodeApi();
@@ -17829,6 +18574,7 @@ function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyn
     bindCollapse('colourToggle','colourBody','colourChevron');
     bindCollapse('exportingToggle','exportingBody','exportingChevron');
     bindCollapse('tasksToggle','tasksBody','tasksChevron');
+    bindCollapse('agentToggle','agentBody','agentChevron');
 
     // \u2500\u2500 Steps toggles \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     function bindStepsToggle(btnId, boxId, labelOpen, labelClose) {
@@ -17865,6 +18611,16 @@ function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyn
     if(googleConnectBtn){googleConnectBtn.addEventListener('click',()=>vscode.postMessage({type:'connectGoogleTasks'}));}
     const googleDisconnectBtn=document.getElementById('googleTasksDisconnect');
     if(googleDisconnectBtn){googleDisconnectBtn.addEventListener('click',()=>vscode.postMessage({type:'disconnectGoogleTasks'}));}
+
+    // \u2500\u2500 Agent credentials \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    const groqSaveBtn=document.getElementById('groqSave');
+    if(groqSaveBtn){groqSaveBtn.addEventListener('click',()=>{const v=document.getElementById('groqKeyInput').value.trim();if(v){vscode.postMessage({type:'saveGroqKey',key:v});}});}
+    const groqClearBtn=document.getElementById('groqClear');
+    if(groqClearBtn){groqClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearGroqKey'}));}
+    const rasaSaveBtn=document.getElementById('rasaSave');
+    if(rasaSaveBtn){rasaSaveBtn.addEventListener('click',()=>{const v=document.getElementById('rasaKeyInput').value.trim();if(v){vscode.postMessage({type:'saveRasaLicense',key:v});}});}
+    const rasaClearBtn=document.getElementById('rasaClear');
+    if(rasaClearBtn){rasaClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearRasaLicense'}));}
   </script></body></html>`;
 }
 function noFolderHtml() {
@@ -18026,6 +18782,7 @@ function notesListHtml(projectName, groups, subfolderOptions, syncStatus, lastSy
     <span class="project-name" title="${projectName}">${projectName}</span>
     <div class="toolbar-right">
       <button class="icon-btn" id="newBtn" title="New note"><i class="codicon codicon-add"></i></button>
+      <button class="icon-btn" id="agentChatBtn" title="Chat with NoteVs Agent"><i class="codicon codicon-comment-discussion"></i></button>
       <div class="dropdown-wrap" id="exportWrap">
         <button class="icon-btn" id="exportBtn" title="Export / Import notes"><i class="codicon codicon-export"></i></button>
         <div class="dropdown-menu" id="exportMenu">
@@ -18074,6 +18831,7 @@ function notesListHtml(projectName, groups, subfolderOptions, syncStatus, lastSy
       }
     });
     document.getElementById('settingsBtn').addEventListener('click',()=>vscode.postMessage({type:'openSettings'}));
+    document.getElementById('agentChatBtn').addEventListener('click',()=>vscode.postMessage({type:'openAgentChat'}));
     const exportMenu = document.getElementById('exportMenu');
     document.getElementById('exportBtn').addEventListener('click', e => {
       e.stopPropagation();
@@ -18421,19 +19179,19 @@ function safeNoteFilename(title, id) {
 async function exportNotesToFolder(context) {
   const workspacePath = getFolderPath();
   if (!workspacePath) {
-    vscode5.window.showWarningMessage("Open a folder first.");
+    vscode7.window.showWarningMessage("Open a folder first.");
     return;
   }
   const groups = readLocalNotesGrouped(context, workspacePath);
   const allNotes = groups.flatMap((g) => g.notes);
   if (allNotes.length === 0) {
-    vscode5.window.showInformationMessage("No notes to export.");
+    vscode7.window.showInformationMessage("No notes to export.");
     return;
   }
   const isMonorepo = groups.length > 1;
-  const exportRoot = path4.join(workspacePath, ".notevs");
+  const exportRoot = path6.join(workspacePath, ".notevs");
   const label = allNotes.length + " note" + (allNotes.length !== 1 ? "s" : "");
-  const confirm = await vscode5.window.showInformationMessage(
+  const confirm = await vscode7.window.showInformationMessage(
     "Export " + label + " to .notevs/ in your repo root?",
     { modal: true },
     "Export"
@@ -18441,19 +19199,19 @@ async function exportNotesToFolder(context) {
   if (confirm !== "Export") {
     return;
   }
-  if (!fs4.existsSync(exportRoot)) {
-    fs4.mkdirSync(exportRoot, { recursive: true });
+  if (!fs6.existsSync(exportRoot)) {
+    fs6.mkdirSync(exportRoot, { recursive: true });
   }
   const notesManifest = [];
   for (const note of allNotes) {
     const subFolder = notevsFolderName(note.folderPath ?? "", workspacePath);
-    const targetDir = path4.join(exportRoot, subFolder);
-    if (!fs4.existsSync(targetDir)) {
-      fs4.mkdirSync(targetDir, { recursive: true });
+    const targetDir = path6.join(exportRoot, subFolder);
+    if (!fs6.existsSync(targetDir)) {
+      fs6.mkdirSync(targetDir, { recursive: true });
     }
     const filename = safeNoteFilename(note.title, note.id);
     const relFile = subFolder + "/" + filename;
-    fs4.writeFileSync(path4.join(targetDir, filename), deltaToPlainText(note.content ?? ""), "utf8");
+    fs6.writeFileSync(path6.join(targetDir, filename), deltaToPlainText(note.content ?? ""), "utf8");
     notesManifest.push({
       id: note.id,
       localId: note.localId ?? "",
@@ -18482,41 +19240,41 @@ async function exportNotesToFolder(context) {
     exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
     notes: notesManifest
   };
-  fs4.writeFileSync(path4.join(exportRoot, "notes.json"), JSON.stringify(notesJson, null, 2), "utf8");
-  vscode5.window.showInformationMessage(
+  fs6.writeFileSync(path6.join(exportRoot, "notes.json"), JSON.stringify(notesJson, null, 2), "utf8");
+  vscode7.window.showInformationMessage(
     "\u2713 Exported " + allNotes.length + " note" + (allNotes.length !== 1 ? "s" : "") + " to .notevs/",
     "Open folder"
   ).then((choice) => {
     if (choice === "Open folder") {
-      vscode5.commands.executeCommand("revealFileInOS", vscode5.Uri.file(exportRoot));
+      vscode7.commands.executeCommand("revealFileInOS", vscode7.Uri.file(exportRoot));
     }
   });
 }
 async function importNotesFromFolder(context, panel) {
   const workspacePath = getFolderPath();
   if (!workspacePath) {
-    vscode5.window.showWarningMessage("Open a folder first.");
+    vscode7.window.showWarningMessage("Open a folder first.");
     return;
   }
-  const exportRoot = path4.join(workspacePath, ".notevs");
-  if (!fs4.existsSync(exportRoot)) {
-    vscode5.window.showWarningMessage("No .notevs/ folder found in this project root. Nothing to import.");
+  const exportRoot = path6.join(workspacePath, ".notevs");
+  if (!fs6.existsSync(exportRoot)) {
+    vscode7.window.showWarningMessage("No .notevs/ folder found in this project root. Nothing to import.");
     return;
   }
-  const notesJsonPath = path4.join(exportRoot, "notes.json");
-  if (fs4.existsSync(notesJsonPath)) {
+  const notesJsonPath = path6.join(exportRoot, "notes.json");
+  if (fs6.existsSync(notesJsonPath)) {
     let manifest;
     try {
-      manifest = JSON.parse(fs4.readFileSync(notesJsonPath, "utf8"));
+      manifest = JSON.parse(fs6.readFileSync(notesJsonPath, "utf8"));
     } catch {
-      vscode5.window.showErrorMessage(".notevs/notes.json is corrupted and cannot be read.");
+      vscode7.window.showErrorMessage(".notevs/notes.json is corrupted and cannot be read.");
       return;
     }
     const exportedRoot = manifest.workspacePath ?? "";
     const rootMatches = exportedRoot === workspacePath;
     const isSubPath = workspacePath.startsWith(exportedRoot + "/") || workspacePath.startsWith(exportedRoot + "\\");
     if (!rootMatches && !isSubPath) {
-      const action = await vscode5.window.showWarningMessage(
+      const action = await vscode7.window.showWarningMessage(
         'This .notevs/ export came from a different project:\n"' + exportedRoot + '"\n\nCurrent workspace:\n"' + workspacePath + '"\n\nImport anyway?',
         { modal: true },
         "Import anyway",
@@ -18537,11 +19295,11 @@ async function importNotesFromFolder(context, panel) {
         invalid++;
         continue;
       }
-      const mdPath = path4.join(exportRoot, entry.file);
+      const mdPath = path6.join(exportRoot, entry.file);
       let content = "";
-      if (fs4.existsSync(mdPath)) {
+      if (fs6.existsSync(mdPath)) {
         try {
-          content = fs4.readFileSync(mdPath, "utf8");
+          content = fs6.readFileSync(mdPath, "utf8");
         } catch {
           invalid++;
           continue;
@@ -18550,12 +19308,12 @@ async function importNotesFromFolder(context, panel) {
       let folderPath = entry.folderPath || "";
       if (folderPath && folderPath !== workspacePath && !folderPath.startsWith(workspacePath + "/")) {
         const relSeg = exportedRoot ? folderPath.replace(exportedRoot, "").replace(/^[\/\\]/, "") : "";
-        folderPath = relSeg ? path4.join(workspacePath, relSeg) : workspacePath;
+        folderPath = relSeg ? path6.join(workspacePath, relSeg) : workspacePath;
       }
       const storedContent = entry.editorMode === "wysiwyg" ? plainTextToDelta(content) : content;
       const note = {
         id: entry.id,
-        localId: entry.localId || (0, import_crypto3.randomUUID)(),
+        localId: entry.localId || (0, import_crypto5.randomUUID)(),
         title: entry.title || "Untitled",
         status: entry.status || "open",
         priority: entry.priority || "none",
@@ -18609,30 +19367,30 @@ async function importNotesFromFolder(context, panel) {
     if (invalid > 0) {
       parts.push(invalid + " unreadable");
     }
-    vscode5.window.showInformationMessage("\u2713 Import complete \u2014 " + parts.join(", ") + ".");
+    vscode7.window.showInformationMessage("\u2713 Import complete \u2014 " + parts.join(", ") + ".");
     if (panel) {
       const pn = workspacePath.split(/[\/\\]/).filter(Boolean).pop() ?? "Project";
       panel.webview.html = notesListHtml(pn, readLocalNotesGrouped(context, workspacePath), getSubfolderOptions(context, workspacePath), "local");
     }
     return;
   }
-  const metaPath = path4.join(exportRoot, "meta.json");
-  if (!fs4.existsSync(metaPath)) {
-    vscode5.window.showWarningMessage(".notevs/ found but no notes.json or meta.json inside. Not a valid NoteVs export.");
+  const metaPath = path6.join(exportRoot, "meta.json");
+  if (!fs6.existsSync(metaPath)) {
+    vscode7.window.showWarningMessage(".notevs/ found but no notes.json or meta.json inside. Not a valid NoteVs export.");
     return;
   }
   let exportMeta;
   try {
-    exportMeta = JSON.parse(fs4.readFileSync(metaPath, "utf8"));
+    exportMeta = JSON.parse(fs6.readFileSync(metaPath, "utf8"));
   } catch {
-    vscode5.window.showErrorMessage(".notevs/meta.json is corrupted and cannot be read.");
+    vscode7.window.showErrorMessage(".notevs/meta.json is corrupted and cannot be read.");
     return;
   }
   const exportedRootV1 = exportMeta.workspacePath ?? "";
   const rootMatchesV1 = exportedRootV1 === workspacePath;
   const isSubPathV1 = workspacePath.startsWith(exportedRootV1 + "/") || workspacePath.startsWith(exportedRootV1 + "\\");
   if (!rootMatchesV1 && !isSubPathV1) {
-    const action = await vscode5.window.showWarningMessage(
+    const action = await vscode7.window.showWarningMessage(
       'This .notevs/ export came from a different project:\n"' + exportedRootV1 + '"\n\nCurrent workspace:\n"' + workspacePath + '"\n\nImport anyway?',
       { modal: true },
       "Import anyway",
@@ -18644,8 +19402,8 @@ async function importNotesFromFolder(context, panel) {
   }
   function collectMdFiles(dir) {
     const results = [];
-    for (const entry of fs4.readdirSync(dir, { withFileTypes: true })) {
-      const full = path4.join(dir, entry.name);
+    for (const entry of fs6.readdirSync(dir, { withFileTypes: true })) {
+      const full = path6.join(dir, entry.name);
       if (entry.isDirectory()) {
         results.push(...collectMdFiles(full));
       } else if (entry.isFile() && entry.name.endsWith(".md")) {
@@ -18656,7 +19414,7 @@ async function importNotesFromFolder(context, panel) {
   }
   const mdFiles = collectMdFiles(exportRoot);
   if (mdFiles.length === 0) {
-    vscode5.window.showInformationMessage("No note files found in .notevs/.");
+    vscode7.window.showInformationMessage("No note files found in .notevs/.");
     return;
   }
   const existingMetaV1 = readLocalMeta2(context);
@@ -18667,7 +19425,7 @@ async function importNotesFromFolder(context, panel) {
   for (const mdFile of mdFiles) {
     let raw;
     try {
-      raw = fs4.readFileSync(mdFile, "utf8");
+      raw = fs6.readFileSync(mdFile, "utf8");
     } catch {
       invalidV1++;
       continue;
@@ -18705,11 +19463,11 @@ async function importNotesFromFolder(context, panel) {
     let folderPath = fField("folderPath") || "";
     if (folderPath && folderPath !== workspacePath && !folderPath.startsWith(workspacePath + "/")) {
       const rel = exportedRootV1 ? folderPath.replace(exportedRootV1, "").replace(/^[\/\\]/, "") : "";
-      folderPath = rel ? path4.join(workspacePath, rel) : workspacePath;
+      folderPath = rel ? path6.join(workspacePath, rel) : workspacePath;
     }
     writeLocalNote2(context, {
       id,
-      localId: fField("localId") || (0, import_crypto3.randomUUID)(),
+      localId: fField("localId") || (0, import_crypto5.randomUUID)(),
       title: fField("title") || "Untitled",
       status: fField("status") || "open",
       priority: fField("priority") || "none",
@@ -18736,7 +19494,7 @@ async function importNotesFromFolder(context, panel) {
   if (invalidV1 > 0) {
     partsV1.push(invalidV1 + " unreadable");
   }
-  vscode5.window.showInformationMessage("\u2713 Import complete \u2014 " + partsV1.join(", ") + ".");
+  vscode7.window.showInformationMessage("\u2713 Import complete \u2014 " + partsV1.join(", ") + ".");
   if (panel) {
     const pn = workspacePath.split(/[\/\\]/).filter(Boolean).pop() ?? "Project";
     panel.webview.html = notesListHtml(pn, readLocalNotesGrouped(context, workspacePath), getSubfolderOptions(context, workspacePath), "local");
@@ -18755,7 +19513,7 @@ async function activate(context) {
   const notionSyncTimers = /* @__PURE__ */ new Map();
   const notionSyncCooldowns = /* @__PURE__ */ new Map();
   function getNoteColors() {
-    const config = vscode5.workspace.getConfiguration("notevs");
+    const config = vscode7.workspace.getConfiguration("notevs");
     return { bg: config.get("noteBgColor", "#1e1e1e"), text: config.get("noteTextColor", "#d4d4d4") };
   }
   let memCache = null;
@@ -18822,7 +19580,7 @@ async function activate(context) {
         const localEdited = new Date(item.localUpdatedAt).getTime();
         const cachedAt = memCache ? new Date(memCache.cachedAt).getTime() : 0;
         if (serverUpdated > cachedAt && serverUpdated > localEdited) {
-          const choice = await vscode5.window.showWarningMessage(
+          const choice = await vscode7.window.showWarningMessage(
             `"${serverNote.title}" was edited on another machine while offline. Which version to keep?`,
             { modal: true },
             "Keep my offline version",
@@ -18847,7 +19605,7 @@ async function activate(context) {
     const { bg, text } = getNoteColors();
     const existingPanel = openNotePanels.get(id);
     if (existingPanel) {
-      existingPanel.reveal(vscode5.ViewColumn.Beside);
+      existingPanel.reveal(vscode7.ViewColumn.Beside);
       return;
     }
     if (openingNotes.has(id)) {
@@ -18857,10 +19615,10 @@ async function activate(context) {
     const cached = loadCache();
     const cachedNote = cached?.notes.find((n) => n.id === id);
     const noteTitle = cachedNote?.title || "Note";
-    const notePanel = vscode5.window.createWebviewPanel(
+    const notePanel = vscode7.window.createWebviewPanel(
       "notenest.note",
       noteTitle,
-      vscode5.ViewColumn.Beside,
+      vscode7.ViewColumn.Beside,
       { enableScripts: true, retainContextWhenHidden: true }
     );
     openNotePanels.set(id, notePanel);
@@ -18906,7 +19664,7 @@ async function activate(context) {
           if (existing) {
             const updated = { ...existing, ...patch, updatedAt: (/* @__PURE__ */ new Date()).toISOString() };
             writeLocalNote2(context, updated);
-            const autoSync = vscode5.workspace.getConfiguration("notevs").get("notionAutoSync", false);
+            const autoSync = vscode7.workspace.getConfiguration("notevs").get("notionAutoSync", false);
             if (autoSync && updated.exports?.notion?.pageId) {
               const prev = notionSyncTimers.get(msg.id);
               if (prev) {
@@ -18971,16 +19729,16 @@ async function activate(context) {
         const fp2 = msg.noteFolderPath || getFolderPath();
         if (!fp2 || !msg.file) return;
         try {
-          const doc = await vscode5.workspace.openTextDocument(vscode5.Uri.file(`${fp2}/${msg.file}`));
-          const editor = await vscode5.window.showTextDocument(doc, { preview: false, viewColumn: vscode5.ViewColumn.One });
+          const doc = await vscode7.workspace.openTextDocument(vscode7.Uri.file(`${fp2}/${msg.file}`));
+          const editor = await vscode7.window.showTextDocument(doc, { preview: false, viewColumn: vscode7.ViewColumn.One });
           const sl = Math.max(0, (msg.lineStart || msg.line || 1) - 1);
           const el = Math.max(0, (msg.lineEnd || msg.lineStart || msg.line || 1) - 1);
           const elt = doc.lineAt(Math.min(el, doc.lineCount - 1));
-          const range = new vscode5.Range(sl, 0, elt.lineNumber, elt.text.length);
-          editor.selection = new vscode5.Selection(range.start, range.end);
-          editor.revealRange(range, vscode5.TextEditorRevealType.InCenter);
+          const range = new vscode7.Range(sl, 0, elt.lineNumber, elt.text.length);
+          editor.selection = new vscode7.Selection(range.start, range.end);
+          editor.revealRange(range, vscode7.TextEditorRevealType.InCenter);
         } catch {
-          vscode5.window.showErrorMessage(`Could not open file: ${msg.file}`);
+          vscode7.window.showErrorMessage(`Could not open file: ${msg.file}`);
         }
       }
       if (msg.type === "deleteAnnotation") {
@@ -18991,7 +19749,7 @@ async function activate(context) {
           updateNoteInCache(fn);
           notePanel.webview.html = noteEditorHtml(fn, projectName, bg, text);
         } catch {
-          vscode5.window.showErrorMessage("Failed to delete annotation.");
+          vscode7.window.showErrorMessage("Failed to delete annotation.");
         }
       }
       if (msg.type === "saveAnnotation") {
@@ -19004,7 +19762,7 @@ async function activate(context) {
       if (msg.type === "exportToNotion") {
         const note = readLocalNote2(context, id);
         if (!note) {
-          vscode5.window.showErrorMessage("Note not found.");
+          vscode7.window.showErrorMessage("Note not found.");
           return;
         }
         await sendToNotion(secrets, context.globalState, note, (dest, ts, pageId, pageUrl) => {
@@ -19030,7 +19788,7 @@ async function activate(context) {
       if (msg.type === "exportToObsidian") {
         const note = readLocalNote2(context, id);
         if (!note) {
-          vscode5.window.showErrorMessage("Note not found.");
+          vscode7.window.showErrorMessage("Note not found.");
           return;
         }
         await sendToObsidian(secrets, context.globalState, note, (dest, ts) => {
@@ -19052,7 +19810,7 @@ async function activate(context) {
       if (msg.type === "sendToTodoist") {
         const note = readLocalNote2(context, id);
         if (!note) {
-          vscode5.window.showErrorMessage("Note not found.");
+          vscode7.window.showErrorMessage("Note not found.");
           return;
         }
         const fp2 = getFolderPath();
@@ -19082,7 +19840,7 @@ async function activate(context) {
           let existingProvider;
           let existingRecord;
           if (todoistR && googleR) {
-            const pick = await vscode5.window.showQuickPick(
+            const pick = await vscode7.window.showQuickPick(
               [
                 { label: `\u23F0 Todoist \u2014 ${todoistR.recurrence ?? todoistR.due.slice(0, 10)}`, value: "todoist" },
                 { label: `\u23F0 Google Tasks \u2014 ${googleR.due.slice(0, 10)}`, value: "googleTasks" }
@@ -19145,9 +19903,9 @@ async function activate(context) {
       panel = webviewView;
       webviewView.webview.options = {
         enableScripts: true,
-        localResourceRoots: [vscode5.Uri.joinPath(context.extensionUri, "media")]
+        localResourceRoots: [vscode7.Uri.joinPath(context.extensionUri, "media")]
       };
-      iconUri = webviewView.webview.asWebviewUri(vscode5.Uri.joinPath(context.extensionUri, "media", "icon.png")).toString();
+      iconUri = webviewView.webview.asWebviewUri(vscode7.Uri.joinPath(context.extensionUri, "media", "icon.png")).toString();
       async function render() {
         await context.globalState.update("notevs.syncEnabled", false);
         await context.globalState.update("notevs.firstRunComplete", true);
@@ -19195,13 +19953,13 @@ async function activate(context) {
               await context.globalState.update("notevs.syncEnabled", true);
               webviewView.webview.html = loginHtml(iconUri);
             } else {
-              const ok = await vscode5.window.showWarningMessage("Disable sync? Your notes will stay on this device.", { modal: true }, "Disable sync");
+              const ok = await vscode7.window.showWarningMessage("Disable sync? Your notes will stay on this device.", { modal: true }, "Disable sync");
               if (ok === "Disable sync") {
                 await context.globalState.update("notevs.syncEnabled", false);
                 await clearTokens(secrets);
                 await render();
               } else {
-                const config = vscode5.workspace.getConfiguration("notevs");
+                const config = vscode7.workspace.getConfiguration("notevs");
                 const lsAt = context.globalState.get("notevs.lastSyncAt") ?? null;
                 webviewView.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), true, null, lsAt, false, false, "", false);
               }
@@ -19226,19 +19984,19 @@ async function activate(context) {
               { label: `$(folder-opened) ${wsLabel}`, description: "workspace root", folderPath: workspacePath },
               ...msg.subfolders.map((s) => ({ label: `$(folder) ${s.label}`, description: s.folderPath.replace(workspacePath + "/", ""), folderPath: s.folderPath }))
             ];
-            const picked = await vscode5.window.showQuickPick(folderItems, { title: "Create note in\u2026", placeHolder: "Choose a folder for the new note", ignoreFocusOut: true });
+            const picked = await vscode7.window.showQuickPick(folderItems, { title: "Create note in\u2026", placeHolder: "Choose a folder for the new note", ignoreFocusOut: true });
             if (picked) {
               webviewView.webview.postMessage({ type: "showNewNoteInput", folderPath: picked.folderPath });
             }
             break;
           }
           case "openFolder":
-            vscode5.commands.executeCommand("vscode.openFolder");
+            vscode7.commands.executeCommand("vscode.openFolder");
             break;
           case "newNote": {
             const folderPath = getFolderPath();
             if (!folderPath) {
-              vscode5.window.showWarningMessage("Open a folder first.");
+              vscode7.window.showWarningMessage("Open a folder first.");
               break;
             }
             const targetFolder = msg.targetFolder || folderPath;
@@ -19247,7 +20005,7 @@ async function activate(context) {
             const syncEnabled2 = context.globalState.get("notevs.syncEnabled") ?? false;
             if (!syncEnabled2) {
               const now = (/* @__PURE__ */ new Date()).toISOString();
-              const newNote = { id: (0, import_crypto3.randomUUID)(), localId: (0, import_crypto3.randomUUID)(), title, content: "", editorMode: "wysiwyg", pinned: false, tags: [], priority: "none", status: "open", createdAt: now, updatedAt: now, folderPath: targetFolder, deletedAt: null, syncedAt: null };
+              const newNote = { id: (0, import_crypto5.randomUUID)(), localId: (0, import_crypto5.randomUUID)(), title, content: "", editorMode: "wysiwyg", pinned: false, tags: [], priority: "none", status: "open", createdAt: now, updatedAt: now, folderPath: targetFolder, deletedAt: null, syncedAt: null };
               writeLocalNote2(context, newNote);
               webviewView.webview.html = notesListHtml(projectName, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
               await openNote(newNote.id);
@@ -19264,7 +20022,7 @@ async function activate(context) {
                 webviewView.webview.html = notesListHtml(projectName, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
                 await openNote(newNote.id);
               } catch {
-                vscode5.window.showErrorMessage("Failed to create note.");
+                vscode7.window.showErrorMessage("Failed to create note.");
               }
             }
             break;
@@ -19279,23 +20037,23 @@ async function activate(context) {
             const folderPath = msg.noteFolderPath || getFolderPath();
             if (!folderPath || !msg.file) break;
             try {
-              const doc = await vscode5.workspace.openTextDocument(vscode5.Uri.file(`${folderPath}/${msg.file}`));
-              const editor = await vscode5.window.showTextDocument(doc, { preview: false, viewColumn: vscode5.ViewColumn.One });
+              const doc = await vscode7.workspace.openTextDocument(vscode7.Uri.file(`${folderPath}/${msg.file}`));
+              const editor = await vscode7.window.showTextDocument(doc, { preview: false, viewColumn: vscode7.ViewColumn.One });
               const startLine = Math.max(0, (msg.lineStart || msg.line || 1) - 1);
               const endLine = Math.max(0, (msg.lineEnd || msg.lineStart || msg.line || 1) - 1);
               const endLineText = doc.lineAt(Math.min(endLine, doc.lineCount - 1));
-              const range = new vscode5.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length);
-              editor.selection = new vscode5.Selection(range.start, range.end);
-              editor.revealRange(range, vscode5.TextEditorRevealType.InCenter);
+              const range = new vscode7.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length);
+              editor.selection = new vscode7.Selection(range.start, range.end);
+              editor.revealRange(range, vscode7.TextEditorRevealType.InCenter);
             } catch {
-              vscode5.window.showErrorMessage(`Could not open file: ${msg.file}`);
+              vscode7.window.showErrorMessage(`Could not open file: ${msg.file}`);
             }
             break;
           }
           case "saveNote":
             break;
           case "deleteNote": {
-            const ok = await vscode5.window.showWarningMessage("Delete this note? This cannot be undone.", { modal: true }, "Delete");
+            const ok = await vscode7.window.showWarningMessage("Delete this note? This cannot be undone.", { modal: true }, "Delete");
             if (ok === "Delete") {
               const notePanel = openNotePanels.get(msg.id);
               if (notePanel) {
@@ -19305,7 +20063,7 @@ async function activate(context) {
               if (!syncEnabledDel) {
                 deleteLocalNote(context, msg.id);
                 const folderPathDel = getFolderPath();
-                const activeEdDel = vscode5.window.activeTextEditor;
+                const activeEdDel = vscode7.window.activeTextEditor;
                 if (activeEdDel) {
                   refreshAnnotations(activeEdDel);
                 }
@@ -19327,8 +20085,12 @@ async function activate(context) {
             }
             break;
           }
+          case "openAgentChat": {
+            vscode7.commands.executeCommand("notevs.openAgentChat");
+            break;
+          }
           case "openSettings": {
-            const config = vscode5.workspace.getConfiguration("notevs");
+            const config = vscode7.workspace.getConfiguration("notevs");
             const syncEnabledSettings = context.globalState.get("notevs.syncEnabled") ?? false;
             const lastSyncAtSettings = context.globalState.get("notevs.lastSyncAt") ?? null;
             let syncUserEmailSettings = null;
@@ -19343,52 +20105,54 @@ async function activate(context) {
             const obsStatus = await getObsidianStatus(secrets, context.globalState);
             const todoistConn = await hasTodoistToken(secrets);
             const googleConn = await isGoogleTasksConnected(secrets);
-            webviewView.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath, config.get("notionAutoSync", false), todoistConn, googleConn);
+            const groqSet = !!await secrets.get("groqApiKey");
+            const rasaSet = !!await secrets.get("rasaLicense");
+            webviewView.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath, config.get("notionAutoSync", false), todoistConn, googleConn, groqSet, rasaSet);
             break;
           }
           case "saveNotionToken": {
             if (msg.token) {
               await secrets.store("notionToken", msg.token);
             }
-            const cfgN1 = vscode5.workspace.getConfiguration("notevs");
+            const cfgN1 = vscode7.workspace.getConfiguration("notevs");
             const obsN1 = await getObsidianStatus(secrets, context.globalState);
             webviewView.webview.html = settingsHtml(cfgN1.get("autoShow", true), cfgN1.get("noteBgColor", "#1e1e1e"), false, null, null, true, obsN1.apiKey, obsN1.vaultPath, cfgN1.get("notionAutoSync", false));
-            vscode5.window.showInformationMessage("Notion token saved.");
+            vscode7.window.showInformationMessage("Notion token saved.");
             break;
           }
           case "clearNotionToken": {
             await clearNotionToken(secrets, context.globalState);
-            const cfgN2 = vscode5.workspace.getConfiguration("notevs");
+            const cfgN2 = vscode7.workspace.getConfiguration("notevs");
             const obsN2 = await getObsidianStatus(secrets, context.globalState);
             webviewView.webview.html = settingsHtml(cfgN2.get("autoShow", true), cfgN2.get("noteBgColor", "#1e1e1e"), false, null, null, false, obsN2.apiKey, obsN2.vaultPath, cfgN2.get("notionAutoSync", false));
-            vscode5.window.showInformationMessage("Notion disconnected.");
+            vscode7.window.showInformationMessage("Notion disconnected.");
             break;
           }
           case "changeNotionPage": {
             await resetNotionPage(context.globalState);
-            vscode5.window.showInformationMessage("Notion parent page cleared. It will be picked on next export.");
+            vscode7.window.showInformationMessage("Notion parent page cleared. It will be picked on next export.");
             break;
           }
           case "saveObsidianApiKey": {
             if (msg.key) {
               await secrets.store("obsidianApiKey", msg.key);
             }
-            const cfgO1 = vscode5.workspace.getConfiguration("notevs");
+            const cfgO1 = vscode7.workspace.getConfiguration("notevs");
             const vpO1 = context.globalState.get("notevs.obsidianVaultPath", "");
             webviewView.webview.html = settingsHtml(cfgO1.get("autoShow", true), cfgO1.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), true, vpO1, cfgO1.get("notionAutoSync", false));
-            vscode5.window.showInformationMessage("Obsidian API key saved.");
+            vscode7.window.showInformationMessage("Obsidian API key saved.");
             break;
           }
           case "clearObsidianApiKey": {
             await clearObsidianApiKey(secrets);
-            const cfgO2 = vscode5.workspace.getConfiguration("notevs");
+            const cfgO2 = vscode7.workspace.getConfiguration("notevs");
             const vpO2 = context.globalState.get("notevs.obsidianVaultPath", "");
             webviewView.webview.html = settingsHtml(cfgO2.get("autoShow", true), cfgO2.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), false, vpO2, cfgO2.get("notionAutoSync", false));
-            vscode5.window.showInformationMessage("Obsidian API key cleared.");
+            vscode7.window.showInformationMessage("Obsidian API key cleared.");
             break;
           }
           case "browseObsidianVault": {
-            const picked = await vscode5.window.showOpenDialog({
+            const picked = await vscode7.window.showOpenDialog({
               canSelectFolders: true,
               canSelectFiles: false,
               canSelectMany: false,
@@ -19397,46 +20161,46 @@ async function activate(context) {
             });
             if (picked && picked.length > 0) {
               await context.globalState.update("notevs.obsidianVaultPath", picked[0].fsPath);
-              const cfgO3 = vscode5.workspace.getConfiguration("notevs");
+              const cfgO3 = vscode7.workspace.getConfiguration("notevs");
               webviewView.webview.html = settingsHtml(cfgO3.get("autoShow", true), cfgO3.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), !!await secrets.get("obsidianApiKey"), picked[0].fsPath, cfgO3.get("notionAutoSync", false));
-              vscode5.window.showInformationMessage(`Obsidian vault set to: ${picked[0].fsPath}`);
+              vscode7.window.showInformationMessage(`Obsidian vault set to: ${picked[0].fsPath}`);
             }
             break;
           }
           case "clearObsidianVaultPath": {
             await clearObsidianVaultPath(context.globalState);
-            const cfgO4 = vscode5.workspace.getConfiguration("notevs");
+            const cfgO4 = vscode7.workspace.getConfiguration("notevs");
             const todoistConn4 = await hasTodoistToken(secrets);
             const googleConn4 = await isGoogleTasksConnected(secrets);
             webviewView.webview.html = settingsHtml(cfgO4.get("autoShow", true), cfgO4.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), !!await secrets.get("obsidianApiKey"), "", cfgO4.get("notionAutoSync", false), todoistConn4, googleConn4);
-            vscode5.window.showInformationMessage("Obsidian vault path cleared.");
+            vscode7.window.showInformationMessage("Obsidian vault path cleared.");
             break;
           }
           case "saveTodoistToken": {
             if (msg.token) {
               await secrets.store("todoistToken", msg.token.trim());
             }
-            const cfgT1 = vscode5.workspace.getConfiguration("notevs");
+            const cfgT1 = vscode7.workspace.getConfiguration("notevs");
             const obsT1 = await getObsidianStatus(secrets, context.globalState);
             const googleT1 = await isGoogleTasksConnected(secrets);
             webviewView.webview.html = settingsHtml(cfgT1.get("autoShow", true), cfgT1.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsT1.apiKey, obsT1.vaultPath, cfgT1.get("notionAutoSync", false), true, googleT1);
-            vscode5.window.showInformationMessage("Todoist token saved.");
+            vscode7.window.showInformationMessage("Todoist token saved.");
             break;
           }
           case "clearTodoistToken": {
             await clearTodoistToken(secrets);
             await clearTaskProviderPreference(context.globalState);
-            const cfgT2 = vscode5.workspace.getConfiguration("notevs");
+            const cfgT2 = vscode7.workspace.getConfiguration("notevs");
             const obsT2 = await getObsidianStatus(secrets, context.globalState);
             const googleT2 = await isGoogleTasksConnected(secrets);
             webviewView.webview.html = settingsHtml(cfgT2.get("autoShow", true), cfgT2.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsT2.apiKey, obsT2.vaultPath, cfgT2.get("notionAutoSync", false), false, googleT2);
-            vscode5.window.showInformationMessage("Todoist disconnected.");
+            vscode7.window.showInformationMessage("Todoist disconnected.");
             break;
           }
           case "connectGoogleTasks": {
             const ok = await connectGoogleTasks(secrets);
             if (ok) {
-              const cfgG1 = vscode5.workspace.getConfiguration("notevs");
+              const cfgG1 = vscode7.workspace.getConfiguration("notevs");
               const obsG1 = await getObsidianStatus(secrets, context.globalState);
               const todoistG1 = await hasTodoistToken(secrets);
               webviewView.webview.html = settingsHtml(cfgG1.get("autoShow", true), cfgG1.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsG1.apiKey, obsG1.vaultPath, cfgG1.get("notionAutoSync", false), todoistG1, true);
@@ -19446,16 +20210,58 @@ async function activate(context) {
           case "disconnectGoogleTasks": {
             await disconnectGoogleTasks(secrets);
             await clearTaskProviderPreference(context.globalState);
-            const cfgG2 = vscode5.workspace.getConfiguration("notevs");
+            const cfgG2 = vscode7.workspace.getConfiguration("notevs");
             const obsG2 = await getObsidianStatus(secrets, context.globalState);
             const todoistG2 = await hasTodoistToken(secrets);
             webviewView.webview.html = settingsHtml(cfgG2.get("autoShow", true), cfgG2.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsG2.apiKey, obsG2.vaultPath, cfgG2.get("notionAutoSync", false), todoistG2, false);
-            vscode5.window.showInformationMessage("Google Tasks disconnected.");
+            vscode7.window.showInformationMessage("Google Tasks disconnected.");
+            break;
+          }
+          case "saveGroqKey": {
+            if (msg.key) {
+              await secrets.store("groqApiKey", msg.key.trim());
+            }
+            const cfgA1 = vscode7.workspace.getConfiguration("notevs");
+            const obsA1 = await getObsidianStatus(secrets, context.globalState);
+            const todoistA1 = await hasTodoistToken(secrets);
+            const googleA1 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgA1.get("autoShow", true), cfgA1.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsA1.apiKey, obsA1.vaultPath, cfgA1.get("notionAutoSync", false), todoistA1, googleA1, true, !!await secrets.get("rasaLicense"));
+            vscode7.window.showInformationMessage("Groq API key saved.");
+            break;
+          }
+          case "clearGroqKey": {
+            await secrets.delete("groqApiKey");
+            const cfgA2 = vscode7.workspace.getConfiguration("notevs");
+            const obsA2 = await getObsidianStatus(secrets, context.globalState);
+            const todoistA2 = await hasTodoistToken(secrets);
+            const googleA2 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgA2.get("autoShow", true), cfgA2.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsA2.apiKey, obsA2.vaultPath, cfgA2.get("notionAutoSync", false), todoistA2, googleA2, false, !!await secrets.get("rasaLicense"));
+            break;
+          }
+          case "saveRasaLicense": {
+            if (msg.key) {
+              await secrets.store("rasaLicense", msg.key.trim());
+            }
+            const cfgA3 = vscode7.workspace.getConfiguration("notevs");
+            const obsA3 = await getObsidianStatus(secrets, context.globalState);
+            const todoistA3 = await hasTodoistToken(secrets);
+            const googleA3 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgA3.get("autoShow", true), cfgA3.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsA3.apiKey, obsA3.vaultPath, cfgA3.get("notionAutoSync", false), todoistA3, googleA3, !!await secrets.get("groqApiKey"), true);
+            vscode7.window.showInformationMessage("Rasa license key saved.");
+            break;
+          }
+          case "clearRasaLicense": {
+            await secrets.delete("rasaLicense");
+            const cfgA4 = vscode7.workspace.getConfiguration("notevs");
+            const obsA4 = await getObsidianStatus(secrets, context.globalState);
+            const todoistA4 = await hasTodoistToken(secrets);
+            const googleA4 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgA4.get("autoShow", true), cfgA4.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsA4.apiKey, obsA4.vaultPath, cfgA4.get("notionAutoSync", false), todoistA4, googleA4, !!await secrets.get("groqApiKey"), false);
             break;
           }
           case "openExternal": {
             if (msg.url) {
-              vscode5.env.openExternal(vscode5.Uri.parse(msg.url));
+              vscode7.env.openExternal(vscode7.Uri.parse(msg.url));
             }
             break;
           }
@@ -19466,16 +20272,16 @@ async function activate(context) {
             await importNotesFromFolder(context, panel);
             break;
           case "setSetting": {
-            const config = vscode5.workspace.getConfiguration("notevs");
+            const config = vscode7.workspace.getConfiguration("notevs");
             if (msg.key === "autoShow") {
-              await config.update("autoShow", msg.value, vscode5.ConfigurationTarget.Global);
+              await config.update("autoShow", msg.value, vscode7.ConfigurationTarget.Global);
             }
             if (msg.key === "noteBgColor") {
-              await config.update("noteBgColor", msg.value, vscode5.ConfigurationTarget.Global);
-              await config.update("noteTextColor", msg.textColor, vscode5.ConfigurationTarget.Global);
+              await config.update("noteBgColor", msg.value, vscode7.ConfigurationTarget.Global);
+              await config.update("noteTextColor", msg.textColor, vscode7.ConfigurationTarget.Global);
             }
             if (msg.key === "notionAutoSync") {
-              await config.update("notionAutoSync", msg.value, vscode5.ConfigurationTarget.Global);
+              await config.update("notionAutoSync", msg.value, vscode7.ConfigurationTarget.Global);
             }
             break;
           }
@@ -19488,15 +20294,15 @@ async function activate(context) {
       render();
     }
   };
-  context.subscriptions.push(vscode5.window.registerWebviewViewProvider("notevs.notesView", provider));
-  const annotationDecoration = vscode5.window.createTextEditorDecorationType({
+  context.subscriptions.push(vscode7.window.registerWebviewViewProvider("notevs.notesView", provider));
+  const annotationDecoration = vscode7.window.createTextEditorDecorationType({
     borderWidth: "0 0 0 3px",
     borderStyle: "solid",
     borderColor: "rgba(108,142,245,0.7)",
     backgroundColor: "rgba(108,142,245,0.06)",
     isWholeLine: true,
     overviewRulerColor: "rgba(108,142,245,0.6)",
-    overviewRulerLane: vscode5.OverviewRulerLane.Right
+    overviewRulerLane: vscode7.OverviewRulerLane.Right
     // gutterIconPath removed — logo should not appear on annotation highlights
   });
   const annotationCache = /* @__PURE__ */ new Map();
@@ -19536,12 +20342,12 @@ async function activate(context) {
       const startLine = Math.max(0, ann.lineStart - 1);
       const endLine = Math.max(0, ann.lineEnd - 1);
       const endLineText = editor.document.lineAt(Math.min(endLine, editor.document.lineCount - 1));
-      return { range: new vscode5.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length) };
+      return { range: new vscode7.Range(startLine, 0, endLineText.lineNumber, endLineText.text.length) };
     });
     editor.setDecorations(annotationDecoration, decorations);
   }
   context.subscriptions.push(
-    vscode5.languages.registerHoverProvider({ scheme: "file" }, {
+    vscode7.languages.registerHoverProvider({ scheme: "file" }, {
       provideHover(document2, position) {
         const folderPath = getFolderPath();
         if (!folderPath) {
@@ -19570,7 +20376,7 @@ async function activate(context) {
         preview = preview.replace(/\n/g, " ").trim().slice(0, 150);
         const priorityLabel = hovered.priority !== "none" ? ` \u2022 ${hovered.priority}` : "";
         const statusLabel = hovered.status === "done" ? " \u2713 Done" : hovered.status === "passed" ? " \u2713 Passed" : " \u25CF Open";
-        const md = new vscode5.MarkdownString("", true);
+        const md = new vscode7.MarkdownString("", true);
         md.isTrusted = true;
         md.appendMarkdown(`**\u{1F4CE} ${hovered.noteTitle}**`);
         md.appendMarkdown(`
@@ -19585,24 +20391,24 @@ ${hovered.comment}`);
 
 ${preview}`);
         }
-        const openCmd = vscode5.Uri.parse(`command:notevs.openNoteById?${encodeURIComponent(JSON.stringify({ id: hovered.noteId }))}`);
+        const openCmd = vscode7.Uri.parse(`command:notevs.openNoteById?${encodeURIComponent(JSON.stringify({ id: hovered.noteId }))}`);
         md.appendMarkdown(`
 
 [Open note \u2192](${openCmd})`);
         const sl = Math.max(0, hovered.lineStart - 1);
         const el = Math.max(0, hovered.lineEnd - 1);
         const elt = document2.lineAt(Math.min(el, document2.lineCount - 1));
-        return new vscode5.Hover(md, new vscode5.Range(sl, 0, elt.lineNumber, elt.text.length));
+        return new vscode7.Hover(md, new vscode7.Range(sl, 0, elt.lineNumber, elt.text.length));
       }
     })
   );
   context.subscriptions.push(
-    vscode5.commands.registerCommand("notevs.openNoteById", async ({ id }) => {
+    vscode7.commands.registerCommand("notevs.openNoteById", async ({ id }) => {
       await openNote(id);
     })
   );
   context.subscriptions.push(
-    vscode5.languages.registerCodeLensProvider({ scheme: "file" }, {
+    vscode7.languages.registerCodeLensProvider({ scheme: "file" }, {
       provideCodeLenses(document2) {
         const folderPath = getFolderPath();
         if (!folderPath) {
@@ -19619,22 +20425,22 @@ ${preview}`);
           }
           seen.add(key);
           const line = Math.max(0, ann.lineStart - 1);
-          lenses.push(new vscode5.CodeLens(new vscode5.Range(line, 0, line, 0), { title: `\u{1F4CE} ${ann.noteTitle}`, command: "notevs.openNoteById", arguments: [{ id: ann.noteId }], tooltip: "Open this NoteVs note" }));
+          lenses.push(new vscode7.CodeLens(new vscode7.Range(line, 0, line, 0), { title: `\u{1F4CE} ${ann.noteTitle}`, command: "notevs.openNoteById", arguments: [{ id: ann.noteId }], tooltip: "Open this NoteVs note" }));
         }
         return lenses;
       }
     })
   );
-  context.subscriptions.push(vscode5.window.onDidChangeActiveTextEditor((editor) => {
+  context.subscriptions.push(vscode7.window.onDidChangeActiveTextEditor((editor) => {
     if (editor) {
       refreshAnnotations(editor);
     }
   }));
-  if (vscode5.window.activeTextEditor) {
-    refreshAnnotations(vscode5.window.activeTextEditor);
+  if (vscode7.window.activeTextEditor) {
+    refreshAnnotations(vscode7.window.activeTextEditor);
   }
-  context.subscriptions.push(vscode5.workspace.onDidSaveTextDocument((doc) => {
-    const editor = vscode5.window.visibleTextEditors.find((e) => e.document === doc);
+  context.subscriptions.push(vscode7.workspace.onDidSaveTextDocument((doc) => {
+    const editor = vscode7.window.visibleTextEditors.find((e) => e.document === doc);
     if (editor) {
       refreshAnnotations(editor);
     }
@@ -19642,20 +20448,20 @@ ${preview}`);
   async function refreshGutterDecorations(editor) {
     await refreshAnnotations(editor);
   }
-  const selectionDecoration = vscode5.window.createTextEditorDecorationType({
-    after: { contentText: "  NoteVs \u2318\u21E7N to annotate", color: new vscode5.ThemeColor("editorCodeLens.foreground"), margin: "0 0 0 12px", fontStyle: "italic", fontWeight: "400" },
-    rangeBehavior: vscode5.DecorationRangeBehavior.ClosedClosed
+  const selectionDecoration = vscode7.window.createTextEditorDecorationType({
+    after: { contentText: "  NoteVs \u2318\u21E7N to annotate", color: new vscode7.ThemeColor("editorCodeLens.foreground"), margin: "0 0 0 12px", fontStyle: "italic", fontWeight: "400" },
+    rangeBehavior: vscode7.DecorationRangeBehavior.ClosedClosed
   });
-  const annotateStatusBarItem = vscode5.window.createStatusBarItem(vscode5.StatusBarAlignment.Right, 1e3);
+  const annotateStatusBarItem = vscode7.window.createStatusBarItem(vscode7.StatusBarAlignment.Right, 1e3);
   annotateStatusBarItem.text = "\u{1F4CE} Annotate selection";
   annotateStatusBarItem.tooltip = "Add a NoteVs note to the selected code \u2014 or press \u2318\u21E7N";
   annotateStatusBarItem.command = "notevs.annotateSelectionFromStatusBar";
-  annotateStatusBarItem.backgroundColor = new vscode5.ThemeColor("statusBarItem.warningBackground");
+  annotateStatusBarItem.backgroundColor = new vscode7.ThemeColor("statusBarItem.warningBackground");
   context.subscriptions.push(annotateStatusBarItem);
   let savedEditorUri = null;
   let savedSelection = null;
   let selectionDecorationTimer = null;
-  context.subscriptions.push(vscode5.window.onDidChangeTextEditorSelection((e) => {
+  context.subscriptions.push(vscode7.window.onDidChangeTextEditorSelection((e) => {
     if (selectionDecorationTimer) {
       clearTimeout(selectionDecorationTimer);
     }
@@ -19674,32 +20480,32 @@ ${preview}`);
         savedEditorUri = null;
         return;
       }
-      savedSelection = new vscode5.Selection(editor.selection.start, editor.selection.end);
+      savedSelection = new vscode7.Selection(editor.selection.start, editor.selection.end);
       savedEditorUri = editor.document.uri;
       const endPos = editor.selection.end;
       const endLine = editor.document.lineAt(endPos.line);
-      editor.setDecorations(selectionDecoration, [{ range: new vscode5.Range(endPos.line, endLine.range.end.character, endPos.line, endLine.range.end.character) }]);
+      editor.setDecorations(selectionDecoration, [{ range: new vscode7.Range(endPos.line, endLine.range.end.character, endPos.line, endLine.range.end.character) }]);
       annotateStatusBarItem.show();
     }, 150);
   }));
-  context.subscriptions.push(vscode5.languages.registerCodeActionsProvider({ scheme: "file" }, {
+  context.subscriptions.push(vscode7.languages.registerCodeActionsProvider({ scheme: "file" }, {
     provideCodeActions(document2, range) {
       if (range.isEmpty) {
         return [];
       }
-      const action = new vscode5.CodeAction("\u{1F4CE} NoteVs: Annotate this selection", vscode5.CodeActionKind.Empty);
+      const action = new vscode7.CodeAction("\u{1F4CE} NoteVs: Annotate this selection", vscode7.CodeActionKind.Empty);
       action.command = { command: "notevs.annotateSelection", title: "\u{1F4CE} NoteVs: Annotate this selection" };
       return [action];
     }
-  }, { providedCodeActionKinds: [vscode5.CodeActionKind.Empty] }));
+  }, { providedCodeActionKinds: [vscode7.CodeActionKind.Empty] }));
   async function runAnnotate(docUri, selection) {
     const folderPath = getFolderPath();
     if (!folderPath) {
-      vscode5.window.showWarningMessage("Open a folder first to use NoteVs annotations.");
+      vscode7.window.showWarningMessage("Open a folder first to use NoteVs annotations.");
       return;
     }
     const syncEnabledAnnotate = context.globalState.get("notevs.syncEnabled") ?? false;
-    const doc = await vscode5.workspace.openTextDocument(docUri);
+    const doc = await vscode7.workspace.openTextDocument(docUri);
     const codeSnippet = doc.getText(selection);
     const relPath = docUri.fsPath.replace(folderPath + "/", "").replace(folderPath + "\\", "");
     const lineStart = selection.start.line + 1;
@@ -19709,7 +20515,7 @@ ${preview}`);
     const existingNotes = syncEnabledAnn ? loadCache()?.notes ?? [] : readLocalNotesForWorkspace(context, folderPath);
     const items = [{ label: "$(add) Create new note", description: "", detail: `New note with this annotation attached \u2014 ${locationLabel}`, noteId: void 0 }];
     if (existingNotes.length > 0) {
-      items.push({ label: "Add to existing note", kind: vscode5.QuickPickItemKind.Separator });
+      items.push({ label: "Add to existing note", kind: vscode7.QuickPickItemKind.Separator });
       for (const n of existingNotes) {
         const annCount = (n.annotations?.length ?? 0) + (n.filePath ? 1 : 0);
         const annLabel = annCount > 0 ? `${annCount} annotation${annCount > 1 ? "s" : ""} \xB7 ` : "";
@@ -19727,34 +20533,34 @@ ${preview}`);
         items.push({ label: `$(note) ${n.title}`, description: `${annLabel}${date}`, detail: preview || "Empty note", noteId: n.id });
       }
     }
-    const picked = await vscode5.window.showQuickPick(items, { title: "Add Annotation", placeHolder: "Create a new note or add to an existing one\u2026", matchOnDescription: true, matchOnDetail: true, ignoreFocusOut: true });
+    const picked = await vscode7.window.showQuickPick(items, { title: "Add Annotation", placeHolder: "Create a new note or add to an existing one\u2026", matchOnDescription: true, matchOnDetail: true, ignoreFocusOut: true });
     if (!picked) {
       return;
     }
     const pnAnn = folderPath.split(/[\/\\]/).filter(Boolean).pop() ?? "No project";
     if (!picked.noteId) {
-      const title = await vscode5.window.showInputBox({ title: "Add Annotation", step: 1, totalSteps: 2, prompt: `New note for ${locationLabel}`, placeHolder: "Note title\u2026", ignoreFocusOut: true });
+      const title = await vscode7.window.showInputBox({ title: "Add Annotation", step: 1, totalSteps: 2, prompt: `New note for ${locationLabel}`, placeHolder: "Note title\u2026", ignoreFocusOut: true });
       if (title === void 0) {
         return;
       }
-      const comment = await vscode5.window.showInputBox({ title: "Add Annotation", step: 2, totalSteps: 2, prompt: "Add a comment for this annotation (optional)", placeHolder: "e.g. This needs refactoring\u2026", ignoreFocusOut: true });
+      const comment = await vscode7.window.showInputBox({ title: "Add Annotation", step: 2, totalSteps: 2, prompt: "Add a comment for this annotation (optional)", placeHolder: "e.g. This needs refactoring\u2026", ignoreFocusOut: true });
       if (comment === void 0) {
         return;
       }
       if (!syncEnabledAnn) {
         const now = (/* @__PURE__ */ new Date()).toISOString();
-        const annId = (0, import_crypto3.randomUUID)();
-        const newNote = { id: (0, import_crypto3.randomUUID)(), localId: (0, import_crypto3.randomUUID)(), title: title || "Untitled annotation", content: "", editorMode: "wysiwyg", pinned: false, tags: [], priority: "none", status: "open", createdAt: now, updatedAt: now, folderPath, deletedAt: null, syncedAt: null, annotations: [{ id: annId, noteId: "", filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || "", status: "open", createdAt: now, updatedAt: now }] };
+        const annId = (0, import_crypto5.randomUUID)();
+        const newNote = { id: (0, import_crypto5.randomUUID)(), localId: (0, import_crypto5.randomUUID)(), title: title || "Untitled annotation", content: "", editorMode: "wysiwyg", pinned: false, tags: [], priority: "none", status: "open", createdAt: now, updatedAt: now, folderPath, deletedAt: null, syncedAt: null, annotations: [{ id: annId, noteId: "", filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || "", status: "open", createdAt: now, updatedAt: now }] };
         newNote.annotations[0].noteId = newNote.id;
         writeLocalNote2(context, newNote);
         if (panel) {
           panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
         }
-        const activeEd = vscode5.window.activeTextEditor;
+        const activeEd = vscode7.window.activeTextEditor;
         if (activeEd) {
           await refreshAnnotations(activeEd);
         }
-        vscode5.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
+        vscode7.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
       } else {
         try {
           const noteRes = await apiPost(secrets, "/notes", { folderPath, title: title || "Untitled annotation", content: "", editorMode: "wysiwyg" });
@@ -19770,21 +20576,21 @@ ${preview}`);
           if (panel) {
             panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
           }
-          vscode5.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
+          vscode7.window.showInformationMessage(`\u{1F4CE} Annotation added to new note \u201C${newNote.title}\u201D`);
         } catch {
-          vscode5.window.showErrorMessage("Failed to create note and annotation.");
+          vscode7.window.showErrorMessage("Failed to create note and annotation.");
           return;
         }
       }
     } else {
       const targetNote = existingNotes.find((n) => n.id === picked.noteId);
-      const comment = await vscode5.window.showInputBox({ title: "Add Annotation", step: 1, totalSteps: 1, prompt: `Adding annotation to \u201C${targetNote.title}\u201D \u2014 ${locationLabel}`, placeHolder: "Comment (optional)\u2026", ignoreFocusOut: true });
+      const comment = await vscode7.window.showInputBox({ title: "Add Annotation", step: 1, totalSteps: 1, prompt: `Adding annotation to \u201C${targetNote.title}\u201D \u2014 ${locationLabel}`, placeHolder: "Comment (optional)\u2026", ignoreFocusOut: true });
       if (comment === void 0) {
         return;
       }
       if (!syncEnabledAnn) {
         const now = (/* @__PURE__ */ new Date()).toISOString();
-        const annId = (0, import_crypto3.randomUUID)();
+        const annId = (0, import_crypto5.randomUUID)();
         const existing = readLocalNote2(context, picked.noteId);
         if (existing) {
           const updated = { ...existing, updatedAt: now, annotations: [...existing.annotations ?? [], { id: annId, noteId: picked.noteId, filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || "", status: "open", createdAt: now, updatedAt: now }] };
@@ -19792,7 +20598,7 @@ ${preview}`);
           if (panel) {
             panel.webview.html = notesListHtml(pnAnn, readLocalNotesGrouped(context, folderPath), getSubfolderOptions(context, folderPath), "local");
           }
-          const activeEd2 = vscode5.window.activeTextEditor;
+          const activeEd2 = vscode7.window.activeTextEditor;
           if (activeEd2) {
             await refreshAnnotations(activeEd2);
           }
@@ -19802,7 +20608,7 @@ ${preview}`);
             existingPanel.webview.html = noteEditorHtml(updated, pnAnn, bg, text);
           }
         }
-        vscode5.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
+        vscode7.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
       } else {
         try {
           const annRes = await apiPost(secrets, "/annotations", { noteId: picked.noteId, filePath: relPath, lineStart, lineEnd, codeSnippet: codeSnippet.slice(0, 500), comment: comment || "", status: "open" });
@@ -19829,28 +20635,28 @@ ${preview}`);
             } catch {
             }
           }
-          vscode5.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
+          vscode7.window.showInformationMessage(`\u{1F4CE} Annotation added to \u201C${targetNote.title}\u201D`);
         } catch {
-          vscode5.window.showErrorMessage("Failed to save annotation.");
+          vscode7.window.showErrorMessage("Failed to save annotation.");
           return;
         }
       }
     }
-    const activeEditor = vscode5.window.activeTextEditor;
+    const activeEditor = vscode7.window.activeTextEditor;
     if (activeEditor) {
       refreshGutterDecorations(activeEditor);
     }
     savedSelection = null;
     savedEditorUri = null;
   }
-  context.subscriptions.push(vscode5.commands.registerCommand("notevs.annotateSelectionFromStatusBar", async () => {
+  context.subscriptions.push(vscode7.commands.registerCommand("notevs.annotateSelectionFromStatusBar", async () => {
     if (!savedSelection || !savedEditorUri) {
-      vscode5.window.showWarningMessage("Select some code first, then click Annotate.");
+      vscode7.window.showWarningMessage("Select some code first, then click Annotate.");
       return;
     }
     await runAnnotate(savedEditorUri, savedSelection);
   }));
-  context.subscriptions.push(vscode5.commands.registerTextEditorCommand("notevs.annotateSelection", async (editor) => {
+  context.subscriptions.push(vscode7.commands.registerTextEditorCommand("notevs.annotateSelection", async (editor) => {
     let selection = editor.selection;
     let docUri = editor.document.uri;
     if (selection.isEmpty && savedSelection && savedEditorUri) {
@@ -19858,35 +20664,35 @@ ${preview}`);
       docUri = savedEditorUri;
     }
     if (selection.isEmpty) {
-      vscode5.window.showWarningMessage("Select some code first, then run Annotate with NoteVs.");
+      vscode7.window.showWarningMessage("Select some code first, then run Annotate with NoteVs.");
       return;
     }
     await runAnnotate(docUri, selection);
   }));
   async function installGitHook(folderPath) {
-    const fs5 = require("fs");
+    const fs7 = require("fs");
     const pathMod = require("path");
     const hookDir = pathMod.join(folderPath, ".git", "hooks");
     const hookPath = pathMod.join(hookDir, "pre-commit");
-    if (!fs5.existsSync(pathMod.join(folderPath, ".git"))) {
+    if (!fs7.existsSync(pathMod.join(folderPath, ".git"))) {
       return;
     }
-    if (!fs5.existsSync(hookDir)) {
-      fs5.mkdirSync(hookDir, { recursive: true });
+    if (!fs7.existsSync(hookDir)) {
+      fs7.mkdirSync(hookDir, { recursive: true });
     }
     const hookScript = ["#!/bin/sh", "# NoteNest pre-commit check \u2014 auto-installed by NoteNest VS Code extension", 'NOTENEST_PROJECT_CONFIG=".notenest/config.json"', 'NOTENEST_HOME_CONFIG="$HOME/.notenest/tokens.json"', 'if [ ! -f "$NOTENEST_PROJECT_CONFIG" ] || [ ! -f "$NOTENEST_HOME_CONFIG" ]; then exit 0; fi', "exit 0"].join("\n");
-    if (fs5.existsSync(hookPath)) {
-      const existing = fs5.readFileSync(hookPath, "utf8");
+    if (fs7.existsSync(hookPath)) {
+      const existing = fs7.readFileSync(hookPath, "utf8");
       if (!existing.includes("NoteNest")) {
-        fs5.writeFileSync(hookPath, existing.trimEnd() + "\n\n" + hookScript);
+        fs7.writeFileSync(hookPath, existing.trimEnd() + "\n\n" + hookScript);
       }
     } else {
-      fs5.writeFileSync(hookPath, hookScript);
+      fs7.writeFileSync(hookPath, hookScript);
     }
-    fs5.chmodSync(hookPath, "755");
+    fs7.chmodSync(hookPath, "755");
   }
   async function writeNoteNestConfig(folderPath) {
-    const fs5 = require("fs");
+    const fs7 = require("fs");
     const pathMod = require("path");
     const os2 = require("os");
     const { accessToken, refreshToken } = await getTokens(secrets);
@@ -19894,23 +20700,23 @@ ${preview}`);
       return;
     }
     const homeConfigDir = pathMod.join(os2.homedir(), ".notenest");
-    if (!fs5.existsSync(homeConfigDir)) {
-      fs5.mkdirSync(homeConfigDir, { recursive: true });
+    if (!fs7.existsSync(homeConfigDir)) {
+      fs7.mkdirSync(homeConfigDir, { recursive: true });
     }
-    fs5.writeFileSync(pathMod.join(homeConfigDir, "tokens.json"), JSON.stringify({ apiUrl: getApiUrl(), refreshToken: refreshToken || "" }, null, 2), { mode: 384 });
+    fs7.writeFileSync(pathMod.join(homeConfigDir, "tokens.json"), JSON.stringify({ apiUrl: getApiUrl(), refreshToken: refreshToken || "" }, null, 2), { mode: 384 });
     const projectConfigDir = pathMod.join(folderPath, ".notenest");
-    if (!fs5.existsSync(projectConfigDir)) {
-      fs5.mkdirSync(projectConfigDir, { recursive: true });
+    if (!fs7.existsSync(projectConfigDir)) {
+      fs7.mkdirSync(projectConfigDir, { recursive: true });
     }
-    fs5.writeFileSync(pathMod.join(projectConfigDir, "config.json"), JSON.stringify({ folderPath }, null, 2));
+    fs7.writeFileSync(pathMod.join(projectConfigDir, "config.json"), JSON.stringify({ folderPath }, null, 2));
     const gitignorePath = pathMod.join(folderPath, ".gitignore");
-    if (fs5.existsSync(gitignorePath)) {
-      const gi = fs5.readFileSync(gitignorePath, "utf8");
+    if (fs7.existsSync(gitignorePath)) {
+      const gi = fs7.readFileSync(gitignorePath, "utf8");
       if (!gi.includes(".notenest")) {
-        fs5.appendFileSync(gitignorePath, "\n# NoteNest (local only)\n.notenest/\n");
+        fs7.appendFileSync(gitignorePath, "\n# NoteNest (local only)\n.notenest/\n");
       }
     } else {
-      fs5.writeFileSync(gitignorePath, "# NoteNest (local only)\n.notenest/\n");
+      fs7.writeFileSync(gitignorePath, "# NoteNest (local only)\n.notenest/\n");
     }
   }
   const currentFolder = getFolderPath();
@@ -19929,50 +20735,55 @@ ${preview}`);
   };
   const mcpServer = startMcpServer(context, onNoteMutated);
   context.subscriptions.push({ dispose: () => mcpServer.close() });
+  const agentProcessManager = registerAgentProcessManager(context);
+  context.subscriptions.push(...agentProcessManager.disposables);
+  context.subscriptions.push(registerAgentChatCommand(context, getFolderPath, agentProcessManager));
   flushOfflineQueue().catch(() => {
   });
   context.subscriptions.push(
-    vscode5.commands.registerCommand("notevs.openNotes", () => vscode5.commands.executeCommand("notevs.notesView.focus")),
-    vscode5.commands.registerCommand("notevs.logout", async () => {
+    vscode7.commands.registerCommand("notevs.openNotes", () => vscode7.commands.executeCommand("notevs.notesView.focus")),
+    vscode7.commands.registerCommand("notevs.logout", async () => {
       await clearTokens(secrets);
       if (panel) {
         panel.webview.html = loginHtml(iconUri);
       }
     }),
-    vscode5.commands.registerCommand("notevs.showSettings", async () => {
-      await vscode5.commands.executeCommand("notevs.notesView.focus");
+    vscode7.commands.registerCommand("notevs.showSettings", async () => {
+      await vscode7.commands.executeCommand("notevs.notesView.focus");
       if (panel) {
-        const config = vscode5.workspace.getConfiguration("notevs");
+        const config = vscode7.workspace.getConfiguration("notevs");
         const notionConn = await hasNotionToken(secrets);
         const obsStatus = await getObsidianStatus(secrets, context.globalState);
         const todoistConn = await hasTodoistToken(secrets);
         const googleConn = await isGoogleTasksConnected(secrets);
-        panel.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), false, null, null, notionConn, obsStatus.apiKey, obsStatus.vaultPath, config.get("notionAutoSync", false), todoistConn, googleConn);
+        const groqSet = !!await secrets.get("groqApiKey");
+        const rasaSet = !!await secrets.get("rasaLicense");
+        panel.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), false, null, null, notionConn, obsStatus.apiKey, obsStatus.vaultPath, config.get("notionAutoSync", false), todoistConn, googleConn, groqSet, rasaSet);
       }
     })
   );
-  context.subscriptions.push(vscode5.workspace.onDidChangeWorkspaceFolders(async () => {
-    const config = vscode5.workspace.getConfiguration("projectnotes");
+  context.subscriptions.push(vscode7.workspace.onDidChangeWorkspaceFolders(async () => {
+    const config = vscode7.workspace.getConfiguration("projectnotes");
     if (config.get("autoShow", true)) {
-      vscode5.commands.executeCommand("projectnotes.notesView.focus");
+      vscode7.commands.executeCommand("projectnotes.notesView.focus");
     }
   }));
   context.subscriptions.push(
-    vscode5.commands.registerCommand("notevs.exportNotes", () => exportNotesToFolder(context)),
-    vscode5.commands.registerCommand("notevs.importNotes", () => importNotesFromFolder(context, panel))
+    vscode7.commands.registerCommand("notevs.exportNotes", () => exportNotesToFolder(context)),
+    vscode7.commands.registerCommand("notevs.importNotes", () => importNotesFromFolder(context, panel))
   );
 }
 async function startLoginFlow(secrets, onSuccess) {
-  const state = (0, import_crypto3.randomBytes)(16).toString("hex");
+  const state = (0, import_crypto5.randomBytes)(16).toString("hex");
   const apiUrl = getApiUrl();
   try {
     const { data } = await axios_default.get(`${apiUrl}/auth/extension/login`, { params: { state } });
     if (!data.success) {
-      vscode5.window.showErrorMessage("Failed to start login.");
+      vscode7.window.showErrorMessage("Failed to start login.");
       return;
     }
-    await vscode5.env.openExternal(vscode5.Uri.parse(data.data.url));
-    vscode5.window.showInformationMessage("Complete sign-in in your browser. Waiting\u2026");
+    await vscode7.env.openExternal(vscode7.Uri.parse(data.data.url));
+    vscode7.window.showInformationMessage("Complete sign-in in your browser. Waiting\u2026");
     for (let i = 0; i < 60; i++) {
       await new Promise((r) => setTimeout(r, 3e3));
       try {
@@ -19980,16 +20791,16 @@ async function startLoginFlow(secrets, onSuccess) {
         if (td.success && td.data.ready) {
           await setTokens(secrets, td.data.tokens.accessToken, td.data.tokens.refreshToken);
           await secrets.store("user", JSON.stringify(td.data.user));
-          vscode5.window.showInformationMessage(`\u2705 Logged in as ${td.data.user.name}`);
+          vscode7.window.showInformationMessage(`\u2705 Logged in as ${td.data.user.name}`);
           onSuccess();
           return;
         }
       } catch {
       }
     }
-    vscode5.window.showErrorMessage("Login timed out. Please try again.");
+    vscode7.window.showErrorMessage("Login timed out. Please try again.");
   } catch {
-    vscode5.window.showErrorMessage("Could not connect to NoteNest API.");
+    vscode7.window.showErrorMessage("Could not connect to NoteNest API.");
   }
 }
 function deactivate() {

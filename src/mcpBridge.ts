@@ -8,7 +8,7 @@
 import * as http from 'http';
 import * as readline from 'readline';
 
-const PORT = 37491;
+const PORT = 37492;
 const BASE = `http://127.0.0.1:${PORT}`;
 
 interface JsonRpcRequest {
@@ -108,7 +108,7 @@ async function main(): Promise<void> {
   const alive = await checkExtension();
   process.stderr.write(alive
     ? `[NoteVs MCP] Connected. Scoping notes to: ${process.cwd()}\n`
-    : '[NoteVs MCP] Warning: VS Code extension not detected on port 37491.\n');
+    : '[NoteVs MCP] Warning: VS Code extension not detected on port 37492.\n');
 }
 
 main().catch((err) => { process.stderr.write(`[NoteVs MCP] Fatal: ${err}\n`); process.exit(1); });

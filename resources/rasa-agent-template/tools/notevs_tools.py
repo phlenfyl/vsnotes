@@ -1,0 +1,121 @@
+"""Shared Maestro tools for the NoteVs agent.
+
+Thin async wrappers around the NoteVs VS Code extension's local HTTP server's
+plain REST endpoint (POST /call — see extension/src/mcpServer.ts). That
+endpoint already implements all 10 tool handlers and is reused as-is by the
+classic-CALM build (via /mcp JSON-RPC) and the Claude Code/Cursor stdio
+bridge (mcpBridge.ts) — /call is the simplest of the three transports, a
+same-machine JSON POST with no MCP session negotiation needed, so that's
+what these wrappers use.
+
+folderPath is deliberately never sent: the server already resolves it from
+the open VS Code workspace when omitted (resolveFolderPath in
+mcpServer.ts), and Maestro tools have no equivalent of the classic engine's
+flow-level cwd to forward anyway.
+"""
+
+from __future__ import annotations
+
+import os
+
+import httpx
+
+from rasa.calm_v2.tools.decorator import ToolContext, tool
+from rasa.calm_v2.tools.result import ToolResult
+
+NOTEVS_CALL_URL = os.environ.get("NOTEVS_CALL_URL", "http://localhost:37492/call")
+
+
+async def _call(tool_name: str, args: dict) -> ToolResult:
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(NOTEVS_CALL_URL, json={"tool": tool_name, "args": args})
+    except httpx.HTTPError as exc:
+        return ToolResult(llm_response={"ok": False, "error": f"notevs_extension_unreachable: {exc}"})
+
+    try:
+        body = resp.json()
+    except ValueError:
+        return ToolResult(llm_response={"ok": False, "error": f"non_json_response: {resp.text[:200]}"})
+
+    if resp.status_code != 200:
+        return ToolResult(llm_response={"ok": False, "error": body.get("error", body)})
+    return ToolResult(llm_response=body.get("result"))
+
+
+@tool(description="List all notes in the current project, most recently updated first (pinned notes first).")
+async def list_notes(context: ToolContext = None) -> ToolResult:
+    return await _call("notevs_list_notes", {})
+
+
+@tool(description="Get a single note's full content, tags, and annotations by its id.")
+async def get_note(id: str, context: ToolContext = None) -> ToolResult:
+    return await _call("notevs_get_note", {"id": id})
+
+
+@tool(description="Search notes by keyword across title, content, tags, and annotation comments.")
+async def search_notes(query: str, context: ToolContext = None) -> ToolResult:
+    return await _call("notevs_search_notes", {"query": query})
+
+
+@tool(description="Create a new note with a title and optional content.")
+async def create_note(title: str, content: str = "", context: ToolContext = None) -> ToolResult:
+    return await _call("notevs_create_note", {"title": title, "content": content})
+
+
+@tool(description="Update an existing note's title and/or content by id.")
+async def save_note(id: str, title: str | None = None, content: str | None = None, context: ToolContext = None) -> ToolResult:
+    args: dict = {"id": id}
+    if title is not None:
+        args["title"] = title
+    if content is not None:
+        args["content"] = content
+    return await _call("notevs_save_note", args)
+
+
+@tool(description="Permanently delete a note by id. Destructive — only call after the user has explicitly confirmed.")
+async def delete_note(id: str, context: ToolContext = None) -> ToolResult:
+    return await _call("notevs_delete_note", {"id": id})
+
+
+@tool(description="Attach a code annotation (file path + line range + comment) to an existing note.")
+async def add_annotation(
+    note_id: str,
+    file_path: str,
+    line_start: int,
+    line_end: int,
+    comment: str = "",
+    context: ToolContext = None,
+) -> ToolResult:
+    return await _call(
+        "notevs_add_annotation",
+        {
+            "noteId": note_id,
+            "filePath": file_path,
+            "lineStart": line_start,
+            "lineEnd": line_end,
+            "comment": comment,
+        },
+    )
+
+
+@tool(description="Export a note to the user's connected Notion workspace. External side effect — only call after explicit confirmation.")
+async def export_to_notion(id: str, context: ToolContext = None) -> ToolResult:
+    return await _call("notevs_export_to_notion", {"id": id})
+
+
+@tool(description="Export a note to the user's connected Obsidian vault. External side effect — only call after explicit confirmation.")
+async def export_to_obsidian(id: str, context: ToolContext = None) -> ToolResult:
+    return await _call("notevs_export_to_obsidian", {"id": id})
+
+
+@tool(description="Create a reminder/task for a note, due on a given date (YYYY-MM-DD), via the user's connected Todoist or Google Tasks. External side effect — only call after explicit confirmation.")
+async def create_reminder(id: str, due_date: str, context: ToolContext = None) -> ToolResult:
+    # Named create_reminder, not set_reminder: Maestro's tool loader treats
+    # `set_` as a reserved prefix (own to its memory-setter tools) and
+    # silently drops any shared @tool with that prefix — confirmed via a
+    # real `rasa train` run, which emitted
+    # calm_v2.tool_loader.shared_tool.reserved_prefix for "set_reminder"
+    # and then failed validation because the skill's import_tools/
+    # tool_constraints reference to it couldn't resolve to anything.
+    return await _call("notevs_set_reminder", {"id": id, "dueDate": due_date})
