@@ -50,15 +50,35 @@ src/
                       fixes go unnoticed on the old classic-CALM build until this hash
                       check was added), then runs it — restarts on crash with the real
                       stderr reason surfaced, no manual terminal steps.
-                      notevs.agentRepoPath is an optional override.
+                      Each VS Code window spawns its own isolated `rasa run` on its own
+                      port (findFreePort: prefers 5005, cleaning up a same-window orphan
+                      there first so a plain reload keeps reusing it, then falls back to
+                      the next free port when something else — another window's live
+                      agent, most likely — legitimately holds it; AgentProcessManager
+                      exposes the resolved port via getPort() for agentPanel.ts to send
+                      chat requests to, instead of assuming the notevs.agentUrl setting's
+                      fixed default). The spawned process's env carries
+                      NOTEVS_FOLDER_PATH (this window's own open folder) and
+                      NOTEVS_CALL_URL (this window's own resolved MCP server port) — see
+                      notevs_tools.py — so a shared global agent process is never needed
+                      to get correct per-project results. notevs.agentRepoPath is an
+                      optional override.
 resources/
   rasa-agent-template/ ← Bundled copy of the rasa-notevs-agent project, on the Maestro
                       (calm_v2) skills architecture as of 2026-08-17: agent.yml,
-                      integrations.yml, skills/*/skill.md, tools/notevs_tools.py
+                      integrations.yml (channels.inspector must stay `enabled: false` —
+                      it's for the separate interactive `rasa inspect` debug command
+                      only; enabled alongside channels.rest, `rasa run` tries to bind a
+                      second listener on the same port right after the REST channel's
+                      already bound it and crashes — confirmed live 2026-08-18),
+                      skills/*/skill.md, tools/notevs_tools.py
                       (shared @tool wrappers that POST to mcpServer.ts's /call
-                      endpoint), requirements.txt (pins rasa-pro==3.19.0.dev5 — Maestro
-                      isn't GA yet, this is a dev build, bump the pin as newer .devN
-                      builds land). The retired classic-CALM files (domain.yml,
+                      endpoint, forwarding folderPath from the NOTEVS_FOLDER_PATH env var
+                      agentProcess.ts sets per window — see mcpServer.ts's port section
+                      above for why this matters), requirements.txt (pins
+                      rasa-pro==3.19.0.dev5 — Maestro isn't GA yet, this is a dev build,
+                      bump the pin as newer .devN builds land). The retired classic-CALM
+                      files (domain.yml,
                       config.yml, endpoints.yml, credentials.yml, data/flows/) live in
                       ../../rasa-notevs-agent/classic-engine-backup/ for reference, not
                       bundled here. agentProcess.ts extracts/re-syncs this per-user on
@@ -86,13 +106,18 @@ The file is structured in this order:
 9. `deactivate()`
 
 ## MCP server (`mcpServer.ts`)
-The MCP server runs on `localhost:37492` and exposes 10 tools. (Port moved from
-37491 → 37492: if two VS Code windows both have NoteVs active, only one can
-bind a given port — a stale window's older build silently wins the race and
-every other window's agent gets an opaque connection failure. Changing the
-port doesn't fix the underlying multi-window collision risk, just sidesteps
-today's stuck one; the real fix would be picking a free port dynamically per
-window and writing it somewhere the agent can discover.)
+The MCP server exposes 10 tools, preferring `localhost:37492` but falling
+back to the next free port (37493, 37494, ...) when another VS Code window's
+NoteVs already holds it — `startMcpServer` resolves and returns the actual
+bound port, which `activate()` threads through to both
+`registerAgentProcessManager` (as `NOTEVS_CALL_URL` for the spawned rasa
+process) and `registerAgentChatCommand` (for the panel's own `/health`
+poll), so each window's agent always calls back into *its own* MCP server
+instance. (Previously a fixed port: only one window could ever bind it, and
+every other window's tool calls got silently answered by that one winner's
+own `vscode.workspace.workspaceFolders` — resolved 2026-08-18 alongside the
+folderPath fix below, since port fallback alone wasn't sufficient; see
+`notevs_tools.py`.)
 
 | Tool | Notes |
 |---|---|

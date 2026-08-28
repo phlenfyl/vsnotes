@@ -45,15 +45,20 @@ llm:
   api_key_env: GROQ_API_KEY
   reasoning_effort: none
 
-# TO VERIFY: whether `rasa run` (the classic engine's REST-serving command)
-# is still what reads this `channels.rest` block in calm_v2, or whether
-# Maestro serves REST some other way — the scaffold's AGENTS.md only
-# documents `rasa train` + `rasa inspect` (the interactive debug UI) as the
-# build loop, not a long-running server command. `inspector.enabled: true`
-# is kept for local debugging (rasa inspect); confirm the REST channel
-# actually comes up once agentProcess.ts runs this for real.
+# CONFIRMED 2026-08-18: `rasa run` does read this `channels.rest` block —
+# the REST webhook agentPanel.ts talks to comes up fine on its own.
+# `inspector.enabled: true` is what broke it: inspector is meant only for
+# the separate interactive `rasa inspect` debug command, but with it also
+# enabled here, `rasa run` starts a *second* voice_stream/inspector
+# listener on the same host:port right after the REST channel's own
+# listener has already bound it — log shows "Rasa server is up and
+# running" immediately followed by inspector's "voice_channel.initialized"
+# then an EADDRINUSE crash trying to bind 0.0.0.0:5005 again. We never use
+# Rasa's own voice channel anyway (see voice.ts — STT/TTS go through Groq
+# from the extension host, specifically to avoid this channel), so
+# inspector has nothing to do in a `rasa run` process and stays off.
 channels:
   rest:
     enabled: true
   inspector:
-    enabled: true
+    enabled: false

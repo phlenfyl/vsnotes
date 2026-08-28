@@ -4,7 +4,7 @@ import { randomBytes, randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { installMcpBridge } from './mcpInstaller';
-import { startMcpServer, type OnNoteMutated } from './mcpServer';
+import { startMcpServer, MCP_PORT, type OnNoteMutated } from './mcpServer';
 import { registerAgentChatCommand } from './agentPanel';
 import { registerAgentProcessManager } from './agentProcess';
 import {
@@ -2494,11 +2494,16 @@ export async function activate(context: vscode.ExtensionContext) {
       }
     }
   };
-  const mcpServer = startMcpServer(context, onNoteMutated);
-  context.subscriptions.push({ dispose: () => mcpServer.close() });
-  const agentProcessManager = registerAgentProcessManager(context);
+  const { server: mcpHttpServer, port: mcpPort } = await startMcpServer(context, onNoteMutated);
+  context.subscriptions.push({ dispose: () => mcpHttpServer.close() });
+  // Falls back to the static MCP_PORT constant only in the unlikely case
+  // every fallback port in mcpServer.ts's tryListen chain was also taken —
+  // at that point nothing is actually listening for the agent to reach
+  // anyway, so this is just a best-effort URL rather than a real target.
+  const resolvedMcpPort = mcpPort ?? MCP_PORT;
+  const agentProcessManager = registerAgentProcessManager(context, resolvedMcpPort, getFolderPath);
   context.subscriptions.push(...agentProcessManager.disposables);
-  context.subscriptions.push(registerAgentChatCommand(context, getFolderPath, agentProcessManager));
+  context.subscriptions.push(registerAgentChatCommand(context, getFolderPath, agentProcessManager, resolvedMcpPort));
 
   flushOfflineQueue().catch(() => {});
   context.subscriptions.push(

@@ -8,10 +8,24 @@ bridge (mcpBridge.ts) — /call is the simplest of the three transports, a
 same-machine JSON POST with no MCP session negotiation needed, so that's
 what these wrappers use.
 
-folderPath is deliberately never sent: the server already resolves it from
-the open VS Code workspace when omitted (resolveFolderPath in
-mcpServer.ts), and Maestro tools have no equivalent of the classic engine's
-flow-level cwd to forward anyway.
+folderPath IS now sent (2026-08-18, reversing the note below): with several
+VS Code windows open at once, each running its own agent, mcpServer.ts's
+fixed port (37492) means only one window's HTTP server ever actually wins
+the bind — every window's tool calls land on that one winner regardless of
+which window's chat sent them. Omitting folderPath let resolveFolderPath()
+fall back to *that* winner's own vscode.workspace.workspaceFolders[0],
+so every window silently saw whichever project happened to own the port —
+confirmed live as an agent returning a completely different project's note
+titles. resolveFolderPath already prefers an explicit args.folderPath over
+that fallback, so sending it here fixes correctness regardless of which
+physical server instance answers, without needing to touch the port at
+all. NOTEVS_FOLDER_PATH is set per-window by agentProcess.ts from that
+window's own getFolderPath() at spawn time.
+[Historical note, no longer current: "folderPath is deliberately never
+sent... Maestro tools have no equivalent of the classic engine's flow-level
+cwd to forward anyway." — true that Maestro doesn't thread it through the
+conversation, but the process's own env var doesn't need to be threaded
+through anything; it's static for that window's whole session.]
 """
 
 from __future__ import annotations
@@ -24,9 +38,12 @@ from rasa.calm_v2.tools.decorator import ToolContext, tool
 from rasa.calm_v2.tools.result import ToolResult
 
 NOTEVS_CALL_URL = os.environ.get("NOTEVS_CALL_URL", "http://localhost:37492/call")
+NOTEVS_FOLDER_PATH = os.environ.get("NOTEVS_FOLDER_PATH")
 
 
 async def _call(tool_name: str, args: dict) -> ToolResult:
+    if NOTEVS_FOLDER_PATH and "folderPath" not in args:
+        args = {**args, "folderPath": NOTEVS_FOLDER_PATH}
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(NOTEVS_CALL_URL, json={"tool": tool_name, "args": args})

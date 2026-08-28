@@ -16235,7 +16235,7 @@ function readBody(req) {
     req.on("error", reject);
   });
 }
-function startMcpServer(context, onNoteMutated) {
+async function startMcpServer(context, onNoteMutated) {
   const storagePath = context.globalStorageUri.fsPath;
   const mcpSessions = /* @__PURE__ */ new Set();
   function resolveFolderPath(argFolderPath) {
@@ -16396,17 +16396,39 @@ function startMcpServer(context, onNoteMutated) {
       send(500, { error: err instanceof Error ? err.message : String(err) });
     }
   });
-  server.listen(MCP_PORT, "127.0.0.1", () => {
-    console.log(`[NoteVs MCP] HTTP server running on localhost:${MCP_PORT}`);
+  const MAX_PORT_ATTEMPTS2 = 30;
+  function tryListen(port2) {
+    return new Promise((resolve, reject) => {
+      const onError = (err) => {
+        server.removeListener("listening", onListening);
+        if (err.code === "EADDRINUSE" && port2 < MCP_PORT + MAX_PORT_ATTEMPTS2) {
+          console.warn(`[NoteVs MCP] Port ${port2} already in use, trying ${port2 + 1}`);
+          resolve(tryListen(port2 + 1));
+        } else {
+          reject(err);
+        }
+      };
+      const onListening = () => {
+        server.removeListener("error", onError);
+        console.log(`[NoteVs MCP] HTTP server running on localhost:${port2}`);
+        resolve(port2);
+      };
+      server.once("error", onError);
+      server.once("listening", onListening);
+      server.listen(port2, "127.0.0.1");
+    });
+  }
+  const portPromise = tryListen(MCP_PORT).catch((err) => {
+    console.error("[NoteVs MCP] Server error:", err);
+    return void 0;
   });
   server.on("error", (err) => {
-    if (err.code === "EADDRINUSE") {
-      console.warn(`[NoteVs MCP] Port ${MCP_PORT} already in use`);
-    } else {
+    if (err.code !== "EADDRINUSE") {
       console.error("[NoteVs MCP] Server error:", err);
     }
   });
-  return server;
+  const port = await portPromise;
+  return { server, port };
 }
 
 // src/agentPanel.ts
@@ -16530,9 +16552,6 @@ async function synthesizeSpeech(text, apiKey) {
 }
 
 // src/agentPanel.ts
-function getAgentUrl() {
-  return vscode3.workspace.getConfiguration("notevs").get("agentUrl", "http://localhost:5005");
-}
 function ensureHistoryDir(folderPath) {
   const dir = path3.join(folderPath, ".notevsagent", "history");
   fs3.mkdirSync(dir, { recursive: true });
@@ -16554,37 +16573,44 @@ ${e.text}
 `;
   }).join("\n---\n\n");
 }
-async function checkRasaStatus() {
-  try {
-    const { status } = await axios_default.get(getAgentUrl(), { timeout: 4e3, validateStatus: () => true });
-    return status >= 200 && status < 500;
-  } catch {
-    return false;
-  }
-}
-async function checkNoteVsStatus() {
-  try {
-    const { data } = await axios_default.get(`http://127.0.0.1:${MCP_PORT}/health`, { timeout: 3e3 });
-    return data?.ok === true;
-  } catch {
-    return false;
-  }
-}
 function stripThinkTags(text) {
   let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, "");
   cleaned = cleaned.replace(/<think>[\s\S]*$/i, "");
   return cleaned.replace(/^\s+/, "");
 }
-async function sendToRasa(senderId, text) {
-  const { data } = await axios_default.post(
-    `${getAgentUrl().replace(/\/$/, "")}/webhooks/rest/webhook`,
-    { sender: senderId, message: text },
-    { timeout: 6e4 }
-  );
-  const messages = Array.isArray(data) ? data : [];
-  return messages.map((m) => m.text ? { ...m, text: stripThinkTags(m.text) } : m);
-}
-function registerAgentChatCommand(context, getFolderPath2, agentProcessManager) {
+function registerAgentChatCommand(context, getFolderPath2, agentProcessManager, mcpPort) {
+  function getAgentUrl() {
+    const port = agentProcessManager.getPort();
+    if (port) {
+      return `http://localhost:${port}`;
+    }
+    return vscode3.workspace.getConfiguration("notevs").get("agentUrl", "http://localhost:5005");
+  }
+  async function checkRasaStatus() {
+    try {
+      const { status } = await axios_default.get(getAgentUrl(), { timeout: 4e3, validateStatus: () => true });
+      return status >= 200 && status < 500;
+    } catch {
+      return false;
+    }
+  }
+  async function checkNoteVsStatus() {
+    try {
+      const { data } = await axios_default.get(`http://127.0.0.1:${mcpPort}/health`, { timeout: 3e3 });
+      return data?.ok === true;
+    } catch {
+      return false;
+    }
+  }
+  async function sendToRasa(senderId2, text) {
+    const { data } = await axios_default.post(
+      `${getAgentUrl().replace(/\/$/, "")}/webhooks/rest/webhook`,
+      { sender: senderId2, message: text },
+      { timeout: 6e4 }
+    );
+    const messages = Array.isArray(data) ? data : [];
+    return messages.map((m) => m.text ? { ...m, text: stripThinkTags(m.text) } : m);
+  }
   let agentPanel;
   let senderId = (0, import_crypto3.randomUUID)();
   let transcript = [];
@@ -16913,6 +16939,7 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager) 
 var vscode4 = __toESM(require("vscode"));
 var fs4 = __toESM(require("fs"));
 var path4 = __toESM(require("path"));
+var net = __toESM(require("net"));
 var import_child_process = require("child_process");
 var import_crypto4 = require("crypto");
 var INITIAL_RESTART_DELAY_MS = 3e3;
@@ -16985,6 +17012,69 @@ function computeTrainingSourceHash(repoPath) {
 function venvPython(repoPath) {
   return process.platform === "win32" ? path4.join(repoPath, ".venv", "Scripts", "python.exe") : path4.join(repoPath, ".venv", "bin", "python");
 }
+var PREFERRED_AGENT_PORT = 5005;
+var MAX_PORT_ATTEMPTS = 30;
+function portListenerPids(port) {
+  if (process.platform === "win32") {
+    return [];
+  }
+  const lsof = (0, import_child_process.spawnSync)("lsof", ["-ti", `tcp:${port}`, "-sTCP:LISTEN"], { encoding: "utf8" });
+  return (lsof.stdout ?? "").split("\n").map((s) => s.trim()).filter(Boolean);
+}
+var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+function processCwd(pid) {
+  const result = (0, import_child_process.spawnSync)("lsof", ["-p", pid, "-a", "-d", "cwd", "-Fn"], { encoding: "utf8" });
+  const line = (result.stdout ?? "").split("\n").find((l) => l.startsWith("n"));
+  return line?.slice(1);
+}
+async function killIfOwnOrphan(port, repoPath, output) {
+  const pids = portListenerPids(port);
+  if (pids.length === 0) {
+    return;
+  }
+  const ownPids = pids.filter((pid) => processCwd(pid) === repoPath);
+  if (ownPids.length === 0) {
+    return;
+  }
+  output.appendLine(`[NoteVs Agent] Port ${port} is held by leftover NoteVs Agent process(es) from a previous session of this window (PID ${ownPids.join(", ")}) \u2014 stopping ${ownPids.length > 1 ? "them" : "it"}.`);
+  for (const pid of ownPids) {
+    try {
+      process.kill(Number(pid), "SIGTERM");
+    } catch {
+    }
+  }
+  for (let i = 0; i < 20; i++) {
+    if (portListenerPids(port).length === 0) {
+      return;
+    }
+    await sleep(100);
+  }
+  for (const pid of ownPids) {
+    try {
+      process.kill(Number(pid), "SIGKILL");
+    } catch {
+    }
+  }
+  await sleep(200);
+}
+function isPortFree(port) {
+  return new Promise((resolve) => {
+    const tester = net.createServer();
+    tester.once("error", () => resolve(false));
+    tester.once("listening", () => tester.close(() => resolve(true)));
+    tester.listen(port, "127.0.0.1");
+  });
+}
+async function findFreePort(repoPath, output) {
+  await killIfOwnOrphan(PREFERRED_AGENT_PORT, repoPath, output);
+  for (let offset = 0; offset < MAX_PORT_ATTEMPTS; offset++) {
+    const candidate = PREFERRED_AGENT_PORT + offset;
+    if (await isPortFree(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error(`No free port found in ${PREFERRED_AGENT_PORT}-${PREFERRED_AGENT_PORT + MAX_PORT_ATTEMPTS - 1}`);
+}
 function runToCompletion(command, args, cwd, output, env4) {
   return new Promise((resolve) => {
     output.appendLine(`[NoteVs Agent] $ ${command} ${args.join(" ")}`);
@@ -16998,7 +17088,7 @@ function runToCompletion(command, args, cwd, output, env4) {
     proc.on("exit", (code) => resolve(code ?? 1));
   });
 }
-function registerAgentProcessManager(context) {
+function registerAgentProcessManager(context, mcpPort, getFolderPath2) {
   const output = vscode4.window.createOutputChannel("NoteVs Agent");
   const managedRepoPath = path4.join(context.globalStorageUri.fsPath, "rasa-agent");
   const templatePath = path4.join(context.extensionUri.fsPath, "resources", "rasa-agent-template");
@@ -17009,6 +17099,7 @@ function registerAgentProcessManager(context) {
     statusEmitter.fire(status);
   }
   let child;
+  let resolvedPort;
   let disposed = false;
   let starting = false;
   let restartDelay = INITIAL_RESTART_DELAY_MS;
@@ -17022,6 +17113,7 @@ function registerAgentProcessManager(context) {
       child.kill();
     }
     child = void 0;
+    resolvedPort = void 0;
   }
   function scheduleRestart() {
     if (disposed) {
@@ -17179,12 +17271,28 @@ function registerAgentProcessManager(context) {
       if (disposed) {
         return;
       }
-      output.appendLine(`[NoteVs Agent] Starting rasa run in ${repoPath}`);
+      const agentPort = await findFreePort(repoPath, output);
+      resolvedPort = agentPort;
+      const folderPath = getFolderPath2();
+      output.appendLine(`[NoteVs Agent] Starting rasa run in ${repoPath} on port ${agentPort}${folderPath ? ` for ${folderPath}` : ""}`);
       setStatus({ phase: "starting", message: "Starting the agent\u2026" });
       const startedAt = Date.now();
-      child = (0, import_child_process.spawn)(venvPython(repoPath), ["-m", "rasa", "run"], {
+      child = (0, import_child_process.spawn)(venvPython(repoPath), ["-m", "rasa", "run", "--port", String(agentPort)], {
         cwd: repoPath,
-        env: { ...process.env, GROQ_API_KEY: groqApiKey, RASA_LICENSE: rasaLicense, RASA_PRO_LICENSE: rasaLicense }
+        env: {
+          ...process.env,
+          GROQ_API_KEY: groqApiKey,
+          RASA_LICENSE: rasaLicense,
+          RASA_PRO_LICENSE: rasaLicense,
+          // Tells notevs_tools.py which project this specific window's
+          // agent is for, so its tool calls are correct regardless of
+          // which VS Code window's mcpServer.ts instance happens to answer
+          // on mcpPort (see notevs_tools.py's header comment — the port
+          // itself is effectively a shared, single-winner resource across
+          // windows, unlike this agent process).
+          NOTEVS_FOLDER_PATH: folderPath ?? "",
+          NOTEVS_CALL_URL: `http://127.0.0.1:${mcpPort}/call`
+        }
       });
       setStatus({ phase: "running" });
       let recentStderr = [];
@@ -17199,6 +17307,7 @@ function registerAgentProcessManager(context) {
           restartDelay = INITIAL_RESTART_DELAY_MS;
         }
         child = void 0;
+        resolvedPort = void 0;
         const reason = lastErrorLine2();
         const message = reason ? `Agent crashed (code ${code}): ${reason.slice(0, 200)}` : `Agent process exited unexpectedly (code ${code}).`;
         setStatus({ phase: "crashed", message: `${message} Retrying\u2026` });
@@ -17254,7 +17363,8 @@ function registerAgentProcessManager(context) {
   return {
     disposables: [output, statusEmitter, configWatcher, secretsWatcher, configureCommand, dispose],
     onStatusChange: statusEmitter.event,
-    getStatus: () => status
+    getStatus: () => status,
+    getPort: () => resolvedPort
   };
 }
 
@@ -20974,11 +21084,12 @@ ${preview}`);
       }
     }
   };
-  const mcpServer = startMcpServer(context, onNoteMutated);
-  context.subscriptions.push({ dispose: () => mcpServer.close() });
-  const agentProcessManager = registerAgentProcessManager(context);
+  const { server: mcpHttpServer, port: mcpPort } = await startMcpServer(context, onNoteMutated);
+  context.subscriptions.push({ dispose: () => mcpHttpServer.close() });
+  const resolvedMcpPort = mcpPort ?? MCP_PORT;
+  const agentProcessManager = registerAgentProcessManager(context, resolvedMcpPort, getFolderPath);
   context.subscriptions.push(...agentProcessManager.disposables);
-  context.subscriptions.push(registerAgentChatCommand(context, getFolderPath, agentProcessManager));
+  context.subscriptions.push(registerAgentChatCommand(context, getFolderPath, agentProcessManager, resolvedMcpPort));
   flushOfflineQueue().catch(() => {
   });
   context.subscriptions.push(

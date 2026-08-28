@@ -2,6 +2,13 @@
 
 All notable changes to NoteVs will be documented here.
 
+## [0.17.1] - 2026-08-18
+
+### Fixed
+- **Agent chat crashed on startup with "address already in use"** — the bundled agent config (`integrations.yml`) had both `channels.rest` and `channels.inspector` enabled; `inspector` is meant only for the separate interactive `rasa inspect` debug command, but with it also enabled, `rasa run` started a second listener on the same port right after the REST channel's own listener had already bound it, crashing every time. `inspector` is now off — NoteVs never used Rasa's own voice channel anyway (voice goes through Groq from the extension host, see `voice.ts`)
+- **Agent chat showed notes from a different project when multiple VS Code windows were open** — the agent's note-lookup tool calls didn't say which project they were for, so they silently resolved to whichever window's local NoteVs server happened to be reachable, not necessarily the window you were chatting in. Every tool call now explicitly states which project it's for
+- **Multiple open windows could crash-loop fighting over the same port** — each window now runs its own isolated local agent process and MCP server, each finding its own free port automatically instead of colliding on a fixed one
+
 ## [0.15.0] - 2026-06-20
 
 ### Added

@@ -19,6 +19,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as net from 'net';
 import { spawn, spawnSync, type ChildProcess } from 'child_process';
 import { createHash } from 'crypto';
 
@@ -116,6 +117,93 @@ function venvPython(repoPath: string): string {
     : path.join(repoPath, '.venv', 'bin', 'python');
 }
 
+// `rasa run` binds this by default when no --port is passed. Kept as the
+// *preferred* port (tried first, for back-compat with anyone who's set
+// notevs.agentUrl expecting 5005) — no longer the only port: see
+// findFreePort below. Each VS Code window runs its own isolated `rasa run`
+// (globalStorage/the managed repo folder is shared, but the running
+// *process* is not), so with more than one window open they can't all
+// bind 5005 at once.
+const PREFERRED_AGENT_PORT = 5005;
+const MAX_PORT_ATTEMPTS = 30;
+
+function portListenerPids(port: number): string[] {
+  if (process.platform === 'win32') { return []; } // lsof isn't available; leave EADDRINUSE to surface as-is
+  const lsof = spawnSync('lsof', ['-ti', `tcp:${port}`, '-sTCP:LISTEN'], { encoding: 'utf8' });
+  return (lsof.stdout ?? '').split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Matching on the spawned command path doesn't work: venvs' bin/python is a
+// symlink chain (.venv/bin/python -> python3.12 -> the real Homebrew
+// Python.framework binary), and `ps -o command=` reports that fully-resolved
+// target, not the path we invoked — so a straight string comparison against
+// venvPython(repoPath) never matches, silently skipping every real orphan.
+// The process's *cwd* isn't affected by that resolution (we set it via
+// spawn's `cwd` option, unrelated to which binary got exec'd) and lsof
+// reports it exactly, so match on that instead.
+function processCwd(pid: string): string | undefined {
+  const result = spawnSync('lsof', ['-p', pid, '-a', '-d', 'cwd', '-Fn'], { encoding: 'utf8' });
+  const line = (result.stdout ?? '').split('\n').find(l => l.startsWith('n'));
+  return line?.slice(1);
+}
+
+// VS Code doesn't guarantee dispose() runs before a new extension host
+// activates a fresh AgentProcessManager for the *same* window (e.g. mid-
+// update, or a fast reload racing a slow asyncio/Sanic shutdown) — when
+// that happens the old `rasa run` child is orphaned: still bound to
+// PREFERRED_AGENT_PORT, but with no surviving `child` reference (that was
+// a closure var in the old host) for anyone to kill. Only clean up a
+// process whose own cwd resolves to *this* repoPath — i.e. verifiably a
+// leftover from this same managed folder, not some other window's live
+// instance or an unrelated dev server — then the caller can retry the
+// preferred port instead of immediately falling back further.
+async function killIfOwnOrphan(port: number, repoPath: string, output: vscode.OutputChannel): Promise<void> {
+  const pids = portListenerPids(port);
+  if (pids.length === 0) { return; }
+  const ownPids = pids.filter((pid) => processCwd(pid) === repoPath);
+  if (ownPids.length === 0) { return; }
+  output.appendLine(`[NoteVs Agent] Port ${port} is held by leftover NoteVs Agent process(es) from a previous session of this window (PID ${ownPids.join(', ')}) — stopping ${ownPids.length > 1 ? 'them' : 'it'}.`);
+  for (const pid of ownPids) {
+    try { process.kill(Number(pid), 'SIGTERM'); } catch { /* already gone */ }
+  }
+  for (let i = 0; i < 20; i++) {
+    if (portListenerPids(port).length === 0) { return; }
+    await sleep(100);
+  }
+  for (const pid of ownPids) {
+    try { process.kill(Number(pid), 'SIGKILL'); } catch { /* already gone */ }
+  }
+  await sleep(200);
+}
+
+function isPortFree(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const tester = net.createServer();
+    tester.once('error', () => resolve(false));
+    tester.once('listening', () => tester.close(() => resolve(true)));
+    tester.listen(port, '127.0.0.1');
+  });
+}
+
+// Finds a free port for this window's own `rasa run`, preferring
+// PREFERRED_AGENT_PORT (cleaning up a same-window orphan there first, so a
+// simple reload keeps using the same port instead of creeping upward every
+// time) and falling back to the next free port when something else — a
+// different window's already-running agent, most commonly — legitimately
+// holds it. There's a small bind race between this check and rasa's own
+// bind moments later, same as any "find a free port" approach; acceptable
+// here since a collision just means the next restart tries again.
+async function findFreePort(repoPath: string, output: vscode.OutputChannel): Promise<number> {
+  await killIfOwnOrphan(PREFERRED_AGENT_PORT, repoPath, output);
+  for (let offset = 0; offset < MAX_PORT_ATTEMPTS; offset++) {
+    const candidate = PREFERRED_AGENT_PORT + offset;
+    if (await isPortFree(candidate)) { return candidate; }
+  }
+  throw new Error(`No free port found in ${PREFERRED_AGENT_PORT}-${PREFERRED_AGENT_PORT + MAX_PORT_ATTEMPTS - 1}`);
+}
+
 export type AgentPhase =
   | 'missing_credentials'
   | 'extracting'
@@ -136,6 +224,12 @@ export interface AgentProcessManager {
   disposables: vscode.Disposable[];
   onStatusChange: vscode.Event<AgentStatus>;
   getStatus: () => AgentStatus;
+  // The actual port this window's own `rasa run` ended up bound to (see
+  // findFreePort) — undefined until it's actually running. agentPanel.ts
+  // prefers this over the static notevs.agentUrl setting so each window
+  // talks to its own agent instance, not whichever port the setting
+  // happens to name.
+  getPort: () => number | undefined;
 }
 
 function runToCompletion(command: string, args: string[], cwd: string, output: vscode.OutputChannel, env?: NodeJS.ProcessEnv): Promise<number> {
@@ -149,7 +243,11 @@ function runToCompletion(command: string, args: string[], cwd: string, output: v
   });
 }
 
-export function registerAgentProcessManager(context: vscode.ExtensionContext): AgentProcessManager {
+export function registerAgentProcessManager(
+  context: vscode.ExtensionContext,
+  mcpPort: number,
+  getFolderPath: () => string | null,
+): AgentProcessManager {
   const output = vscode.window.createOutputChannel('NoteVs Agent');
   const managedRepoPath = path.join(context.globalStorageUri.fsPath, 'rasa-agent');
   const templatePath = path.join(context.extensionUri.fsPath, 'resources', 'rasa-agent-template');
@@ -162,6 +260,7 @@ export function registerAgentProcessManager(context: vscode.ExtensionContext): A
   }
 
   let child: ChildProcess | undefined;
+  let resolvedPort: number | undefined;
   let disposed = false;
   let starting = false; // guards against overlapping setup/start pipelines
   let restartDelay = INITIAL_RESTART_DELAY_MS;
@@ -171,6 +270,7 @@ export function registerAgentProcessManager(context: vscode.ExtensionContext): A
     if (restartTimer) { clearTimeout(restartTimer); restartTimer = undefined; }
     if (child && !child.killed) { child.kill(); }
     child = undefined;
+    resolvedPort = undefined;
   }
 
   function scheduleRestart() {
@@ -326,12 +426,28 @@ export function registerAgentProcessManager(context: vscode.ExtensionContext): A
       if (!(await ensureTrained(repoPath, groqApiKey, rasaLicense))) { return; }
 
       if (disposed) { return; }
-      output.appendLine(`[NoteVs Agent] Starting rasa run in ${repoPath}`);
+      const agentPort = await findFreePort(repoPath, output);
+      resolvedPort = agentPort;
+      const folderPath = getFolderPath();
+      output.appendLine(`[NoteVs Agent] Starting rasa run in ${repoPath} on port ${agentPort}${folderPath ? ` for ${folderPath}` : ''}`);
       setStatus({ phase: 'starting', message: 'Starting the agent…' });
       const startedAt = Date.now();
-      child = spawn(venvPython(repoPath), ['-m', 'rasa', 'run'], {
+      child = spawn(venvPython(repoPath), ['-m', 'rasa', 'run', '--port', String(agentPort)], {
         cwd: repoPath,
-        env: { ...process.env, GROQ_API_KEY: groqApiKey, RASA_LICENSE: rasaLicense, RASA_PRO_LICENSE: rasaLicense },
+        env: {
+          ...process.env,
+          GROQ_API_KEY: groqApiKey,
+          RASA_LICENSE: rasaLicense,
+          RASA_PRO_LICENSE: rasaLicense,
+          // Tells notevs_tools.py which project this specific window's
+          // agent is for, so its tool calls are correct regardless of
+          // which VS Code window's mcpServer.ts instance happens to answer
+          // on mcpPort (see notevs_tools.py's header comment — the port
+          // itself is effectively a shared, single-winner resource across
+          // windows, unlike this agent process).
+          NOTEVS_FOLDER_PATH: folderPath ?? '',
+          NOTEVS_CALL_URL: `http://127.0.0.1:${mcpPort}/call`,
+        },
       });
       setStatus({ phase: 'running' });
 
@@ -356,6 +472,7 @@ export function registerAgentProcessManager(context: vscode.ExtensionContext): A
         output.appendLine(`[NoteVs Agent] Process exited (code ${code})`);
         if (Date.now() - startedAt > MIN_HEALTHY_UPTIME_MS) { restartDelay = INITIAL_RESTART_DELAY_MS; }
         child = undefined;
+        resolvedPort = undefined;
         const reason = lastErrorLine();
         const message = reason
           ? `Agent crashed (code ${code}): ${reason.slice(0, 200)}`
@@ -416,5 +533,6 @@ export function registerAgentProcessManager(context: vscode.ExtensionContext): A
     disposables: [output, statusEmitter, configWatcher, secretsWatcher, configureCommand, dispose],
     onStatusChange: statusEmitter.event,
     getStatus: () => status,
+    getPort: () => resolvedPort,
   };
 }

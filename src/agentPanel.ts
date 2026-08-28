@@ -34,7 +34,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { agentChatHtml } from './agentPanelHtml';
-import { MCP_PORT } from './mcpServer';
 import type { AgentProcessManager } from './agentProcess';
 import { VoiceRecorder, transcribeAudio, synthesizeSpeech } from './voice';
 
@@ -49,10 +48,6 @@ interface TranscriptEntry {
   role: 'user' | 'bot';
   text: string;
   at: string;
-}
-
-function getAgentUrl(): string {
-  return vscode.workspace.getConfiguration('notevs').get<string>('agentUrl', 'http://localhost:5005');
 }
 
 // .notevsagent/ lives in the project root (not global storage) so it's
@@ -78,23 +73,6 @@ function transcriptToMarkdown(entries: TranscriptEntry[]): string {
   }).join('\n---\n\n');
 }
 
-async function checkRasaStatus(): Promise<boolean> {
-  try {
-    // TO VERIFY: classic Rasa's bare `GET /` returns 200 with
-    // "Hello from Rasa: <version>" as a liveness probe with no --enable-api
-    // required. Confirm the new engine still answers on the same route.
-    const { status } = await axios.get(getAgentUrl(), { timeout: 4000, validateStatus: () => true });
-    return status >= 200 && status < 500;
-  } catch { return false; }
-}
-
-async function checkNoteVsStatus(): Promise<boolean> {
-  try {
-    const { data } = await axios.get(`http://127.0.0.1:${MCP_PORT}/health`, { timeout: 3000 });
-    return data?.ok === true;
-  } catch { return false; }
-}
-
 // qwen/qwen3.6-27b (see rasa-notevs-agent/integrations.yml) is a reasoning
 // model that sometimes emits its full <think>...</think> trace as the
 // literal response text instead of just the final answer — confirmed
@@ -110,21 +88,56 @@ function stripThinkTags(text: string): string {
   return cleaned.replace(/^\s+/, '');
 }
 
-async function sendToRasa(senderId: string, text: string): Promise<RasaBotMessage[]> {
-  const { data } = await axios.post(
-    `${getAgentUrl().replace(/\/$/, '')}/webhooks/rest/webhook`,
-    { sender: senderId, message: text },
-    { timeout: 60000 },
-  );
-  const messages = Array.isArray(data) ? data as RasaBotMessage[] : [];
-  return messages.map((m) => (m.text ? { ...m, text: stripThinkTags(m.text) } : m));
-}
-
 export function registerAgentChatCommand(
   context: vscode.ExtensionContext,
   getFolderPath: () => string | null,
   agentProcessManager: AgentProcessManager,
+  mcpPort: number,
 ): vscode.Disposable {
+  // Each VS Code window runs its own isolated `rasa run` on its own port
+  // (see agentProcess.ts findFreePort) — prefer that actual resolved port
+  // over the static notevs.agentUrl setting so this window's panel always
+  // talks to *this* window's own agent, not whatever the setting names
+  // (which was the source of the "wrong window's notes" bug: multiple
+  // windows all defaulting to the same fixed localhost:5005/37492 meant
+  // whichever one happened to win each port silently answered for all of
+  // them). Falls back to the setting only when the managed agent hasn't
+  // resolved a port yet (not started, or using a custom agentRepoPath the
+  // user runs themselves).
+  function getAgentUrl(): string {
+    const port = agentProcessManager.getPort();
+    if (port) { return `http://localhost:${port}`; }
+    return vscode.workspace.getConfiguration('notevs').get<string>('agentUrl', 'http://localhost:5005');
+  }
+
+  async function checkRasaStatus(): Promise<boolean> {
+    try {
+      // TO VERIFY: classic Rasa's bare `GET /` returns 200 with
+      // "Hello from Rasa: <version>" as a liveness probe with no
+      // --enable-api required. Confirm the new engine still answers on the
+      // same route.
+      const { status } = await axios.get(getAgentUrl(), { timeout: 4000, validateStatus: () => true });
+      return status >= 200 && status < 500;
+    } catch { return false; }
+  }
+
+  async function checkNoteVsStatus(): Promise<boolean> {
+    try {
+      const { data } = await axios.get(`http://127.0.0.1:${mcpPort}/health`, { timeout: 3000 });
+      return data?.ok === true;
+    } catch { return false; }
+  }
+
+  async function sendToRasa(senderId: string, text: string): Promise<RasaBotMessage[]> {
+    const { data } = await axios.post(
+      `${getAgentUrl().replace(/\/$/, '')}/webhooks/rest/webhook`,
+      { sender: senderId, message: text },
+      { timeout: 60000 },
+    );
+    const messages = Array.isArray(data) ? data as RasaBotMessage[] : [];
+    return messages.map((m) => (m.text ? { ...m, text: stripThinkTags(m.text) } : m));
+  }
+
   let agentPanel: vscode.WebviewPanel | undefined;
   // A fresh sender_id per chat "session" (initial open, or after New Chat)
   // is what makes New Chat a genuinely separate conversation to Rasa —

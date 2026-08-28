@@ -639,7 +639,7 @@ function readBody(req: http.IncomingMessage): Promise<string> {
   });
 }
 
-export function startMcpServer(context: vscode.ExtensionContext, onNoteMutated?: OnNoteMutated): http.Server {
+export async function startMcpServer(context: vscode.ExtensionContext, onNoteMutated?: OnNoteMutated): Promise<{ server: http.Server; port: number | undefined }> {
   const storagePath = context.globalStorageUri.fsPath;
 
   // MCP Streamable HTTP transport requires session negotiation: the server
@@ -798,14 +798,53 @@ export function startMcpServer(context: vscode.ExtensionContext, onNoteMutated?:
     }
   });
 
-  server.listen(MCP_PORT, '127.0.0.1', () => {
-    console.log(`[NoteVs MCP] HTTP server running on localhost:${MCP_PORT}`);
+  // Each VS Code window activates its own copy of this extension and tries
+  // to bind the same fixed MCP_PORT — only one ever wins; every other
+  // window used to just warn-and-give-up, leaving mcpServer with no live
+  // listener at all for that window. Falling back to the next free port
+  // instead means every window still gets a working server; the resolved
+  // port is threaded through to agentProcess.ts (NOTEVS_CALL_URL) and
+  // agentPanel.ts (health check) so each window's agent still calls back
+  // into *its own* instance rather than needing to guess a fixed port.
+  // MCP_PORT itself is still tried first and is what mcpBridge.ts (the
+  // stdio bridge for Claude Code/Cursor) hardcodes — this preserves that
+  // for the common single-window case; a losing window falling back here
+  // just isn't reachable via that fixed-port bridge from Claude Code
+  // simultaneously, no worse than before.
+  const MAX_PORT_ATTEMPTS = 30;
+  function tryListen(port: number): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const onError = (err: NodeJS.ErrnoException) => {
+        server.removeListener('listening', onListening);
+        if (err.code === 'EADDRINUSE' && port < MCP_PORT + MAX_PORT_ATTEMPTS) {
+          console.warn(`[NoteVs MCP] Port ${port} already in use, trying ${port + 1}`);
+          resolve(tryListen(port + 1));
+        } else {
+          reject(err);
+        }
+      };
+      const onListening = () => {
+        server.removeListener('error', onError);
+        console.log(`[NoteVs MCP] HTTP server running on localhost:${port}`);
+        resolve(port);
+      };
+      server.once('error', onError);
+      server.once('listening', onListening);
+      server.listen(port, '127.0.0.1');
+    });
+  }
+  const portPromise = tryListen(MCP_PORT).catch((err: NodeJS.ErrnoException) => {
+    console.error('[NoteVs MCP] Server error:', err);
+    return undefined;
   });
 
   server.on('error', (err: NodeJS.ErrnoException) => {
-    if (err.code === 'EADDRINUSE') { console.warn(`[NoteVs MCP] Port ${MCP_PORT} already in use`); }
-    else { console.error('[NoteVs MCP] Server error:', err); }
+    // Attempts during the tryListen fallback chain are handled by their own
+    // once('error') listeners above; this catches anything after that
+    // (e.g. a runtime error once already listening).
+    if (err.code !== 'EADDRINUSE') { console.error('[NoteVs MCP] Server error:', err); }
   });
 
-  return server;
+  const port = await portPromise;
+  return { server, port };
 }
