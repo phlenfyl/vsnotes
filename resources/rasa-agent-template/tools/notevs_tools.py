@@ -41,9 +41,19 @@ NOTEVS_CALL_URL = os.environ.get("NOTEVS_CALL_URL", "http://localhost:37492/call
 NOTEVS_FOLDER_PATH = os.environ.get("NOTEVS_FOLDER_PATH")
 
 
-async def _call(tool_name: str, args: dict) -> ToolResult:
+async def _call(tool_name: str, args: dict, context: ToolContext | None = None) -> ToolResult:
     if NOTEVS_FOLDER_PATH and "folderPath" not in args:
         args = {**args, "folderPath": NOTEVS_FOLDER_PATH}
+    # Also mirror it into real declared project memory (see memory.yml) so
+    # it's visible in `rasa inspect` and usable by scoped instructions
+    # elsewhere, on top of the args-injection above (which is what actually
+    # makes each HTTP call correct — this mirroring is a pure add-on, not a
+    # dependency, so a bad/undeclared write must never break the real call).
+    if context is not None and NOTEVS_FOLDER_PATH:
+        try:
+            context.memory.set("folder_path", NOTEVS_FOLDER_PATH)
+        except Exception:
+            pass
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             resp = await client.post(NOTEVS_CALL_URL, json={"tool": tool_name, "args": args})
@@ -62,22 +72,22 @@ async def _call(tool_name: str, args: dict) -> ToolResult:
 
 @tool(description="List all notes in the current project, most recently updated first (pinned notes first).")
 async def list_notes(context: ToolContext = None) -> ToolResult:
-    return await _call("notevs_list_notes", {})
+    return await _call("notevs_list_notes", {}, context)
 
 
 @tool(description="Get a single note's full content, tags, and annotations by its id.")
 async def get_note(id: str, context: ToolContext = None) -> ToolResult:
-    return await _call("notevs_get_note", {"id": id})
+    return await _call("notevs_get_note", {"id": id}, context)
 
 
 @tool(description="Search notes by keyword across title, content, tags, and annotation comments.")
 async def search_notes(query: str, context: ToolContext = None) -> ToolResult:
-    return await _call("notevs_search_notes", {"query": query})
+    return await _call("notevs_search_notes", {"query": query}, context)
 
 
 @tool(description="Create a new note with a title and optional content.")
 async def create_note(title: str, content: str = "", context: ToolContext = None) -> ToolResult:
-    return await _call("notevs_create_note", {"title": title, "content": content})
+    return await _call("notevs_create_note", {"title": title, "content": content}, context)
 
 
 @tool(description="Update an existing note's title and/or content by id.")
@@ -87,12 +97,12 @@ async def save_note(id: str, title: str | None = None, content: str | None = Non
         args["title"] = title
     if content is not None:
         args["content"] = content
-    return await _call("notevs_save_note", args)
+    return await _call("notevs_save_note", args, context)
 
 
 @tool(description="Permanently delete a note by id. Destructive — only call after the user has explicitly confirmed.")
 async def delete_note(id: str, context: ToolContext = None) -> ToolResult:
-    return await _call("notevs_delete_note", {"id": id})
+    return await _call("notevs_delete_note", {"id": id}, context)
 
 
 @tool(description="Attach a code annotation (file path + line range + comment) to an existing note.")
@@ -113,17 +123,18 @@ async def add_annotation(
             "lineEnd": line_end,
             "comment": comment,
         },
+        context,
     )
 
 
 @tool(description="Export a note to the user's connected Notion workspace. External side effect — only call after explicit confirmation.")
 async def export_to_notion(id: str, context: ToolContext = None) -> ToolResult:
-    return await _call("notevs_export_to_notion", {"id": id})
+    return await _call("notevs_export_to_notion", {"id": id}, context)
 
 
 @tool(description="Export a note to the user's connected Obsidian vault. External side effect — only call after explicit confirmation.")
 async def export_to_obsidian(id: str, context: ToolContext = None) -> ToolResult:
-    return await _call("notevs_export_to_obsidian", {"id": id})
+    return await _call("notevs_export_to_obsidian", {"id": id}, context)
 
 
 @tool(description="Create a reminder/task for a note, due on a given date (YYYY-MM-DD), via the user's connected Todoist or Google Tasks. External side effect — only call after explicit confirmation.")
@@ -135,4 +146,4 @@ async def create_reminder(id: str, due_date: str, context: ToolContext = None) -
     # calm_v2.tool_loader.shared_tool.reserved_prefix for "set_reminder"
     # and then failed validation because the skill's import_tools/
     # tool_constraints reference to it couldn't resolve to anything.
-    return await _call("notevs_set_reminder", {"id": id, "dueDate": due_date})
+    return await _call("notevs_set_reminder", {"id": id, "dueDate": due_date}, context)

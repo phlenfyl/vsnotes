@@ -15,3 +15,5 @@ screenshot/
 .notevs/**
 .notevsagent/**
 .DS_Store
+**/__pycache__/**
+**/*.pyc

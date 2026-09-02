@@ -2,6 +2,11 @@
 
 All notable changes to NoteVs will be documented here.
 
+## [0.18.0] - 2026-08-28
+
+### Added
+- **Agent project memory** — the bundled agent now declares real, framework-level shared state (`memory.yml`) for which project a conversation is scoped to, on top of the existing internal plumbing that already made this correct. This doesn't change any user-visible behavior by itself; it makes that state inspectable via Rasa's own debugging tools and available for more precise agent behavior going forward, following Rasa's own recent "Mantle" engine update (the successor to the "Maestro" engine NoteVs's agent already runs on)
+
 ## [0.17.1] - 2026-08-18
 
 ### Fixed

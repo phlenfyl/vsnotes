@@ -16977,7 +16977,7 @@ function isCompatibleInterpreter(pythonPath) {
 function computeTrainingSourceHash(repoPath) {
   const hash = (0, import_crypto4.createHash)("sha256");
   const files = [];
-  for (const name of ["agent.yml", "integrations.yml"]) {
+  for (const name of ["agent.yml", "integrations.yml", "memory.yml"]) {
     const p = path4.join(repoPath, name);
     if (fs4.existsSync(p)) {
       files.push(p);

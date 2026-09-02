@@ -88,7 +88,7 @@ function isCompatibleInterpreter(pythonPath: string): boolean {
 function computeTrainingSourceHash(repoPath: string): string {
   const hash = createHash('sha256');
   const files: string[] = [];
-  for (const name of ['agent.yml', 'integrations.yml']) {
+  for (const name of ['agent.yml', 'integrations.yml', 'memory.yml']) {
     const p = path.join(repoPath, name);
     if (fs.existsSync(p)) { files.push(p); }
   }

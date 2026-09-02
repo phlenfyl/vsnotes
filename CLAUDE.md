@@ -65,24 +65,43 @@ src/
                       optional override.
 resources/
   rasa-agent-template/ ← Bundled copy of the rasa-notevs-agent project, on the Maestro
-                      (calm_v2) skills architecture as of 2026-08-17: agent.yml,
+                      (calm_v2) skills architecture as of 2026-08-17 — Rasa renamed this
+                      engine "Mantle" shortly after (rasa.com/docs is now mantle.rasa.com;
+                      `rasa init --engine maestro` → `--engine mantle`), but it's the same
+                      schema on the same rasa-pro==3.19.0.dev5 pin, confirmed by diffing
+                      this template against the installed package's own
+                      cli/project_templates/maestro/ scaffold — no migration needed, just
+                      new optional pieces to adopt (see memory.yml below). Contents:
+                      agent.yml,
                       integrations.yml (channels.inspector must stay `enabled: false` —
                       it's for the separate interactive `rasa inspect` debug command
                       only; enabled alongside channels.rest, `rasa run` tries to bind a
                       second listener on the same port right after the REST channel's
                       already bound it and crashes — confirmed live 2026-08-18),
+                      memory.yml (project-wide shared state, new 2026-08-28 — currently
+                      just `folder_path`, mirrored here by notevs_tools.py's _call() from
+                      the NOTEVS_FOLDER_PATH env var on every tool call purely so it's
+                      visible in `rasa inspect` and usable by scoped instructions; the env
+                      var stays the actual source of truth since seeding memory straight
+                      from the incoming request at session start isn't implemented yet in
+                      this rasa-pro build — confirmed by reading processor.py's
+                      _engine_prefill_commands, a no-op with a "follow-up" TODO comment),
                       skills/*/skill.md, tools/notevs_tools.py
                       (shared @tool wrappers that POST to mcpServer.ts's /call
                       endpoint, forwarding folderPath from the NOTEVS_FOLDER_PATH env var
                       agentProcess.ts sets per window — see mcpServer.ts's port section
                       above for why this matters), requirements.txt (pins
-                      rasa-pro==3.19.0.dev5 — Maestro isn't GA yet, this is a dev build,
+                      rasa-pro==3.19.0.dev5 — Mantle isn't GA yet, this is a dev build,
                       bump the pin as newer .devN builds land). The retired classic-CALM
                       files (domain.yml,
                       config.yml, endpoints.yml, credentials.yml, data/flows/) live in
                       ../../rasa-notevs-agent/classic-engine-backup/ for reference, not
                       bundled here. agentProcess.ts extracts/re-syncs this per-user on
-                      every start. Keep in sync with the standalone ../../rasa-notevs-agent
+                      every start — computeTrainingSourceHash (agentProcess.ts) must list
+                      every top-level file that should trigger a retrain when changed;
+                      memory.yml was missed on first add and had to be added there too, so
+                      check that list before adding another top-level file here. Keep in
+                      sync with the standalone ../../rasa-notevs-agent
                       repo (the Rasa Heroes submission source of truth) when either
                       changes.
 dist/
