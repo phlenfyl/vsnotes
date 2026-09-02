@@ -2,7 +2,7 @@
   "name": "notevs",
   "displayName": "NoteVs",
   "description": "A simple extension for notes and annotations",
-  "version": "0.18.0",
+  "version": "0.20.0",
   "icon": "media/icon-marketplace.png",
   "publisher": "MESHEmugles1",
   "engines": {
@@ -154,6 +154,12 @@
           "default": "http://localhost:5005",
           "description": "Local Rasa server URL for the NoteVs Agent chat panel"
         },
+        "notevs.llmProvider": {
+          "type": "string",
+          "enum": ["groq", "openai", "anthropic"],
+          "default": "groq",
+          "description": "Which LLM the NoteVs Agent uses. Set the matching API key in Settings → Agent. Voice input needs a Groq or OpenAI key regardless of this setting (Anthropic doesn't offer speech APIs)."
+        },
         "notevs.agentRepoPath": {
           "type": "string",
           "default": "",
@@ -168,6 +174,7 @@
     "build:bridge": "esbuild src/mcpBridge.ts --bundle --outfile=dist/mcp-bridge.cjs --format=cjs --platform=node",
     "dev": "npm run build -- --watch",
     "vendor:voice": "rm -rf node_modules/audify node_modules/bindings node_modules/file-uri-to-path && mkdir -p node_modules/audify node_modules/bindings node_modules/file-uri-to-path && cp -R ../node_modules/audify/build node_modules/audify/build && cp ../node_modules/audify/index.js ../node_modules/audify/index.d.ts ../node_modules/audify/package.json node_modules/audify/ && cp -R ../node_modules/bindings/. node_modules/bindings/ && cp -R ../node_modules/file-uri-to-path/. node_modules/file-uri-to-path/",
+    "fetch:audify-prebuilds": "node scripts/fetch-audify-prebuilds.js",
     "splice:voice": "node scripts/splice-voice-into-vsix.js",
     "package": "vsce package --no-dependencies -o notevs.vsix && npm run splice:voice -- notevs.vsix",
     "publish": "npm run package && vsce publish --packagePath notevs.vsix"

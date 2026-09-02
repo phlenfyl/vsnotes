@@ -1,7 +1,8 @@
 /**
  * agentProcess.ts
  * Fully automates the local Rasa agent server — zero terminal commands.
- * The moment both credentials (Groq API key, Rasa license) are saved in
+ * The moment both credentials (an LLM provider's API key — Groq, OpenAI, or
+ * Anthropic, per notevs.llmProvider — and a Rasa license) are saved in
  * Settings → Agent, this:
  *   1. extracts the bundled agent project (resources/rasa-agent-template)
  *      to a per-user managed folder in global storage, if not there yet
@@ -35,6 +36,55 @@ const DEPS_INSTALLED_MARKER = '.deps_installed_v2';
 
 function getAgentRepoPathOverride(): string {
   return vscode.workspace.getConfiguration('notevs').get<string>('agentRepoPath', '').trim();
+}
+
+// Rasa's LLM layer isn't Groq-specific at all — verified against the
+// installed rasa-pro==3.19.0.dev5 package: `provider: groq` was never a
+// first-class client, it already goes through the same generic LiteLLM
+// passthrough (rasa/shared/providers/mappings.py's
+// get_llm_client_from_provider falls back to DefaultLiteLLMClient for any
+// provider name it doesn't have a dedicated class for — groq included).
+// openai/anthropic are both confirmed-recognized providers in the installed
+// litellm library too. So supporting them is just: the right provider/model/
+// api_key_env trio in integrations.yml's llm: block (see writeLlmConfig)
+// plus the matching env var when spawning rasa — no engine limitation to
+// work around. Model defaults below are each provider's fast/cheap
+// tool-calling-capable option, matching the spirit of Groq's own pick.
+interface LlmProviderInfo {
+  secretKey: string; // vscode SecretStorage key
+  apiKeyEnvVar: string; // env var name written into integrations.yml's api_key_env and passed to the spawned process
+  model: string;
+  extraConfigLines?: string; // additional raw YAML lines under llm:, each already indented
+}
+const LLM_PROVIDERS: Record<string, LlmProviderInfo> = {
+  groq: { secretKey: 'groqApiKey', apiKeyEnvVar: 'GROQ_API_KEY', model: 'qwen/qwen3.6-27b', extraConfigLines: '  reasoning_effort: none\n' },
+  openai: { secretKey: 'openaiApiKey', apiKeyEnvVar: 'OPENAI_API_KEY', model: 'gpt-4o-mini' },
+  anthropic: { secretKey: 'anthropicApiKey', apiKeyEnvVar: 'ANTHROPIC_API_KEY', model: 'claude-3-5-haiku-20241022' },
+};
+
+function getLlmProviderKey(): keyof typeof LLM_PROVIDERS {
+  const configured = vscode.workspace.getConfiguration('notevs').get<string>('llmProvider', 'groq');
+  return (configured === 'openai' || configured === 'anthropic') ? configured : 'groq';
+}
+
+// Rewrites just the `llm:` block of the managed folder's integrations.yml
+// (already copied there by ensureExtracted's template sync) to match the
+// currently-selected provider — every start, not only when it changes, so
+// ensureExtracted's cpSync (which always re-copies the template's own
+// static llm: block first) never silently wins a race against this. Uses
+// plain text splicing rather than a YAML library: the file's shape is
+// fixed/known (see integrations.yml's own header) and this repo has no
+// existing YAML-parsing dependency to reach for.
+function writeLlmConfig(repoPath: string, providerKey: keyof typeof LLM_PROVIDERS): void {
+  const info = LLM_PROVIDERS[providerKey];
+  const filePath = path.join(repoPath, 'integrations.yml');
+  const content = fs.readFileSync(filePath, 'utf8');
+  const newBlock = `llm:\n  provider: ${providerKey}\n  model: ${info.model}\n  api_key_env: ${info.apiKeyEnvVar}\n${info.extraConfigLines ?? ''}`;
+  // Matches from the `llm:` line up to (not including) the next
+  // non-indented line — i.e. the whole block, comments and all, regardless
+  // of exactly which fields the template currently has under it.
+  const updated = content.replace(/^llm:\n(?:[ \t].*\n?)*/m, newBlock);
+  fs.writeFileSync(filePath, updated, 'utf8');
 }
 
 // GUI-launched VS Code often has a minimal PATH that's missing Homebrew
@@ -363,7 +413,7 @@ export function registerAgentProcessManager(
     return true;
   }
 
-  async function ensureTrained(repoPath: string, groqApiKey: string, rasaLicense: string): Promise<boolean> {
+  async function ensureTrained(repoPath: string, apiKeyEnvVar: string, apiKeyValue: string, rasaLicense: string): Promise<boolean> {
     const modelsDir = path.join(repoPath, 'models');
     const hashMarker = path.join(modelsDir, '.source_hash');
     const hasModel = fs.existsSync(modelsDir) && fs.readdirSync(modelsDir).some(f => f.endsWith('.tar.gz'));
@@ -377,9 +427,9 @@ export function registerAgentProcessManager(
     output.appendLine('[NoteVs Agent] Training the agent (classic rasa-pro needs a trained model before it can run) — this can take a few minutes the first time...');
     setStatus({ phase: 'training', message: 'Training the agent (first time only, a few minutes)…' });
     // rasa train validates flows/license before doing anything, so it needs
-    // the same RASA_LICENSE/GROQ_API_KEY env vars the final `rasa run` gets —
+    // the same RASA_LICENSE/LLM API key env vars the final `rasa run` gets —
     // runToCompletion doesn't inject those by default.
-    const trainEnv = { ...process.env, GROQ_API_KEY: groqApiKey, RASA_LICENSE: rasaLicense, RASA_PRO_LICENSE: rasaLicense };
+    const trainEnv = { ...process.env, [apiKeyEnvVar]: apiKeyValue, RASA_LICENSE: rasaLicense, RASA_PRO_LICENSE: rasaLicense };
     const code = await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Notification, title: 'NoteVs: training the local agent (first time only)…' },
       () => runToCompletion(venvPython(repoPath), ['-m', 'rasa', 'train'], repoPath, output, trainEnv),
@@ -399,10 +449,12 @@ export function registerAgentProcessManager(
     if (disposed || starting) { return; }
     starting = true;
     try {
-      const groqApiKey = await context.secrets.get('groqApiKey');
+      const providerKey = getLlmProviderKey();
+      const providerInfo = LLM_PROVIDERS[providerKey];
+      const llmApiKey = await context.secrets.get(providerInfo.secretKey);
       const rasaLicense = await context.secrets.get('rasaLicense');
-      if (!groqApiKey || !rasaLicense) {
-        output.appendLine('[NoteVs Agent] Add your Groq API key and Rasa license in Settings → Agent to enable auto-start.');
+      if (!llmApiKey || !rasaLicense) {
+        output.appendLine(`[NoteVs Agent] Add your ${providerKey} API key and Rasa license in Settings → Agent to enable auto-start.`);
         setStatus({ phase: 'missing_credentials' });
         return;
       }
@@ -419,11 +471,12 @@ export function registerAgentProcessManager(
         }
       } else {
         ensureExtracted(repoPath);
+        writeLlmConfig(repoPath, providerKey);
       }
 
       if (!(await ensureVenv(repoPath))) { return; }
       if (!(await ensureDeps(repoPath))) { return; }
-      if (!(await ensureTrained(repoPath, groqApiKey, rasaLicense))) { return; }
+      if (!(await ensureTrained(repoPath, providerInfo.apiKeyEnvVar, llmApiKey, rasaLicense))) { return; }
 
       if (disposed) { return; }
       const agentPort = await findFreePort(repoPath, output);
@@ -436,7 +489,7 @@ export function registerAgentProcessManager(
         cwd: repoPath,
         env: {
           ...process.env,
-          GROQ_API_KEY: groqApiKey,
+          [providerInfo.apiKeyEnvVar]: llmApiKey,
           RASA_LICENSE: rasaLicense,
           RASA_PRO_LICENSE: rasaLicense,
           // Tells notevs_tools.py which project this specific window's
@@ -505,13 +558,24 @@ export function registerAgentProcessManager(
       output.appendLine('[NoteVs Agent] agentRepoPath changed, restarting...');
       restart();
     }
+    if (e.affectsConfiguration('notevs.llmProvider')) {
+      output.appendLine('[NoteVs Agent] llmProvider changed, restarting...');
+      restart();
+    }
   });
 
   // Once both credentials are saved via Settings → Agent, the whole
   // extract/venv/install/run pipeline kicks off automatically — no reload,
-  // no terminal. Clearing either key stops the current process.
+  // no terminal. Clearing the active provider's key or the license stops
+  // the current process. Restarting on *any* provider's key (not just the
+  // currently-active one) covers the case where the user just switched
+  // notevs.llmProvider and is now saving that provider's key for the first
+  // time — startPipeline() re-reads llmProvider fresh each run, so a
+  // restart here always re-evaluates against whichever provider is
+  // actually selected right now, not whichever key literally changed.
   const secretsWatcher = context.secrets.onDidChange((e) => {
-    if (e.key === 'groqApiKey' || e.key === 'rasaLicense') { restart(); }
+    const relevant: string[] = [...Object.values(LLM_PROVIDERS).map(p => p.secretKey), 'rasaLicense'];
+    if (relevant.includes(e.key)) { restart(); }
   });
 
   const configureCommand = vscode.commands.registerCommand('notevs.configureAgentPath', async () => {

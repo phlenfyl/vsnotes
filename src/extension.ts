@@ -379,7 +379,14 @@ function settingsHtml(
   googleTasksConnected?: boolean,
   groqKeySet?: boolean,
   rasaLicenseSet?: boolean,
+  llmProvider?: string,
+  openaiKeySet?: boolean,
+  anthropicKeySet?: boolean,
 ): string {
+  const provider = llmProvider ?? 'groq';
+  const providerLabels: Record<string, string> = { groq: 'Groq', openai: 'OpenAI', anthropic: 'Anthropic' };
+  const providerLabel = providerLabels[provider] ?? 'Groq';
+  const providerKeySet = provider === 'openai' ? !!openaiKeySet : provider === 'anthropic' ? !!anthropicKeySet : !!groqKeySet;
   const swatches = BG_COLORS.map(c => `
     <div class="swatch${c.bg === noteBgColor ? ' active' : ''}" data-bg="${c.bg}" data-text="${c.text}"
       style="background:${c.bg};border-color:${c.bg === noteBgColor ? 'var(--vscode-focusBorder)' : 'transparent'}" title="${c.label}">
@@ -557,10 +564,23 @@ function settingsHtml(
   <div class="collapse-body" id="agentBody">
     <div class="int-hint" style="margin-top:4px">Add both keys to have NoteVs start and manage the local agent server for you &mdash; no manual setup once these are set and an agent repo path is configured.</div>
 
-    <div style="font-size:12px;font-weight:600;margin:8px 0 6px;color:var(--vscode-foreground)">Groq API key</div>
-    ${groqKeySet
-      ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Key saved</span><button class="int-btn danger" id="groqClear">Clear</button></div>`
-      : `<div class="int-row"><input class="int-input" id="groqKeyInput" type="password" placeholder="Paste your Groq API key…"/><button class="int-btn" id="groqSave">Save</button></div>`
+    <div style="font-size:12px;font-weight:600;margin:8px 0 6px;color:var(--vscode-foreground)">LLM provider</div>
+    <div class="int-row">
+      <select class="int-input" id="llmProviderSelect" style="flex:1">
+        <option value="groq"${provider === 'groq' ? ' selected' : ''}>Groq</option>
+        <option value="openai"${provider === 'openai' ? ' selected' : ''}>OpenAI</option>
+        <option value="anthropic"${provider === 'anthropic' ? ' selected' : ''}>Anthropic</option>
+      </select>
+    </div>
+
+    <div style="font-size:12px;font-weight:600;margin:14px 0 6px;color:var(--vscode-foreground)">${providerLabel} API key</div>
+    ${providerKeySet
+      ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Key saved</span><button class="int-btn danger" id="llmKeyClear">Clear</button></div>`
+      : `<div class="int-row"><input class="int-input" id="llmKeyInput" type="password" placeholder="Paste your ${providerLabel} API key…"/><button class="int-btn" id="llmKeySave">Save</button></div>`
+    }
+    ${provider === 'anthropic'
+      ? `<div class="int-hint">Voice input needs a Groq or OpenAI key too — Anthropic doesn&rsquo;t offer speech-to-text/text-to-speech. Chat works fine without it; add either key above (switch provider, save, switch back) to also enable voice.</div>`
+      : ''
     }
 
     <div style="font-size:12px;font-weight:600;margin:14px 0 6px;color:var(--vscode-foreground)">Rasa license key</div>
@@ -653,10 +673,12 @@ function settingsHtml(
     if(googleDisconnectBtn){googleDisconnectBtn.addEventListener('click',()=>vscode.postMessage({type:'disconnectGoogleTasks'}));}
 
     // ── Agent credentials ────────────────────────────────────────────────────
-    const groqSaveBtn=document.getElementById('groqSave');
-    if(groqSaveBtn){groqSaveBtn.addEventListener('click',()=>{const v=document.getElementById('groqKeyInput').value.trim();if(v){vscode.postMessage({type:'saveGroqKey',key:v});}});}
-    const groqClearBtn=document.getElementById('groqClear');
-    if(groqClearBtn){groqClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearGroqKey'}));}
+    const llmProviderSelect=document.getElementById('llmProviderSelect');
+    if(llmProviderSelect){llmProviderSelect.addEventListener('change',e=>vscode.postMessage({type:'setLlmProvider',value:e.target.value}));}
+    const llmKeySaveBtn=document.getElementById('llmKeySave');
+    if(llmKeySaveBtn){llmKeySaveBtn.addEventListener('click',()=>{const v=document.getElementById('llmKeyInput').value.trim();if(v){vscode.postMessage({type:'saveLlmKey',provider:'${provider}',key:v});}});}
+    const llmKeyClearBtn=document.getElementById('llmKeyClear');
+    if(llmKeyClearBtn){llmKeyClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearLlmKey',provider:'${provider}'}));}
     const rasaSaveBtn=document.getElementById('rasaSave');
     if(rasaSaveBtn){rasaSaveBtn.addEventListener('click',()=>{const v=document.getElementById('rasaKeyInput').value.trim();if(v){vscode.postMessage({type:'saveRasaLicense',key:v});}});}
     const rasaClearBtn=document.getElementById('rasaClear');
@@ -2059,7 +2081,9 @@ export async function activate(context: vscode.ExtensionContext) {
             const googleConn = await isGoogleTasksConnected(secrets);
             const groqSet = !!(await secrets.get('groqApiKey'));
             const rasaSet = !!(await secrets.get('rasaLicense'));
-            webviewView.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath, config.get('notionAutoSync', false), todoistConn, googleConn, groqSet, rasaSet);
+            const openaiSet = !!(await secrets.get('openaiApiKey'));
+            const anthropicSet = !!(await secrets.get('anthropicApiKey'));
+            webviewView.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath, config.get('notionAutoSync', false), todoistConn, googleConn, groqSet, rasaSet, config.get('llmProvider', 'groq'), openaiSet, anthropicSet);
             break;
           }
           case 'saveNotionToken': {
@@ -2160,23 +2184,37 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.window.showInformationMessage('Google Tasks disconnected.');
             break;
           }
-          case 'saveGroqKey': {
-            if (msg.key) { await secrets.store('groqApiKey', msg.key.trim()); }
+          case 'saveLlmKey': {
+            const providerA1 = (msg.provider === 'openai' || msg.provider === 'anthropic') ? msg.provider : 'groq';
+            const secretKeyA1 = providerA1 === 'openai' ? 'openaiApiKey' : providerA1 === 'anthropic' ? 'anthropicApiKey' : 'groqApiKey';
+            if (msg.key) { await secrets.store(secretKeyA1, msg.key.trim()); }
             const cfgA1 = vscode.workspace.getConfiguration('notevs');
             const obsA1 = await getObsidianStatus(secrets, context.globalState);
             const todoistA1 = await hasTodoistToken(secrets);
             const googleA1 = await isGoogleTasksConnected(secrets);
-            webviewView.webview.html = settingsHtml(cfgA1.get('autoShow', true), cfgA1.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsA1.apiKey, obsA1.vaultPath, cfgA1.get('notionAutoSync', false), todoistA1, googleA1, true, !!(await secrets.get('rasaLicense')));
-            vscode.window.showInformationMessage('Groq API key saved.');
+            webviewView.webview.html = settingsHtml(cfgA1.get('autoShow', true), cfgA1.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsA1.apiKey, obsA1.vaultPath, cfgA1.get('notionAutoSync', false), todoistA1, googleA1, !!(await secrets.get('groqApiKey')), !!(await secrets.get('rasaLicense')), cfgA1.get('llmProvider', 'groq'), !!(await secrets.get('openaiApiKey')), !!(await secrets.get('anthropicApiKey')));
+            vscode.window.showInformationMessage(`${providerA1 === 'openai' ? 'OpenAI' : providerA1 === 'anthropic' ? 'Anthropic' : 'Groq'} API key saved.`);
             break;
           }
-          case 'clearGroqKey': {
-            await secrets.delete('groqApiKey');
+          case 'clearLlmKey': {
+            const providerA2 = (msg.provider === 'openai' || msg.provider === 'anthropic') ? msg.provider : 'groq';
+            const secretKeyA2 = providerA2 === 'openai' ? 'openaiApiKey' : providerA2 === 'anthropic' ? 'anthropicApiKey' : 'groqApiKey';
+            await secrets.delete(secretKeyA2);
             const cfgA2 = vscode.workspace.getConfiguration('notevs');
             const obsA2 = await getObsidianStatus(secrets, context.globalState);
             const todoistA2 = await hasTodoistToken(secrets);
             const googleA2 = await isGoogleTasksConnected(secrets);
-            webviewView.webview.html = settingsHtml(cfgA2.get('autoShow', true), cfgA2.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsA2.apiKey, obsA2.vaultPath, cfgA2.get('notionAutoSync', false), todoistA2, googleA2, false, !!(await secrets.get('rasaLicense')));
+            webviewView.webview.html = settingsHtml(cfgA2.get('autoShow', true), cfgA2.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsA2.apiKey, obsA2.vaultPath, cfgA2.get('notionAutoSync', false), todoistA2, googleA2, !!(await secrets.get('groqApiKey')), !!(await secrets.get('rasaLicense')), cfgA2.get('llmProvider', 'groq'), !!(await secrets.get('openaiApiKey')), !!(await secrets.get('anthropicApiKey')));
+            break;
+          }
+          case 'setLlmProvider': {
+            const cfgA5 = vscode.workspace.getConfiguration('notevs');
+            const newProvider = (msg.value === 'openai' || msg.value === 'anthropic') ? msg.value : 'groq';
+            await cfgA5.update('llmProvider', newProvider, vscode.ConfigurationTarget.Global);
+            const obsA5 = await getObsidianStatus(secrets, context.globalState);
+            const todoistA5 = await hasTodoistToken(secrets);
+            const googleA5 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgA5.get('autoShow', true), cfgA5.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsA5.apiKey, obsA5.vaultPath, cfgA5.get('notionAutoSync', false), todoistA5, googleA5, !!(await secrets.get('groqApiKey')), !!(await secrets.get('rasaLicense')), newProvider, !!(await secrets.get('openaiApiKey')), !!(await secrets.get('anthropicApiKey')));
             break;
           }
           case 'saveRasaLicense': {
@@ -2185,7 +2223,7 @@ export async function activate(context: vscode.ExtensionContext) {
             const obsA3 = await getObsidianStatus(secrets, context.globalState);
             const todoistA3 = await hasTodoistToken(secrets);
             const googleA3 = await isGoogleTasksConnected(secrets);
-            webviewView.webview.html = settingsHtml(cfgA3.get('autoShow', true), cfgA3.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsA3.apiKey, obsA3.vaultPath, cfgA3.get('notionAutoSync', false), todoistA3, googleA3, !!(await secrets.get('groqApiKey')), true);
+            webviewView.webview.html = settingsHtml(cfgA3.get('autoShow', true), cfgA3.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsA3.apiKey, obsA3.vaultPath, cfgA3.get('notionAutoSync', false), todoistA3, googleA3, !!(await secrets.get('groqApiKey')), true, cfgA3.get('llmProvider', 'groq'), !!(await secrets.get('openaiApiKey')), !!(await secrets.get('anthropicApiKey')));
             vscode.window.showInformationMessage('Rasa license key saved.');
             break;
           }
@@ -2195,7 +2233,7 @@ export async function activate(context: vscode.ExtensionContext) {
             const obsA4 = await getObsidianStatus(secrets, context.globalState);
             const todoistA4 = await hasTodoistToken(secrets);
             const googleA4 = await isGoogleTasksConnected(secrets);
-            webviewView.webview.html = settingsHtml(cfgA4.get('autoShow', true), cfgA4.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsA4.apiKey, obsA4.vaultPath, cfgA4.get('notionAutoSync', false), todoistA4, googleA4, !!(await secrets.get('groqApiKey')), false);
+            webviewView.webview.html = settingsHtml(cfgA4.get('autoShow', true), cfgA4.get('noteBgColor', '#1e1e1e'), false, null, null, await hasNotionToken(secrets), obsA4.apiKey, obsA4.vaultPath, cfgA4.get('notionAutoSync', false), todoistA4, googleA4, !!(await secrets.get('groqApiKey')), false, cfgA4.get('llmProvider', 'groq'), !!(await secrets.get('openaiApiKey')), !!(await secrets.get('anthropicApiKey')));
             break;
           }
           case 'openExternal': {
@@ -2520,7 +2558,9 @@ export async function activate(context: vscode.ExtensionContext) {
         const googleConn = await isGoogleTasksConnected(secrets);
         const groqSet = !!(await secrets.get('groqApiKey'));
         const rasaSet = !!(await secrets.get('rasaLicense'));
-        panel.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), false, null, null, notionConn, obsStatus.apiKey, obsStatus.vaultPath, config.get('notionAutoSync', false), todoistConn, googleConn, groqSet, rasaSet);
+        const openaiSet = !!(await secrets.get('openaiApiKey'));
+        const anthropicSet = !!(await secrets.get('anthropicApiKey'));
+        panel.webview.html = settingsHtml(config.get('autoShow', true), config.get('noteBgColor', '#1e1e1e'), false, null, null, notionConn, obsStatus.apiKey, obsStatus.vaultPath, config.get('notionAutoSync', false), todoistConn, googleConn, groqSet, rasaSet, config.get('llmProvider', 'groq'), openaiSet, anthropicSet);
       }
     }),
   );

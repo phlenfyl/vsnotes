@@ -2,6 +2,19 @@
 
 All notable changes to NoteVs will be documented here.
 
+## [0.20.0] - 2026-09-02
+
+### Added
+- **Choose your own LLM provider for the agent** — Settings → Agent now has a provider dropdown (Groq, OpenAI, or Anthropic) instead of being locked to Groq. Pick one, add its API key, and the agent trains/runs against it automatically. Voice input works with a Groq or OpenAI key (Anthropic doesn't offer speech APIs — chat still works fine without one, or add a Groq/OpenAI key just for voice)
+
+## [0.19.0] - 2026-09-02
+
+### Fixed
+- **Voice input crashed with an RtAudio "sample rate" error on many microphones** — recording forced every device to 16kHz regardless of what it actually supports; confirmed live that some devices' drivers reject that outright (16kHz wasn't even in the affected device's supported list). Recording now uses whatever sample rate the device itself reports supporting
+
+### Added
+- **Voice input now works on more than one machine** — until now, voice only worked on the specific platform the extension happened to be built on (macOS Apple Silicon), because the bundled native audio module was only ever built for that one platform; every other platform silently got "can't access the microphone." Now bundles prebuilt binaries for macOS (Intel and Apple Silicon), Windows (x64), and Linux (x64 and ARM64), and picks the right one automatically. Still unsupported: Windows on ARM (no upstream prebuild exists) and 32-bit Linux/Windows
+
 ## [0.18.0] - 2026-08-28
 
 ### Added

@@ -2,6 +2,19 @@
 # for a Maestro (calm_v2) agent. Schema confirmed empirically against the
 # installed rasa-pro==3.19.0.dev5 scaffold on 2026-08-17.
 #
+# LLM: the block below is a build-time placeholder only — agentProcess.ts's
+# writeLlmConfig() overwrites it on every start, from notevs.llmProvider
+# (Settings → Agent) and the LLM_PROVIDERS map there (provider/model/
+# api_key_env per provider). Added 2026-09-02: Groq was never actually
+# special here — confirmed against the installed rasa-pro package that
+# `provider: groq` was already going through the same generic LiteLLM
+# passthrough (rasa/shared/providers/mappings.py's
+# get_llm_client_from_provider) that `provider: openai`/`provider:
+# anthropic` also use; both are confirmed-recognized in the installed
+# litellm library. So this was a config-only limitation, not an engine one.
+# What's below is just what a fresh extract looks like before that
+# overwrite happens — do not treat it as the live config.
+#
 # LLM: LiteLLM passthrough — Rasa's `llm.provider` isn't a named Groq
 # wrapper, but LiteLLM supports `provider: groq` / GROQ_API_KEY, see
 # https://docs.litellm.ai/docs/providers/groq.

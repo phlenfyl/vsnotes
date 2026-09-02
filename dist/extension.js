@@ -8877,11 +8877,11 @@ var require_mime_types = __commonJS({
       }
       return exts[0];
     }
-    function lookup(path7) {
-      if (!path7 || typeof path7 !== "string") {
+    function lookup(path8) {
+      if (!path8 || typeof path8 !== "string") {
         return false;
       }
-      var extension2 = extname("x." + path7).toLowerCase().substr(1);
+      var extension2 = extname("x." + path8).toLowerCase().substr(1);
       if (!extension2) {
         return false;
       }
@@ -9986,11 +9986,11 @@ var require_form_data = __commonJS({
     "use strict";
     var CombinedStream = require_combined_stream();
     var util3 = require("util");
-    var path7 = require("path");
+    var path8 = require("path");
     var http5 = require("http");
     var https3 = require("https");
     var parseUrl2 = require("url").parse;
-    var fs7 = require("fs");
+    var fs8 = require("fs");
     var Stream = require("stream").Stream;
     var crypto3 = require("crypto");
     var mime = require_mime_types();
@@ -10057,7 +10057,7 @@ var require_form_data = __commonJS({
         if (value.end != void 0 && value.end != Infinity && value.start != void 0) {
           callback(null, value.end + 1 - (value.start ? value.start : 0));
         } else {
-          fs7.stat(value.path, function(err, stat) {
+          fs8.stat(value.path, function(err, stat) {
             if (err) {
               callback(err);
               return;
@@ -10114,11 +10114,11 @@ var require_form_data = __commonJS({
     FormData3.prototype._getContentDisposition = function(value, options) {
       var filename;
       if (typeof options.filepath === "string") {
-        filename = path7.normalize(options.filepath).replace(/\\/g, "/");
+        filename = path8.normalize(options.filepath).replace(/\\/g, "/");
       } else if (options.filename || value && (value.name || value.path)) {
-        filename = path7.basename(options.filename || value && (value.name || value.path));
+        filename = path8.basename(options.filename || value && (value.name || value.path));
       } else if (value && value.readable && hasOwn(value, "httpVersion")) {
-        filename = path7.basename(value.client._httpMessage.path || "");
+        filename = path8.basename(value.client._httpMessage.path || "");
       }
       if (filename) {
         return 'filename="' + filename + '"';
@@ -12134,9 +12134,9 @@ function isVisitable(thing) {
 function removeBrackets(key) {
   return utils_default.endsWith(key, "[]") ? key.slice(0, -2) : key;
 }
-function renderKey(path7, key, dots) {
-  if (!path7) return key;
-  return path7.concat(key).map(function each(token, i) {
+function renderKey(path8, key, dots) {
+  if (!path8) return key;
+  return path8.concat(key).map(function each(token, i) {
     token = removeBrackets(token);
     return !dots && i ? "[" + token + "]" : token;
   }).join(dots ? "." : "");
@@ -12189,13 +12189,13 @@ function toFormData(obj, formData, options) {
     }
     return value;
   }
-  function defaultVisitor(value, key, path7) {
+  function defaultVisitor(value, key, path8) {
     let arr = value;
     if (utils_default.isReactNative(formData) && utils_default.isReactNativeBlob(value)) {
-      formData.append(renderKey(path7, key, dots), convertValue(value));
+      formData.append(renderKey(path8, key, dots), convertValue(value));
       return false;
     }
-    if (value && !path7 && typeof value === "object") {
+    if (value && !path8 && typeof value === "object") {
       if (utils_default.endsWith(key, "{}")) {
         key = metaTokens ? key : key.slice(0, -2);
         value = JSON.stringify(value);
@@ -12214,7 +12214,7 @@ function toFormData(obj, formData, options) {
     if (isVisitable(value)) {
       return true;
     }
-    formData.append(renderKey(path7, key, dots), convertValue(value));
+    formData.append(renderKey(path8, key, dots), convertValue(value));
     return false;
   }
   const stack = [];
@@ -12223,16 +12223,16 @@ function toFormData(obj, formData, options) {
     convertValue,
     isVisitable
   });
-  function build(value, path7) {
+  function build(value, path8) {
     if (utils_default.isUndefined(value)) return;
     if (stack.indexOf(value) !== -1) {
-      throw Error("Circular reference detected in " + path7.join("."));
+      throw Error("Circular reference detected in " + path8.join("."));
     }
     stack.push(value);
     utils_default.forEach(value, function each(el, key) {
-      const result = !(utils_default.isUndefined(el) || el === null) && visitor.call(formData, el, utils_default.isString(key) ? key.trim() : key, path7, exposedHelpers);
+      const result = !(utils_default.isUndefined(el) || el === null) && visitor.call(formData, el, utils_default.isString(key) ? key.trim() : key, path8, exposedHelpers);
       if (result === true) {
-        build(el, path7 ? path7.concat(key) : [key]);
+        build(el, path8 ? path8.concat(key) : [key]);
       }
     });
     stack.pop();
@@ -12444,7 +12444,7 @@ var platform_default = {
 // ../node_modules/axios/lib/helpers/toURLEncodedForm.js
 function toURLEncodedForm(data, options) {
   return toFormData_default(data, new platform_default.classes.URLSearchParams(), {
-    visitor: function(value, key, path7, helpers) {
+    visitor: function(value, key, path8, helpers) {
       if (platform_default.isNode && utils_default.isBuffer(value)) {
         this.append(key, value.toString("base64"));
         return false;
@@ -12474,11 +12474,11 @@ function arrayToObject(arr) {
   return obj;
 }
 function formDataToJSON(formData) {
-  function buildPath(path7, value, target, index) {
-    let name = path7[index++];
+  function buildPath(path8, value, target, index) {
+    let name = path8[index++];
     if (name === "__proto__") return true;
     const isNumericKey = Number.isFinite(+name);
-    const isLast = index >= path7.length;
+    const isLast = index >= path8.length;
     name = !name && utils_default.isArray(target) ? target.length : name;
     if (isLast) {
       if (utils_default.hasOwnProp(target, name)) {
@@ -12491,7 +12491,7 @@ function formDataToJSON(formData) {
     if (!target[name] || !utils_default.isObject(target[name])) {
       target[name] = [];
     }
-    const result = buildPath(path7, value, target[name], index);
+    const result = buildPath(path8, value, target[name], index);
     if (result && utils_default.isArray(target[name])) {
       target[name] = arrayToObject(target[name]);
     }
@@ -14045,9 +14045,9 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
       auth = urlUsername + ":" + urlPassword;
     }
     auth && headers.delete("authorization");
-    let path7;
+    let path8;
     try {
-      path7 = buildURL(
+      path8 = buildURL(
         parsed.pathname + parsed.search,
         config.params,
         config.paramsSerializer
@@ -14065,7 +14065,7 @@ var http_default = isHttpAdapterSupported && function httpAdapter(config) {
       false
     );
     const options = {
-      path: path7,
+      path: path8,
       method,
       headers: headers.toJSON(),
       agents: { http: config.httpAgent, https: config.httpsAgent },
@@ -14314,14 +14314,14 @@ var isURLSameOrigin_default = platform_default.hasStandardBrowserEnv ? /* @__PUR
 var cookies_default = platform_default.hasStandardBrowserEnv ? (
   // Standard browser envs support document.cookie
   {
-    write(name, value, expires, path7, domain, secure, sameSite) {
+    write(name, value, expires, path8, domain, secure, sameSite) {
       if (typeof document === "undefined") return;
       const cookie = [`${name}=${encodeURIComponent(value)}`];
       if (utils_default.isNumber(expires)) {
         cookie.push(`expires=${new Date(expires).toUTCString()}`);
       }
-      if (utils_default.isString(path7)) {
-        cookie.push(`path=${path7}`);
+      if (utils_default.isString(path8)) {
+        cookie.push(`path=${path8}`);
       }
       if (utils_default.isString(domain)) {
         cookie.push(`domain=${domain}`);
@@ -15579,8 +15579,8 @@ var {
 
 // src/extension.ts
 var import_crypto5 = require("crypto");
-var fs6 = __toESM(require("fs"));
-var path6 = __toESM(require("path"));
+var fs7 = __toESM(require("fs"));
+var path7 = __toESM(require("path"));
 
 // src/mcpInstaller.ts
 var vscode = __toESM(require("vscode"));
@@ -16433,8 +16433,8 @@ async function startMcpServer(context, onNoteMutated) {
 
 // src/agentPanel.ts
 var vscode3 = __toESM(require("vscode"));
-var fs3 = __toESM(require("fs"));
-var path3 = __toESM(require("path"));
+var fs4 = __toESM(require("fs"));
+var path4 = __toESM(require("path"));
 var import_crypto3 = require("crypto");
 
 // src/agentPanelHtml.ts
@@ -16444,9 +16444,30 @@ function agentChatHtml(projectName) {
 }
 
 // src/voice.ts
-var SAMPLE_RATE = 16e3;
+var fs3 = __toESM(require("fs"));
+var path3 = __toESM(require("path"));
+var SUPPORTED_PLATFORMS = ["darwin-arm64", "darwin-x64", "win32-x64", "linux-x64", "linux-arm64"];
+function applyPlatformBinary(extensionPath) {
+  const platformKey = `${process.platform}-${process.arch}`;
+  if (!SUPPORTED_PLATFORMS.includes(platformKey)) {
+    throw new Error(
+      `Voice isn't available on this platform (${platformKey}) yet \u2014 supported: ${SUPPORTED_PLATFORMS.join(", ")}.`
+    );
+  }
+  const prebuildDir = path3.join(extensionPath, "resources", "audify-prebuilds", platformKey, "build", "Release");
+  if (!fs3.existsSync(prebuildDir)) {
+    throw new Error(`Voice prebuild files missing for ${platformKey} \u2014 reinstalling the extension may fix this.`);
+  }
+  const audifyPackageJson = require.resolve("audify/package.json");
+  const targetDir = path3.join(path3.dirname(audifyPackageJson), "build", "Release");
+  fs3.mkdirSync(targetDir, { recursive: true });
+  for (const file of fs3.readdirSync(prebuildDir)) {
+    fs3.copyFileSync(path3.join(prebuildDir, file), path3.join(targetDir, file));
+  }
+}
+var FALLBACK_SAMPLE_RATE = 16e3;
 var CHANNELS = 1;
-function pcmToWav(pcm) {
+function pcmToWav(pcm, sampleRate) {
   const header = Buffer.alloc(44);
   const dataSize = pcm.length;
   header.write("RIFF", 0, "ascii");
@@ -16456,43 +16477,75 @@ function pcmToWav(pcm) {
   header.writeUInt32LE(16, 16);
   header.writeUInt16LE(1, 20);
   header.writeUInt16LE(CHANNELS, 22);
-  header.writeUInt32LE(SAMPLE_RATE, 24);
-  header.writeUInt32LE(SAMPLE_RATE * CHANNELS * 2, 28);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * CHANNELS * 2, 28);
   header.writeUInt16LE(CHANNELS * 2, 32);
   header.writeUInt16LE(16, 34);
   header.write("data", 36, "ascii");
   header.writeUInt32LE(dataSize, 40);
   return Buffer.concat([header, pcm]);
 }
+function pickSampleRate(rt, deviceId) {
+  const device = rt.getDevices().find((d) => d.id === deviceId);
+  if (!device) {
+    return FALLBACK_SAMPLE_RATE;
+  }
+  if (device.preferredSampleRate > 0) {
+    return device.preferredSampleRate;
+  }
+  if (device.sampleRates.length > 0) {
+    return device.sampleRates[0];
+  }
+  return FALLBACK_SAMPLE_RATE;
+}
 var VoiceRecorder = class {
   constructor() {
     this.rtAudio = null;
     this.chunks = [];
+    this.sampleRate = FALLBACK_SAMPLE_RATE;
   }
   isRecording() {
     return this.rtAudio !== null;
   }
-  start() {
+  start(extensionPath) {
     if (this.rtAudio) {
       return;
     }
+    applyPlatformBinary(extensionPath);
     const audify = require("audify");
     const rt = new audify.RtAudio();
     this.chunks = [];
-    rt.openStream(
-      null,
-      { deviceId: rt.getDefaultInputDevice(), nChannels: CHANNELS },
-      audify.RtAudioFormat.RTAUDIO_SINT16,
-      SAMPLE_RATE,
-      1024,
-      "notevs-agent-mic",
-      (data) => {
-        this.chunks.push(Buffer.from(data));
-      },
-      null
-    );
-    rt.start();
-    this.rtAudio = rt;
+    const deviceId = rt.getDefaultInputDevice();
+    const device = rt.getDevices().find((d) => d.id === deviceId);
+    const candidates = [
+      pickSampleRate(rt, deviceId),
+      ...device?.sampleRates ?? [],
+      FALLBACK_SAMPLE_RATE
+    ].filter((rate, i, arr) => rate > 0 && arr.indexOf(rate) === i);
+    let lastError;
+    for (const rate of candidates) {
+      try {
+        rt.openStream(
+          null,
+          { deviceId, nChannels: CHANNELS },
+          audify.RtAudioFormat.RTAUDIO_SINT16,
+          rate,
+          1024,
+          "notevs-agent-mic",
+          (data) => {
+            this.chunks.push(Buffer.from(data));
+          },
+          null
+        );
+        rt.start();
+        this.rtAudio = rt;
+        this.sampleRate = rate;
+        return;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
   }
   // Returns undefined if nothing was ever recording, or if the recording
   // was effectively silent (a mis-tap) — not worth a round-trip to Groq.
@@ -16509,55 +16562,76 @@ var VoiceRecorder = class {
     }
     const pcm = Buffer.concat(this.chunks);
     this.chunks = [];
-    const minBytes = SAMPLE_RATE * CHANNELS * 2 * 0.2;
+    const minBytes = this.sampleRate * CHANNELS * 2 * 0.2;
     if (pcm.length < minBytes) {
       return void 0;
     }
-    return pcmToWav(pcm);
+    return pcmToWav(pcm, this.sampleRate);
   }
 };
-async function transcribeAudio(wav, apiKey) {
+var STT_ENDPOINTS = {
+  groq: { url: "https://api.groq.com/openai/v1/audio/transcriptions", model: "whisper-large-v3-turbo" },
+  openai: { url: "https://api.openai.com/v1/audio/transcriptions", model: "whisper-1" }
+};
+async function transcribeAudio(wav, apiKey, provider = "groq") {
+  const { url: url2, model } = STT_ENDPOINTS[provider];
   const form = new FormData();
   form.append("file", new Blob([wav], { type: "audio/wav" }), "speech.wav");
-  form.append("model", "whisper-large-v3-turbo");
+  form.append("model", model);
   form.append("response_format", "text");
-  const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+  const res = await fetch(url2, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}` },
     body: form
   });
   if (!res.ok) {
-    throw new Error(`Groq transcription failed: ${res.status} ${await res.text()}`);
+    throw new Error(`${provider} transcription failed: ${res.status} ${await res.text()}`);
   }
   const text = await res.text();
   return text.trim();
 }
-async function synthesizeSpeech(text, apiKey) {
-  const res = await fetch("https://api.groq.com/openai/v1/audio/speech", {
+var TTS_ENDPOINTS = {
+  groq: { url: "https://api.groq.com/openai/v1/audio/speech", model: "canopylabs/orpheus-v1-english", voice: "austin" },
+  openai: { url: "https://api.openai.com/v1/audio/speech", model: "gpt-4o-mini-tts", voice: "alloy" }
+};
+async function synthesizeSpeech(text, apiKey, provider = "groq") {
+  const { url: url2, model, voice } = TTS_ENDPOINTS[provider];
+  const res = await fetch(url2, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "canopylabs/orpheus-v1-english",
+      model,
       input: text.slice(0, 2e3),
       // keep TTS cost/latency bounded for a long reply
-      voice: "austin",
+      voice,
       response_format: "wav"
     })
   });
   if (!res.ok) {
-    throw new Error(`Groq speech synthesis failed: ${res.status} ${await res.text()}`);
+    throw new Error(`${provider} speech synthesis failed: ${res.status} ${await res.text()}`);
   }
   const buf = Buffer.from(await res.arrayBuffer());
   return `data:audio/wav;base64,${buf.toString("base64")}`;
 }
 
 // src/agentPanel.ts
+async function resolveVoiceCredentials(context) {
+  const chatProvider = vscode3.workspace.getConfiguration("notevs").get("llmProvider", "groq");
+  const order = chatProvider === "openai" ? ["openai", "groq"] : ["groq", "openai"];
+  for (const provider of order) {
+    const apiKey = await context.secrets.get(provider === "openai" ? "openaiApiKey" : "groqApiKey");
+    if (apiKey) {
+      return { provider, apiKey };
+    }
+  }
+  return void 0;
+}
 function ensureHistoryDir(folderPath) {
-  const dir = path3.join(folderPath, ".notevsagent", "history");
-  fs3.mkdirSync(dir, { recursive: true });
-  const gitignorePath = path3.join(folderPath, ".notevsagent", ".gitignore");
-  if (!fs3.existsSync(gitignorePath)) {
-    fs3.writeFileSync(gitignorePath, "*\n", "utf8");
+  const dir = path4.join(folderPath, ".notevsagent", "history");
+  fs4.mkdirSync(dir, { recursive: true });
+  const gitignorePath = path4.join(folderPath, ".notevsagent", ".gitignore");
+  if (!fs4.existsSync(gitignorePath)) {
+    fs4.writeFileSync(gitignorePath, "*\n", "utf8");
   }
   return dir;
 }
@@ -16679,12 +16753,12 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager, 
     if (!text) {
       return;
     }
-    const apiKey = await context.secrets.get("groqApiKey");
-    if (!apiKey) {
+    const voiceCreds = await resolveVoiceCredentials(context);
+    if (!voiceCreds) {
       return;
     }
     try {
-      const dataUri = await synthesizeSpeech(text, apiKey);
+      const dataUri = await synthesizeSpeech(text, voiceCreds.apiKey, voiceCreds.provider);
       agentPanel.webview.postMessage({ type: "ttsAudio", dataUri });
     } catch (err) {
       console.error("[NoteVs Agent] TTS synthesis failed:", err);
@@ -16736,9 +16810,9 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager, 
         currentHistoryFile = `${(/* @__PURE__ */ new Date()).toISOString().replace(/[:.]/g, "-")}.json`;
       }
       const base2 = currentHistoryFile.replace(/\.json$/, "");
-      fs3.writeFileSync(path3.join(dir, `${base2}.md`), transcriptToMarkdown(transcript), "utf8");
-      fs3.writeFileSync(
-        path3.join(dir, `${base2}.json`),
+      fs4.writeFileSync(path4.join(dir, `${base2}.md`), transcriptToMarkdown(transcript), "utf8");
+      fs4.writeFileSync(
+        path4.join(dir, `${base2}.json`),
         JSON.stringify({ savedAt: (/* @__PURE__ */ new Date()).toISOString(), senderId, entries: transcript }, null, 2),
         "utf8"
       );
@@ -16751,17 +16825,17 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager, 
     if (!folderPath) {
       return [];
     }
-    const dir = path3.join(folderPath, ".notevsagent", "history");
-    if (!fs3.existsSync(dir)) {
+    const dir = path4.join(folderPath, ".notevsagent", "history");
+    if (!fs4.existsSync(dir)) {
       return [];
     }
     const items = [];
-    for (const file of fs3.readdirSync(dir)) {
+    for (const file of fs4.readdirSync(dir)) {
       if (!file.endsWith(".json")) {
         continue;
       }
       try {
-        const parsed = JSON.parse(fs3.readFileSync(path3.join(dir, file), "utf8"));
+        const parsed = JSON.parse(fs4.readFileSync(path4.join(dir, file), "utf8"));
         const savedAt = parsed.savedAt ?? (/* @__PURE__ */ new Date(0)).toISOString();
         const firstUser = parsed.entries?.find((e) => e.role === "user")?.text ?? "(empty conversation)";
         const label = firstUser.length > 60 ? `${firstUser.slice(0, 60)}\u2026` : firstUser;
@@ -16779,9 +16853,9 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager, 
     if (!/^[\w.:-]+\.json$/.test(file)) {
       return void 0;
     }
-    const filePath = path3.join(folderPath, ".notevsagent", "history", file);
+    const filePath = path4.join(folderPath, ".notevsagent", "history", file);
     try {
-      const parsed = JSON.parse(fs3.readFileSync(filePath, "utf8"));
+      const parsed = JSON.parse(fs4.readFileSync(filePath, "utf8"));
       if (!parsed.entries) {
         return void 0;
       }
@@ -16890,7 +16964,7 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager, 
       }
       if (msg.type === "startRecording") {
         try {
-          voiceRecorder.start();
+          voiceRecorder.start(context.extensionUri.fsPath);
           agentPanel?.webview.postMessage({ type: "recordingState", recording: true });
         } catch (err) {
           agentPanel?.webview.postMessage({
@@ -16907,16 +16981,16 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager, 
         if (!wav) {
           return;
         }
-        const apiKey = await context.secrets.get("groqApiKey");
-        if (!apiKey) {
+        const voiceCreds = await resolveVoiceCredentials(context);
+        if (!voiceCreds) {
           agentPanel?.webview.postMessage({
             type: "botMessages",
-            messages: [{ text: "Voice needs a Groq API key \u2014 add one in NoteVs Settings \u2192 Agent, same key the agent already uses." }]
+            messages: [{ text: "Voice needs a Groq or OpenAI API key \u2014 add one in NoteVs Settings \u2192 Agent (Anthropic doesn\u2019t offer speech APIs, so if that\u2019s your chosen provider, add a Groq or OpenAI key there too, just for voice)." }]
           });
           return;
         }
         try {
-          const text = await transcribeAudio(wav, apiKey);
+          const text = await transcribeAudio(wav, voiceCreds.apiKey, voiceCreds.provider);
           if (text) {
             agentPanel?.webview.postMessage({ type: "userMessage", text });
             await handleUserText(text, true);
@@ -16937,8 +17011,8 @@ function registerAgentChatCommand(context, getFolderPath2, agentProcessManager, 
 
 // src/agentProcess.ts
 var vscode4 = __toESM(require("vscode"));
-var fs4 = __toESM(require("fs"));
-var path4 = __toESM(require("path"));
+var fs5 = __toESM(require("fs"));
+var path5 = __toESM(require("path"));
 var net = __toESM(require("net"));
 var import_child_process = require("child_process");
 var import_crypto4 = require("crypto");
@@ -16949,9 +17023,30 @@ var DEPS_INSTALLED_MARKER = ".deps_installed_v2";
 function getAgentRepoPathOverride() {
   return vscode4.workspace.getConfiguration("notevs").get("agentRepoPath", "").trim();
 }
-var EXTRA_PATH_DIRS = ["/opt/homebrew/bin", "/usr/local/bin", path4.join(process.env.HOME ?? "", ".pyenv", "shims")];
+var LLM_PROVIDERS = {
+  groq: { secretKey: "groqApiKey", apiKeyEnvVar: "GROQ_API_KEY", model: "qwen/qwen3.6-27b", extraConfigLines: "  reasoning_effort: none\n" },
+  openai: { secretKey: "openaiApiKey", apiKeyEnvVar: "OPENAI_API_KEY", model: "gpt-4o-mini" },
+  anthropic: { secretKey: "anthropicApiKey", apiKeyEnvVar: "ANTHROPIC_API_KEY", model: "claude-3-5-haiku-20241022" }
+};
+function getLlmProviderKey() {
+  const configured = vscode4.workspace.getConfiguration("notevs").get("llmProvider", "groq");
+  return configured === "openai" || configured === "anthropic" ? configured : "groq";
+}
+function writeLlmConfig(repoPath, providerKey) {
+  const info = LLM_PROVIDERS[providerKey];
+  const filePath = path5.join(repoPath, "integrations.yml");
+  const content = fs5.readFileSync(filePath, "utf8");
+  const newBlock = `llm:
+  provider: ${providerKey}
+  model: ${info.model}
+  api_key_env: ${info.apiKeyEnvVar}
+${info.extraConfigLines ?? ""}`;
+  const updated = content.replace(/^llm:\n(?:[ \t].*\n?)*/m, newBlock);
+  fs5.writeFileSync(filePath, updated, "utf8");
+}
+var EXTRA_PATH_DIRS = ["/opt/homebrew/bin", "/usr/local/bin", path5.join(process.env.HOME ?? "", ".pyenv", "shims")];
 function pathWithExtras() {
-  return [process.env.PATH ?? "", ...EXTRA_PATH_DIRS].join(path4.delimiter);
+  return [process.env.PATH ?? "", ...EXTRA_PATH_DIRS].join(path5.delimiter);
 }
 function findCompatiblePython(output) {
   const env4 = { ...process.env, PATH: pathWithExtras() };
@@ -16978,22 +17073,22 @@ function computeTrainingSourceHash(repoPath) {
   const hash = (0, import_crypto4.createHash)("sha256");
   const files = [];
   for (const name of ["agent.yml", "integrations.yml", "memory.yml"]) {
-    const p = path4.join(repoPath, name);
-    if (fs4.existsSync(p)) {
+    const p = path5.join(repoPath, name);
+    if (fs5.existsSync(p)) {
       files.push(p);
     }
   }
   for (const dirName of ["skills", "tools"]) {
-    const dir = path4.join(repoPath, dirName);
-    if (!fs4.existsSync(dir)) {
+    const dir = path5.join(repoPath, dirName);
+    if (!fs5.existsSync(dir)) {
       continue;
     }
     const walk = (d) => {
-      for (const entry of fs4.readdirSync(d, { withFileTypes: true })) {
+      for (const entry of fs5.readdirSync(d, { withFileTypes: true })) {
         if (entry.name === "__pycache__") {
           continue;
         }
-        const full = path4.join(d, entry.name);
+        const full = path5.join(d, entry.name);
         if (entry.isDirectory()) {
           walk(full);
         } else {
@@ -17005,12 +17100,12 @@ function computeTrainingSourceHash(repoPath) {
   }
   for (const f of files.sort()) {
     hash.update(f);
-    hash.update(fs4.readFileSync(f));
+    hash.update(fs5.readFileSync(f));
   }
   return hash.digest("hex");
 }
 function venvPython(repoPath) {
-  return process.platform === "win32" ? path4.join(repoPath, ".venv", "Scripts", "python.exe") : path4.join(repoPath, ".venv", "bin", "python");
+  return process.platform === "win32" ? path5.join(repoPath, ".venv", "Scripts", "python.exe") : path5.join(repoPath, ".venv", "bin", "python");
 }
 var PREFERRED_AGENT_PORT = 5005;
 var MAX_PORT_ATTEMPTS = 30;
@@ -17090,8 +17185,8 @@ function runToCompletion(command, args, cwd, output, env4) {
 }
 function registerAgentProcessManager(context, mcpPort, getFolderPath2) {
   const output = vscode4.window.createOutputChannel("NoteVs Agent");
-  const managedRepoPath = path4.join(context.globalStorageUri.fsPath, "rasa-agent");
-  const templatePath = path4.join(context.extensionUri.fsPath, "resources", "rasa-agent-template");
+  const managedRepoPath = path5.join(context.globalStorageUri.fsPath, "rasa-agent");
+  const templatePath = path5.join(context.extensionUri.fsPath, "resources", "rasa-agent-template");
   const statusEmitter = new vscode4.EventEmitter();
   let status = { phase: "missing_credentials" };
   function setStatus(next) {
@@ -17131,28 +17226,28 @@ function registerAgentProcessManager(context, mcpPort, getFolderPath2) {
   }
   const RETIRED_CLASSIC_PATHS = ["domain.yml", "config.yml", "endpoints.yml", "credentials.yml", "data"];
   function ensureExtracted(repoPath) {
-    const isFirstExtract = !fs4.existsSync(path4.join(repoPath, "agent.yml"));
+    const isFirstExtract = !fs5.existsSync(path5.join(repoPath, "agent.yml"));
     if (isFirstExtract) {
       output.appendLine(`[NoteVs Agent] Setting up agent files in ${repoPath}`);
       setStatus({ phase: "extracting", message: "Setting up agent files\u2026" });
     }
-    fs4.mkdirSync(repoPath, { recursive: true });
+    fs5.mkdirSync(repoPath, { recursive: true });
     for (const name of RETIRED_CLASSIC_PATHS) {
-      const p = path4.join(repoPath, name);
-      if (fs4.existsSync(p)) {
+      const p = path5.join(repoPath, name);
+      if (fs5.existsSync(p)) {
         output.appendLine(`[NoteVs Agent] Removing retired classic-engine file: ${name}`);
-        fs4.rmSync(p, { recursive: true, force: true });
+        fs5.rmSync(p, { recursive: true, force: true });
       }
     }
-    fs4.cpSync(templatePath, repoPath, { recursive: true });
+    fs5.cpSync(templatePath, repoPath, { recursive: true });
   }
   async function ensureVenv(repoPath) {
-    if (fs4.existsSync(venvPython(repoPath))) {
+    if (fs5.existsSync(venvPython(repoPath))) {
       if (isCompatibleInterpreter(venvPython(repoPath))) {
         return true;
       }
       output.appendLine("[NoteVs Agent] Existing .venv uses an incompatible Python version \u2014 recreating it.");
-      fs4.rmSync(path4.join(repoPath, ".venv"), { recursive: true, force: true });
+      fs5.rmSync(path5.join(repoPath, ".venv"), { recursive: true, force: true });
     }
     setStatus({ phase: "creating_venv", message: "Creating Python virtual environment\u2026" });
     const pythonCmd = findCompatiblePython(output);
@@ -17173,8 +17268,8 @@ function registerAgentProcessManager(context, mcpPort, getFolderPath2) {
     return true;
   }
   async function ensureDeps(repoPath) {
-    const marker = path4.join(repoPath, ".venv", DEPS_INSTALLED_MARKER);
-    if (fs4.existsSync(marker)) {
+    const marker = path5.join(repoPath, ".venv", DEPS_INSTALLED_MARKER);
+    if (fs5.existsSync(marker)) {
       return true;
     }
     output.appendLine("[NoteVs Agent] Installing rasa-pro \u2014 this can take several minutes the first time...");
@@ -17192,26 +17287,26 @@ function registerAgentProcessManager(context, mcpPort, getFolderPath2) {
       setStatus({ phase: "error", message });
       return false;
     }
-    fs4.writeFileSync(marker, (/* @__PURE__ */ new Date()).toISOString());
+    fs5.writeFileSync(marker, (/* @__PURE__ */ new Date()).toISOString());
     output.appendLine("[NoteVs Agent] Install complete.");
     return true;
   }
-  async function ensureTrained(repoPath, groqApiKey, rasaLicense) {
-    const modelsDir = path4.join(repoPath, "models");
-    const hashMarker = path4.join(modelsDir, ".source_hash");
-    const hasModel = fs4.existsSync(modelsDir) && fs4.readdirSync(modelsDir).some((f) => f.endsWith(".tar.gz"));
+  async function ensureTrained(repoPath, apiKeyEnvVar, apiKeyValue, rasaLicense) {
+    const modelsDir = path5.join(repoPath, "models");
+    const hashMarker = path5.join(modelsDir, ".source_hash");
+    const hasModel = fs5.existsSync(modelsDir) && fs5.readdirSync(modelsDir).some((f) => f.endsWith(".tar.gz"));
     const currentHash = computeTrainingSourceHash(repoPath);
-    const isStale = !fs4.existsSync(hashMarker) || fs4.readFileSync(hashMarker, "utf8").trim() !== currentHash;
+    const isStale = !fs5.existsSync(hashMarker) || fs5.readFileSync(hashMarker, "utf8").trim() !== currentHash;
     if (hasModel && !isStale) {
       return true;
     }
     if (hasModel && isStale) {
       output.appendLine("[NoteVs Agent] Flows/domain/config changed since the last trained model \u2014 retraining.");
-      fs4.rmSync(modelsDir, { recursive: true, force: true });
+      fs5.rmSync(modelsDir, { recursive: true, force: true });
     }
     output.appendLine("[NoteVs Agent] Training the agent (classic rasa-pro needs a trained model before it can run) \u2014 this can take a few minutes the first time...");
     setStatus({ phase: "training", message: "Training the agent (first time only, a few minutes)\u2026" });
-    const trainEnv = { ...process.env, GROQ_API_KEY: groqApiKey, RASA_LICENSE: rasaLicense, RASA_PRO_LICENSE: rasaLicense };
+    const trainEnv = { ...process.env, [apiKeyEnvVar]: apiKeyValue, RASA_LICENSE: rasaLicense, RASA_PRO_LICENSE: rasaLicense };
     const code = await vscode4.window.withProgress(
       { location: vscode4.ProgressLocation.Notification, title: "NoteVs: training the local agent (first time only)\u2026" },
       () => runToCompletion(venvPython(repoPath), ["-m", "rasa", "train"], repoPath, output, trainEnv)
@@ -17222,7 +17317,7 @@ function registerAgentProcessManager(context, mcpPort, getFolderPath2) {
       setStatus({ phase: "error", message });
       return false;
     }
-    fs4.writeFileSync(hashMarker, currentHash);
+    fs5.writeFileSync(hashMarker, currentHash);
     output.appendLine("[NoteVs Agent] Training complete.");
     return true;
   }
@@ -17240,17 +17335,19 @@ function registerAgentProcessManager(context, mcpPort, getFolderPath2) {
         return withError ?? recentStderr[recentStderr.length - 1];
       };
       var trackStderr = trackStderr2, lastErrorLine = lastErrorLine2;
-      const groqApiKey = await context.secrets.get("groqApiKey");
+      const providerKey = getLlmProviderKey();
+      const providerInfo = LLM_PROVIDERS[providerKey];
+      const llmApiKey = await context.secrets.get(providerInfo.secretKey);
       const rasaLicense = await context.secrets.get("rasaLicense");
-      if (!groqApiKey || !rasaLicense) {
-        output.appendLine("[NoteVs Agent] Add your Groq API key and Rasa license in Settings \u2192 Agent to enable auto-start.");
+      if (!llmApiKey || !rasaLicense) {
+        output.appendLine(`[NoteVs Agent] Add your ${providerKey} API key and Rasa license in Settings \u2192 Agent to enable auto-start.`);
         setStatus({ phase: "missing_credentials" });
         return;
       }
       const override = getAgentRepoPathOverride();
       const repoPath = override || managedRepoPath;
       if (override) {
-        if (!fs4.existsSync(path4.join(override, "agent.yml"))) {
+        if (!fs5.existsSync(path5.join(override, "agent.yml"))) {
           const message = `notevs.agentRepoPath is set to ${override} but no agent.yml was found there.`;
           output.appendLine(`[NoteVs Agent] ${message}`);
           setStatus({ phase: "error", message });
@@ -17258,6 +17355,7 @@ function registerAgentProcessManager(context, mcpPort, getFolderPath2) {
         }
       } else {
         ensureExtracted(repoPath);
+        writeLlmConfig(repoPath, providerKey);
       }
       if (!await ensureVenv(repoPath)) {
         return;
@@ -17265,7 +17363,7 @@ function registerAgentProcessManager(context, mcpPort, getFolderPath2) {
       if (!await ensureDeps(repoPath)) {
         return;
       }
-      if (!await ensureTrained(repoPath, groqApiKey, rasaLicense)) {
+      if (!await ensureTrained(repoPath, providerInfo.apiKeyEnvVar, llmApiKey, rasaLicense)) {
         return;
       }
       if (disposed) {
@@ -17281,7 +17379,7 @@ function registerAgentProcessManager(context, mcpPort, getFolderPath2) {
         cwd: repoPath,
         env: {
           ...process.env,
-          GROQ_API_KEY: groqApiKey,
+          [providerInfo.apiKeyEnvVar]: llmApiKey,
           RASA_LICENSE: rasaLicense,
           RASA_PRO_LICENSE: rasaLicense,
           // Tells notevs_tools.py which project this specific window's
@@ -17334,9 +17432,14 @@ function registerAgentProcessManager(context, mcpPort, getFolderPath2) {
       output.appendLine("[NoteVs Agent] agentRepoPath changed, restarting...");
       restart();
     }
+    if (e.affectsConfiguration("notevs.llmProvider")) {
+      output.appendLine("[NoteVs Agent] llmProvider changed, restarting...");
+      restart();
+    }
   });
   const secretsWatcher = context.secrets.onDidChange((e) => {
-    if (e.key === "groqApiKey" || e.key === "rasaLicense") {
+    const relevant = [...Object.values(LLM_PROVIDERS).map((p) => p.secretKey), "rasaLicense"];
+    if (relevant.includes(e.key)) {
       restart();
     }
   });
@@ -17370,8 +17473,8 @@ function registerAgentProcessManager(context, mcpPort, getFolderPath2) {
 
 // src/integrations.ts
 var vscode5 = __toESM(require("vscode"));
-var fs5 = __toESM(require("fs"));
-var path5 = __toESM(require("path"));
+var fs6 = __toESM(require("fs"));
+var path6 = __toESM(require("path"));
 var https2 = __toESM(require("https"));
 function extractPlainText(note) {
   if (note.editorMode === "markdown") {
@@ -17655,11 +17758,11 @@ async function writeToObsidianApi(baseUrl, apiKey, filename, content) {
   );
 }
 function writeToObsidianFilesystem(vaultPath, filename, content) {
-  const subdir = path5.join(vaultPath, "NoteNest");
-  if (!fs5.existsSync(subdir)) {
-    fs5.mkdirSync(subdir, { recursive: true });
+  const subdir = path6.join(vaultPath, "NoteNest");
+  if (!fs6.existsSync(subdir)) {
+    fs6.mkdirSync(subdir, { recursive: true });
   }
-  fs5.writeFileSync(path5.join(subdir, `${filename}.md`), content, "utf8");
+  fs6.writeFileSync(path6.join(subdir, `${filename}.md`), content, "utf8");
 }
 async function sendToObsidian(secrets, globalState, note, onExported) {
   const apiKey = await secrets.get("obsidianApiKey") || "";
@@ -17729,7 +17832,7 @@ async function sendToObsidian(secrets, globalState, note, onExported) {
     }
   }
   if (vaultPath) {
-    if (!fs5.existsSync(vaultPath)) {
+    if (!fs6.existsSync(vaultPath)) {
       vscode5.window.showErrorMessage(
         `Vault folder not found: ${vaultPath}
 Update it in NoteNest Settings -> Integrations.`
@@ -18456,7 +18559,7 @@ function getFolderPath() {
     return null;
   }
   try {
-    return fs6.realpathSync(folders[0].uri.fsPath);
+    return fs7.realpathSync(folders[0].uri.fsPath);
   } catch {
     return folders[0].uri.fsPath;
   }
@@ -18511,17 +18614,17 @@ async function makeRequest(s, fn) {
 }
 var base = () => getApiUrl();
 var hdr = (t) => ({ Authorization: `Bearer ${t}` });
-async function apiGet(s, path7, params) {
-  return makeRequest(s, (t) => axios_default.get(`${base()}${path7}`, { headers: hdr(t), params }));
+async function apiGet(s, path8, params) {
+  return makeRequest(s, (t) => axios_default.get(`${base()}${path8}`, { headers: hdr(t), params }));
 }
-async function apiPost(s, path7, body) {
-  return makeRequest(s, (t) => axios_default.post(`${base()}${path7}`, body, { headers: hdr(t) }));
+async function apiPost(s, path8, body) {
+  return makeRequest(s, (t) => axios_default.post(`${base()}${path8}`, body, { headers: hdr(t) }));
 }
-async function apiPatch(s, path7, body) {
-  return makeRequest(s, (t) => axios_default.patch(`${base()}${path7}`, body, { headers: hdr(t) }));
+async function apiPatch(s, path8, body) {
+  return makeRequest(s, (t) => axios_default.patch(`${base()}${path8}`, body, { headers: hdr(t) }));
 }
-async function apiDelete(s, path7) {
-  return makeRequest(s, (t) => axios_default.delete(`${base()}${path7}`, { headers: hdr(t) }));
+async function apiDelete(s, path8) {
+  return makeRequest(s, (t) => axios_default.delete(`${base()}${path8}`, { headers: hdr(t) }));
 }
 var PRIORITY_LABEL = {
   emergency: "Emergency",
@@ -18532,35 +18635,35 @@ var PRIORITY_LABEL = {
   none: "None"
 };
 function getNotesDir2(context) {
-  return path6.join(context.globalStorageUri.fsPath, "notes");
+  return path7.join(context.globalStorageUri.fsPath, "notes");
 }
 function getMetaPath2(context) {
-  return path6.join(context.globalStorageUri.fsPath, "meta.json");
+  return path7.join(context.globalStorageUri.fsPath, "meta.json");
 }
 function ensureLocalDirs2(context) {
   const notesDir = getNotesDir2(context);
-  if (!fs6.existsSync(notesDir)) {
-    fs6.mkdirSync(notesDir, { recursive: true });
+  if (!fs7.existsSync(notesDir)) {
+    fs7.mkdirSync(notesDir, { recursive: true });
   }
 }
 function readLocalMeta2(context) {
   const metaPath = getMetaPath2(context);
   try {
-    if (fs6.existsSync(metaPath)) {
-      return JSON.parse(fs6.readFileSync(metaPath, "utf8"));
+    if (fs7.existsSync(metaPath)) {
+      return JSON.parse(fs7.readFileSync(metaPath, "utf8"));
     }
   } catch {
   }
   return { version: 1, noteIndex: [] };
 }
 function writeLocalMeta2(context, meta) {
-  fs6.writeFileSync(getMetaPath2(context), JSON.stringify(meta, null, 2), "utf8");
+  fs7.writeFileSync(getMetaPath2(context), JSON.stringify(meta, null, 2), "utf8");
 }
 function readLocalNote2(context, id) {
-  const notePath = path6.join(getNotesDir2(context), `${id}.json`);
+  const notePath = path7.join(getNotesDir2(context), `${id}.json`);
   try {
-    if (fs6.existsSync(notePath)) {
-      return JSON.parse(fs6.readFileSync(notePath, "utf8"));
+    if (fs7.existsSync(notePath)) {
+      return JSON.parse(fs7.readFileSync(notePath, "utf8"));
     }
   } catch {
   }
@@ -18568,7 +18671,7 @@ function readLocalNote2(context, id) {
 }
 function writeLocalNote2(context, note) {
   ensureLocalDirs2(context);
-  fs6.writeFileSync(path6.join(getNotesDir2(context), `${note.id}.json`), JSON.stringify(note, null, 2), "utf8");
+  fs7.writeFileSync(path7.join(getNotesDir2(context), `${note.id}.json`), JSON.stringify(note, null, 2), "utf8");
   const meta = readLocalMeta2(context);
   const entry = { id: note.id, title: note.title, updatedAt: note.updatedAt, folderPath: note.folderPath || "" };
   const idx = meta.noteIndex.findIndex((e) => e.id === note.id);
@@ -18580,9 +18683,9 @@ function writeLocalNote2(context, note) {
   writeLocalMeta2(context, meta);
 }
 function deleteLocalNote(context, id) {
-  const notePath = path6.join(getNotesDir2(context), `${id}.json`);
-  if (fs6.existsSync(notePath)) {
-    fs6.unlinkSync(notePath);
+  const notePath = path7.join(getNotesDir2(context), `${id}.json`);
+  if (fs7.existsSync(notePath)) {
+    fs7.unlinkSync(notePath);
   }
   const meta = readLocalMeta2(context);
   meta.noteIndex = meta.noteIndex.filter((e) => e.id !== id);
@@ -18665,7 +18768,7 @@ function getSubfolderOptions(context, workspacePath) {
     }
   }
   try {
-    const entries = fs6.readdirSync(workspacePath, { withFileTypes: true });
+    const entries = fs7.readdirSync(workspacePath, { withFileTypes: true });
     for (const entry of entries) {
       if (entry.isDirectory() && !entry.name.startsWith(".") && entry.name !== "node_modules") {
         seen.add(entry.name);
@@ -18712,7 +18815,11 @@ function loginHtml(iconUri) {
     document.getElementById('b').addEventListener('click',()=>vscode.postMessage({type:'startLogin'}));
   </script></body></html>`;
 }
-function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyncAt, notionConnected, obsidianApiKey, obsidianVaultPath, notionAutoSync, todoistConnected, googleTasksConnected, groqKeySet, rasaLicenseSet) {
+function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyncAt, notionConnected, obsidianApiKey, obsidianVaultPath, notionAutoSync, todoistConnected, googleTasksConnected, groqKeySet, rasaLicenseSet, llmProvider, openaiKeySet, anthropicKeySet) {
+  const provider = llmProvider ?? "groq";
+  const providerLabels = { groq: "Groq", openai: "OpenAI", anthropic: "Anthropic" };
+  const providerLabel = providerLabels[provider] ?? "Groq";
+  const providerKeySet = provider === "openai" ? !!openaiKeySet : provider === "anthropic" ? !!anthropicKeySet : !!groqKeySet;
   const swatches = BG_COLORS.map((c) => `
     <div class="swatch${c.bg === noteBgColor ? " active" : ""}" data-bg="${c.bg}" data-text="${c.text}"
       style="background:${c.bg};border-color:${c.bg === noteBgColor ? "var(--vscode-focusBorder)" : "transparent"}" title="${c.label}">
@@ -18874,8 +18981,18 @@ function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyn
   <div class="collapse-body" id="agentBody">
     <div class="int-hint" style="margin-top:4px">Add both keys to have NoteVs start and manage the local agent server for you &mdash; no manual setup once these are set and an agent repo path is configured.</div>
 
-    <div style="font-size:12px;font-weight:600;margin:8px 0 6px;color:var(--vscode-foreground)">Groq API key</div>
-    ${groqKeySet ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Key saved</span><button class="int-btn danger" id="groqClear">Clear</button></div>` : `<div class="int-row"><input class="int-input" id="groqKeyInput" type="password" placeholder="Paste your Groq API key\u2026"/><button class="int-btn" id="groqSave">Save</button></div>`}
+    <div style="font-size:12px;font-weight:600;margin:8px 0 6px;color:var(--vscode-foreground)">LLM provider</div>
+    <div class="int-row">
+      <select class="int-input" id="llmProviderSelect" style="flex:1">
+        <option value="groq"${provider === "groq" ? " selected" : ""}>Groq</option>
+        <option value="openai"${provider === "openai" ? " selected" : ""}>OpenAI</option>
+        <option value="anthropic"${provider === "anthropic" ? " selected" : ""}>Anthropic</option>
+      </select>
+    </div>
+
+    <div style="font-size:12px;font-weight:600;margin:14px 0 6px;color:var(--vscode-foreground)">${providerLabel} API key</div>
+    ${providerKeySet ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Key saved</span><button class="int-btn danger" id="llmKeyClear">Clear</button></div>` : `<div class="int-row"><input class="int-input" id="llmKeyInput" type="password" placeholder="Paste your ${providerLabel} API key\u2026"/><button class="int-btn" id="llmKeySave">Save</button></div>`}
+    ${provider === "anthropic" ? `<div class="int-hint">Voice input needs a Groq or OpenAI key too \u2014 Anthropic doesn&rsquo;t offer speech-to-text/text-to-speech. Chat works fine without it; add either key above (switch provider, save, switch back) to also enable voice.</div>` : ""}
 
     <div style="font-size:12px;font-weight:600;margin:14px 0 6px;color:var(--vscode-foreground)">Rasa license key</div>
     ${rasaLicenseSet ? `<div class="int-row"><span class="int-status"><i class="codicon codicon-check"></i> Key saved</span><button class="int-btn danger" id="rasaClear">Clear</button></div>` : `<div class="int-row"><input class="int-input" id="rasaKeyInput" type="password" placeholder="Paste your Rasa license key\u2026"/><button class="int-btn" id="rasaSave">Save</button></div>`}
@@ -18964,10 +19081,12 @@ function settingsHtml(autoShow, noteBgColor, syncEnabled, syncUserEmail, lastSyn
     if(googleDisconnectBtn){googleDisconnectBtn.addEventListener('click',()=>vscode.postMessage({type:'disconnectGoogleTasks'}));}
 
     // \u2500\u2500 Agent credentials \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-    const groqSaveBtn=document.getElementById('groqSave');
-    if(groqSaveBtn){groqSaveBtn.addEventListener('click',()=>{const v=document.getElementById('groqKeyInput').value.trim();if(v){vscode.postMessage({type:'saveGroqKey',key:v});}});}
-    const groqClearBtn=document.getElementById('groqClear');
-    if(groqClearBtn){groqClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearGroqKey'}));}
+    const llmProviderSelect=document.getElementById('llmProviderSelect');
+    if(llmProviderSelect){llmProviderSelect.addEventListener('change',e=>vscode.postMessage({type:'setLlmProvider',value:e.target.value}));}
+    const llmKeySaveBtn=document.getElementById('llmKeySave');
+    if(llmKeySaveBtn){llmKeySaveBtn.addEventListener('click',()=>{const v=document.getElementById('llmKeyInput').value.trim();if(v){vscode.postMessage({type:'saveLlmKey',provider:'${provider}',key:v});}});}
+    const llmKeyClearBtn=document.getElementById('llmKeyClear');
+    if(llmKeyClearBtn){llmKeyClearBtn.addEventListener('click',()=>vscode.postMessage({type:'clearLlmKey',provider:'${provider}'}));}
     const rasaSaveBtn=document.getElementById('rasaSave');
     if(rasaSaveBtn){rasaSaveBtn.addEventListener('click',()=>{const v=document.getElementById('rasaKeyInput').value.trim();if(v){vscode.postMessage({type:'saveRasaLicense',key:v});}});}
     const rasaClearBtn=document.getElementById('rasaClear');
@@ -19540,7 +19659,7 @@ async function exportNotesToFolder(context) {
     return;
   }
   const isMonorepo = groups.length > 1;
-  const exportRoot = path6.join(workspacePath, ".notevs");
+  const exportRoot = path7.join(workspacePath, ".notevs");
   const label = allNotes.length + " note" + (allNotes.length !== 1 ? "s" : "");
   const confirm = await vscode7.window.showInformationMessage(
     "Export " + label + " to .notevs/ in your repo root?",
@@ -19550,19 +19669,19 @@ async function exportNotesToFolder(context) {
   if (confirm !== "Export") {
     return;
   }
-  if (!fs6.existsSync(exportRoot)) {
-    fs6.mkdirSync(exportRoot, { recursive: true });
+  if (!fs7.existsSync(exportRoot)) {
+    fs7.mkdirSync(exportRoot, { recursive: true });
   }
   const notesManifest = [];
   for (const note of allNotes) {
     const subFolder = notevsFolderName(note.folderPath ?? "", workspacePath);
-    const targetDir = path6.join(exportRoot, subFolder);
-    if (!fs6.existsSync(targetDir)) {
-      fs6.mkdirSync(targetDir, { recursive: true });
+    const targetDir = path7.join(exportRoot, subFolder);
+    if (!fs7.existsSync(targetDir)) {
+      fs7.mkdirSync(targetDir, { recursive: true });
     }
     const filename = safeNoteFilename(note.title, note.id);
     const relFile = subFolder + "/" + filename;
-    fs6.writeFileSync(path6.join(targetDir, filename), deltaToPlainText(note.content ?? ""), "utf8");
+    fs7.writeFileSync(path7.join(targetDir, filename), deltaToPlainText(note.content ?? ""), "utf8");
     notesManifest.push({
       id: note.id,
       localId: note.localId ?? "",
@@ -19591,7 +19710,7 @@ async function exportNotesToFolder(context) {
     exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
     notes: notesManifest
   };
-  fs6.writeFileSync(path6.join(exportRoot, "notes.json"), JSON.stringify(notesJson, null, 2), "utf8");
+  fs7.writeFileSync(path7.join(exportRoot, "notes.json"), JSON.stringify(notesJson, null, 2), "utf8");
   vscode7.window.showInformationMessage(
     "\u2713 Exported " + allNotes.length + " note" + (allNotes.length !== 1 ? "s" : "") + " to .notevs/",
     "Open folder"
@@ -19607,16 +19726,16 @@ async function importNotesFromFolder(context, panel) {
     vscode7.window.showWarningMessage("Open a folder first.");
     return;
   }
-  const exportRoot = path6.join(workspacePath, ".notevs");
-  if (!fs6.existsSync(exportRoot)) {
+  const exportRoot = path7.join(workspacePath, ".notevs");
+  if (!fs7.existsSync(exportRoot)) {
     vscode7.window.showWarningMessage("No .notevs/ folder found in this project root. Nothing to import.");
     return;
   }
-  const notesJsonPath = path6.join(exportRoot, "notes.json");
-  if (fs6.existsSync(notesJsonPath)) {
+  const notesJsonPath = path7.join(exportRoot, "notes.json");
+  if (fs7.existsSync(notesJsonPath)) {
     let manifest;
     try {
-      manifest = JSON.parse(fs6.readFileSync(notesJsonPath, "utf8"));
+      manifest = JSON.parse(fs7.readFileSync(notesJsonPath, "utf8"));
     } catch {
       vscode7.window.showErrorMessage(".notevs/notes.json is corrupted and cannot be read.");
       return;
@@ -19646,11 +19765,11 @@ async function importNotesFromFolder(context, panel) {
         invalid++;
         continue;
       }
-      const mdPath = path6.join(exportRoot, entry.file);
+      const mdPath = path7.join(exportRoot, entry.file);
       let content = "";
-      if (fs6.existsSync(mdPath)) {
+      if (fs7.existsSync(mdPath)) {
         try {
-          content = fs6.readFileSync(mdPath, "utf8");
+          content = fs7.readFileSync(mdPath, "utf8");
         } catch {
           invalid++;
           continue;
@@ -19659,7 +19778,7 @@ async function importNotesFromFolder(context, panel) {
       let folderPath = entry.folderPath || "";
       if (folderPath && folderPath !== workspacePath && !folderPath.startsWith(workspacePath + "/")) {
         const relSeg = exportedRoot ? folderPath.replace(exportedRoot, "").replace(/^[\/\\]/, "") : "";
-        folderPath = relSeg ? path6.join(workspacePath, relSeg) : workspacePath;
+        folderPath = relSeg ? path7.join(workspacePath, relSeg) : workspacePath;
       }
       const storedContent = entry.editorMode === "wysiwyg" ? plainTextToDelta(content) : content;
       const note = {
@@ -19725,14 +19844,14 @@ async function importNotesFromFolder(context, panel) {
     }
     return;
   }
-  const metaPath = path6.join(exportRoot, "meta.json");
-  if (!fs6.existsSync(metaPath)) {
+  const metaPath = path7.join(exportRoot, "meta.json");
+  if (!fs7.existsSync(metaPath)) {
     vscode7.window.showWarningMessage(".notevs/ found but no notes.json or meta.json inside. Not a valid NoteVs export.");
     return;
   }
   let exportMeta;
   try {
-    exportMeta = JSON.parse(fs6.readFileSync(metaPath, "utf8"));
+    exportMeta = JSON.parse(fs7.readFileSync(metaPath, "utf8"));
   } catch {
     vscode7.window.showErrorMessage(".notevs/meta.json is corrupted and cannot be read.");
     return;
@@ -19753,8 +19872,8 @@ async function importNotesFromFolder(context, panel) {
   }
   function collectMdFiles(dir) {
     const results = [];
-    for (const entry of fs6.readdirSync(dir, { withFileTypes: true })) {
-      const full = path6.join(dir, entry.name);
+    for (const entry of fs7.readdirSync(dir, { withFileTypes: true })) {
+      const full = path7.join(dir, entry.name);
       if (entry.isDirectory()) {
         results.push(...collectMdFiles(full));
       } else if (entry.isFile() && entry.name.endsWith(".md")) {
@@ -19776,7 +19895,7 @@ async function importNotesFromFolder(context, panel) {
   for (const mdFile of mdFiles) {
     let raw;
     try {
-      raw = fs6.readFileSync(mdFile, "utf8");
+      raw = fs7.readFileSync(mdFile, "utf8");
     } catch {
       invalidV1++;
       continue;
@@ -19814,7 +19933,7 @@ async function importNotesFromFolder(context, panel) {
     let folderPath = fField("folderPath") || "";
     if (folderPath && folderPath !== workspacePath && !folderPath.startsWith(workspacePath + "/")) {
       const rel = exportedRootV1 ? folderPath.replace(exportedRootV1, "").replace(/^[\/\\]/, "") : "";
-      folderPath = rel ? path6.join(workspacePath, rel) : workspacePath;
+      folderPath = rel ? path7.join(workspacePath, rel) : workspacePath;
     }
     writeLocalNote2(context, {
       id,
@@ -20458,7 +20577,9 @@ async function activate(context) {
             const googleConn = await isGoogleTasksConnected(secrets);
             const groqSet = !!await secrets.get("groqApiKey");
             const rasaSet = !!await secrets.get("rasaLicense");
-            webviewView.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath, config.get("notionAutoSync", false), todoistConn, googleConn, groqSet, rasaSet);
+            const openaiSet = !!await secrets.get("openaiApiKey");
+            const anthropicSet = !!await secrets.get("anthropicApiKey");
+            webviewView.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), syncEnabledSettings, syncUserEmailSettings, lastSyncAtSettings, notionConnectedSettings, obsStatus.apiKey, obsStatus.vaultPath, config.get("notionAutoSync", false), todoistConn, googleConn, groqSet, rasaSet, config.get("llmProvider", "groq"), openaiSet, anthropicSet);
             break;
           }
           case "saveNotionToken": {
@@ -20568,25 +20689,39 @@ async function activate(context) {
             vscode7.window.showInformationMessage("Google Tasks disconnected.");
             break;
           }
-          case "saveGroqKey": {
+          case "saveLlmKey": {
+            const providerA1 = msg.provider === "openai" || msg.provider === "anthropic" ? msg.provider : "groq";
+            const secretKeyA1 = providerA1 === "openai" ? "openaiApiKey" : providerA1 === "anthropic" ? "anthropicApiKey" : "groqApiKey";
             if (msg.key) {
-              await secrets.store("groqApiKey", msg.key.trim());
+              await secrets.store(secretKeyA1, msg.key.trim());
             }
             const cfgA1 = vscode7.workspace.getConfiguration("notevs");
             const obsA1 = await getObsidianStatus(secrets, context.globalState);
             const todoistA1 = await hasTodoistToken(secrets);
             const googleA1 = await isGoogleTasksConnected(secrets);
-            webviewView.webview.html = settingsHtml(cfgA1.get("autoShow", true), cfgA1.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsA1.apiKey, obsA1.vaultPath, cfgA1.get("notionAutoSync", false), todoistA1, googleA1, true, !!await secrets.get("rasaLicense"));
-            vscode7.window.showInformationMessage("Groq API key saved.");
+            webviewView.webview.html = settingsHtml(cfgA1.get("autoShow", true), cfgA1.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsA1.apiKey, obsA1.vaultPath, cfgA1.get("notionAutoSync", false), todoistA1, googleA1, !!await secrets.get("groqApiKey"), !!await secrets.get("rasaLicense"), cfgA1.get("llmProvider", "groq"), !!await secrets.get("openaiApiKey"), !!await secrets.get("anthropicApiKey"));
+            vscode7.window.showInformationMessage(`${providerA1 === "openai" ? "OpenAI" : providerA1 === "anthropic" ? "Anthropic" : "Groq"} API key saved.`);
             break;
           }
-          case "clearGroqKey": {
-            await secrets.delete("groqApiKey");
+          case "clearLlmKey": {
+            const providerA2 = msg.provider === "openai" || msg.provider === "anthropic" ? msg.provider : "groq";
+            const secretKeyA2 = providerA2 === "openai" ? "openaiApiKey" : providerA2 === "anthropic" ? "anthropicApiKey" : "groqApiKey";
+            await secrets.delete(secretKeyA2);
             const cfgA2 = vscode7.workspace.getConfiguration("notevs");
             const obsA2 = await getObsidianStatus(secrets, context.globalState);
             const todoistA2 = await hasTodoistToken(secrets);
             const googleA2 = await isGoogleTasksConnected(secrets);
-            webviewView.webview.html = settingsHtml(cfgA2.get("autoShow", true), cfgA2.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsA2.apiKey, obsA2.vaultPath, cfgA2.get("notionAutoSync", false), todoistA2, googleA2, false, !!await secrets.get("rasaLicense"));
+            webviewView.webview.html = settingsHtml(cfgA2.get("autoShow", true), cfgA2.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsA2.apiKey, obsA2.vaultPath, cfgA2.get("notionAutoSync", false), todoistA2, googleA2, !!await secrets.get("groqApiKey"), !!await secrets.get("rasaLicense"), cfgA2.get("llmProvider", "groq"), !!await secrets.get("openaiApiKey"), !!await secrets.get("anthropicApiKey"));
+            break;
+          }
+          case "setLlmProvider": {
+            const cfgA5 = vscode7.workspace.getConfiguration("notevs");
+            const newProvider = msg.value === "openai" || msg.value === "anthropic" ? msg.value : "groq";
+            await cfgA5.update("llmProvider", newProvider, vscode7.ConfigurationTarget.Global);
+            const obsA5 = await getObsidianStatus(secrets, context.globalState);
+            const todoistA5 = await hasTodoistToken(secrets);
+            const googleA5 = await isGoogleTasksConnected(secrets);
+            webviewView.webview.html = settingsHtml(cfgA5.get("autoShow", true), cfgA5.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsA5.apiKey, obsA5.vaultPath, cfgA5.get("notionAutoSync", false), todoistA5, googleA5, !!await secrets.get("groqApiKey"), !!await secrets.get("rasaLicense"), newProvider, !!await secrets.get("openaiApiKey"), !!await secrets.get("anthropicApiKey"));
             break;
           }
           case "saveRasaLicense": {
@@ -20597,7 +20732,7 @@ async function activate(context) {
             const obsA3 = await getObsidianStatus(secrets, context.globalState);
             const todoistA3 = await hasTodoistToken(secrets);
             const googleA3 = await isGoogleTasksConnected(secrets);
-            webviewView.webview.html = settingsHtml(cfgA3.get("autoShow", true), cfgA3.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsA3.apiKey, obsA3.vaultPath, cfgA3.get("notionAutoSync", false), todoistA3, googleA3, !!await secrets.get("groqApiKey"), true);
+            webviewView.webview.html = settingsHtml(cfgA3.get("autoShow", true), cfgA3.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsA3.apiKey, obsA3.vaultPath, cfgA3.get("notionAutoSync", false), todoistA3, googleA3, !!await secrets.get("groqApiKey"), true, cfgA3.get("llmProvider", "groq"), !!await secrets.get("openaiApiKey"), !!await secrets.get("anthropicApiKey"));
             vscode7.window.showInformationMessage("Rasa license key saved.");
             break;
           }
@@ -20607,7 +20742,7 @@ async function activate(context) {
             const obsA4 = await getObsidianStatus(secrets, context.globalState);
             const todoistA4 = await hasTodoistToken(secrets);
             const googleA4 = await isGoogleTasksConnected(secrets);
-            webviewView.webview.html = settingsHtml(cfgA4.get("autoShow", true), cfgA4.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsA4.apiKey, obsA4.vaultPath, cfgA4.get("notionAutoSync", false), todoistA4, googleA4, !!await secrets.get("groqApiKey"), false);
+            webviewView.webview.html = settingsHtml(cfgA4.get("autoShow", true), cfgA4.get("noteBgColor", "#1e1e1e"), false, null, null, await hasNotionToken(secrets), obsA4.apiKey, obsA4.vaultPath, cfgA4.get("notionAutoSync", false), todoistA4, googleA4, !!await secrets.get("groqApiKey"), false, cfgA4.get("llmProvider", "groq"), !!await secrets.get("openaiApiKey"), !!await secrets.get("anthropicApiKey"));
             break;
           }
           case "openExternal": {
@@ -21021,29 +21156,29 @@ ${preview}`);
     await runAnnotate(docUri, selection);
   }));
   async function installGitHook(folderPath) {
-    const fs7 = require("fs");
+    const fs8 = require("fs");
     const pathMod = require("path");
     const hookDir = pathMod.join(folderPath, ".git", "hooks");
     const hookPath = pathMod.join(hookDir, "pre-commit");
-    if (!fs7.existsSync(pathMod.join(folderPath, ".git"))) {
+    if (!fs8.existsSync(pathMod.join(folderPath, ".git"))) {
       return;
     }
-    if (!fs7.existsSync(hookDir)) {
-      fs7.mkdirSync(hookDir, { recursive: true });
+    if (!fs8.existsSync(hookDir)) {
+      fs8.mkdirSync(hookDir, { recursive: true });
     }
     const hookScript = ["#!/bin/sh", "# NoteNest pre-commit check \u2014 auto-installed by NoteNest VS Code extension", 'NOTENEST_PROJECT_CONFIG=".notenest/config.json"', 'NOTENEST_HOME_CONFIG="$HOME/.notenest/tokens.json"', 'if [ ! -f "$NOTENEST_PROJECT_CONFIG" ] || [ ! -f "$NOTENEST_HOME_CONFIG" ]; then exit 0; fi', "exit 0"].join("\n");
-    if (fs7.existsSync(hookPath)) {
-      const existing = fs7.readFileSync(hookPath, "utf8");
+    if (fs8.existsSync(hookPath)) {
+      const existing = fs8.readFileSync(hookPath, "utf8");
       if (!existing.includes("NoteNest")) {
-        fs7.writeFileSync(hookPath, existing.trimEnd() + "\n\n" + hookScript);
+        fs8.writeFileSync(hookPath, existing.trimEnd() + "\n\n" + hookScript);
       }
     } else {
-      fs7.writeFileSync(hookPath, hookScript);
+      fs8.writeFileSync(hookPath, hookScript);
     }
-    fs7.chmodSync(hookPath, "755");
+    fs8.chmodSync(hookPath, "755");
   }
   async function writeNoteNestConfig(folderPath) {
-    const fs7 = require("fs");
+    const fs8 = require("fs");
     const pathMod = require("path");
     const os2 = require("os");
     const { accessToken, refreshToken } = await getTokens(secrets);
@@ -21051,23 +21186,23 @@ ${preview}`);
       return;
     }
     const homeConfigDir = pathMod.join(os2.homedir(), ".notenest");
-    if (!fs7.existsSync(homeConfigDir)) {
-      fs7.mkdirSync(homeConfigDir, { recursive: true });
+    if (!fs8.existsSync(homeConfigDir)) {
+      fs8.mkdirSync(homeConfigDir, { recursive: true });
     }
-    fs7.writeFileSync(pathMod.join(homeConfigDir, "tokens.json"), JSON.stringify({ apiUrl: getApiUrl(), refreshToken: refreshToken || "" }, null, 2), { mode: 384 });
+    fs8.writeFileSync(pathMod.join(homeConfigDir, "tokens.json"), JSON.stringify({ apiUrl: getApiUrl(), refreshToken: refreshToken || "" }, null, 2), { mode: 384 });
     const projectConfigDir = pathMod.join(folderPath, ".notenest");
-    if (!fs7.existsSync(projectConfigDir)) {
-      fs7.mkdirSync(projectConfigDir, { recursive: true });
+    if (!fs8.existsSync(projectConfigDir)) {
+      fs8.mkdirSync(projectConfigDir, { recursive: true });
     }
-    fs7.writeFileSync(pathMod.join(projectConfigDir, "config.json"), JSON.stringify({ folderPath }, null, 2));
+    fs8.writeFileSync(pathMod.join(projectConfigDir, "config.json"), JSON.stringify({ folderPath }, null, 2));
     const gitignorePath = pathMod.join(folderPath, ".gitignore");
-    if (fs7.existsSync(gitignorePath)) {
-      const gi = fs7.readFileSync(gitignorePath, "utf8");
+    if (fs8.existsSync(gitignorePath)) {
+      const gi = fs8.readFileSync(gitignorePath, "utf8");
       if (!gi.includes(".notenest")) {
-        fs7.appendFileSync(gitignorePath, "\n# NoteNest (local only)\n.notenest/\n");
+        fs8.appendFileSync(gitignorePath, "\n# NoteNest (local only)\n.notenest/\n");
       }
     } else {
-      fs7.writeFileSync(gitignorePath, "# NoteNest (local only)\n.notenest/\n");
+      fs8.writeFileSync(gitignorePath, "# NoteNest (local only)\n.notenest/\n");
     }
   }
   const currentFolder = getFolderPath();
@@ -21110,7 +21245,9 @@ ${preview}`);
         const googleConn = await isGoogleTasksConnected(secrets);
         const groqSet = !!await secrets.get("groqApiKey");
         const rasaSet = !!await secrets.get("rasaLicense");
-        panel.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), false, null, null, notionConn, obsStatus.apiKey, obsStatus.vaultPath, config.get("notionAutoSync", false), todoistConn, googleConn, groqSet, rasaSet);
+        const openaiSet = !!await secrets.get("openaiApiKey");
+        const anthropicSet = !!await secrets.get("anthropicApiKey");
+        panel.webview.html = settingsHtml(config.get("autoShow", true), config.get("noteBgColor", "#1e1e1e"), false, null, null, notionConn, obsStatus.apiKey, obsStatus.vaultPath, config.get("notionAutoSync", false), todoistConn, googleConn, groqSet, rasaSet, config.get("llmProvider", "groq"), openaiSet, anthropicSet);
       }
     })
   );

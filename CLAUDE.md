@@ -37,8 +37,11 @@ src/
                       the local Rasa server (notevs.agentUrl) and to /health for status
   agentPanelHtml.ts ← HTML/CSS/JS for the agent chat panel (status pill, thinking state,
                       confirmation cards)
-  agentProcess.ts  ← Fully automates the local Rasa server: once groqApiKey + rasaLicense
-                      secrets are both set (Settings → Agent), extracts
+  agentProcess.ts  ← Fully automates the local Rasa server: once an LLM provider's key
+                      (notevs.llmProvider — groq/openai/anthropic, default groq; secret
+                      names groqApiKey/openaiApiKey/anthropicApiKey respectively — LLM_PROVIDERS
+                      map has the secret key, api_key_env name, and default model per
+                      provider) and rasaLicense are both set (Settings → Agent), extracts
                       resources/rasa-agent-template into global storage (re-synced every
                       start so template changes never go stale), creates/revalidates a
                       Python 3.10-3.13 venv, pip-installs rasa-pro (once, with --pre since
@@ -63,6 +66,34 @@ src/
                       notevs_tools.py — so a shared global agent process is never needed
                       to get correct per-project results. notevs.agentRepoPath is an
                       optional override.
+                      writeLlmConfig() rewrites the managed folder's integrations.yml
+                      llm: block on every start (from LLM_PROVIDERS + notevs.llmProvider),
+                      after ensureExtracted's cpSync — the template's own static llm:
+                      block is only ever a placeholder for what a fresh extract looks
+                      like, always overwritten (2026-09-02: confirmed against the
+                      installed rasa-pro package that provider: groq was never
+                      first-class — it already went through the same generic LiteLLM
+                      passthrough provider: openai/anthropic use, so multi-provider
+                      support was a config-only limitation, not an engine one).
+  voice.ts         ← Push-to-talk voice for the agent chat panel. VS Code webviews can't
+                      access the mic (Chromium's getUserMedia is hard-blocked, no opt-in —
+                      microsoft/vscode#113916/#250568), so recording runs in the extension
+                      host via `audify` (native RtAudio bindings), lazy-loaded only inside
+                      start() so a missing/broken binary can't take down the whole
+                      extension. STT/TTS go through Groq or OpenAI (both have compatible
+                      Whisper-shaped speech APIs — see VoiceProvider/resolveVoiceCredentials
+                      in agentPanel.ts, which is independent of notevs.llmProvider since
+                      Anthropic has no speech API at all), not Rasa's
+                      own voice_stream/inspector channel (deliberately — see
+                      integrations.yml's note above). Records at whatever sample rate the
+                      input device itself reports supporting (queried via
+                      RtAudio.getDevices()), not a hardcoded rate — confirmed live
+                      2026-09-02 that forcing 16kHz crashes on devices that don't list it
+                      as supported (RtAudio Error 10, kAudioHardwareUnspecifiedError).
+                      applyPlatformBinary() copies the right platform's prebuilt binary
+                      from resources/audify-prebuilds/ into node_modules/audify's own
+                      build/Release/ before every start() — see that folder's own note
+                      below for why this is necessary at all.
 resources/
   rasa-agent-template/ ← Bundled copy of the rasa-notevs-agent project, on the Maestro
                       (calm_v2) skills architecture as of 2026-08-17 — Rasa renamed this
@@ -104,6 +135,18 @@ resources/
                       sync with the standalone ../../rasa-notevs-agent
                       repo (the Rasa Heroes submission source of truth) when either
                       changes.
+  audify-prebuilds/ ← Prebuilt native voice binaries for every supported platform+arch
+                      (darwin-arm64, darwin-x64, win32-x64, linux-x64, linux-arm64;
+                      napi-v8) — see voice.ts's applyPlatformBinary(). A published .vsix
+                      is built once on one machine and shipped as-is; end users never run
+                      `npm install`, so without this bundle only that one build machine's
+                      platform ever gets working voice (this is exactly what shipped
+                      through 0.18.0 — darwin-arm64 only). Regenerate with
+                      `npm run fetch:audify-prebuilds` (scripts/fetch-audify-prebuilds.js)
+                      after bumping audify's version in package.json, or to add a
+                      platform. Not supported at all (no upstream audify prebuild exists):
+                      Windows on ARM. Checked into git like any other bundled resource —
+                      ~8MB total, no network access needed for a normal build/package.
 dist/
   extension.js     ← Built output (never edit this directly)
   mcp-bridge.cjs   ← Compiled stdio bridge

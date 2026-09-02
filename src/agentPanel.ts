@@ -35,7 +35,24 @@ import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { agentChatHtml } from './agentPanelHtml';
 import type { AgentProcessManager } from './agentProcess';
-import { VoiceRecorder, transcribeAudio, synthesizeSpeech } from './voice';
+import { VoiceRecorder, transcribeAudio, synthesizeSpeech, type VoiceProvider } from './voice';
+
+// Voice needs its own provider resolution, separate from notevs.llmProvider
+// (the chat LLM) — Anthropic has no speech API at all, so "whatever the
+// chat provider is" can't be the answer here. Prefers a key matching the
+// chosen chat provider (no extra setup for Groq/OpenAI users), then falls
+// back to whichever audio-capable key is separately stored (covers
+// Anthropic users who added a Groq/OpenAI key just for voice — see the
+// Settings → Agent hint for that provider).
+async function resolveVoiceCredentials(context: vscode.ExtensionContext): Promise<{ provider: VoiceProvider; apiKey: string } | undefined> {
+  const chatProvider = vscode.workspace.getConfiguration('notevs').get<string>('llmProvider', 'groq');
+  const order: VoiceProvider[] = chatProvider === 'openai' ? ['openai', 'groq'] : ['groq', 'openai'];
+  for (const provider of order) {
+    const apiKey = await context.secrets.get(provider === 'openai' ? 'openaiApiKey' : 'groqApiKey');
+    if (apiKey) { return { provider, apiKey }; }
+  }
+  return undefined;
+}
 
 interface RasaBotMessage {
   text?: string;
@@ -248,10 +265,10 @@ export function registerAgentChatCommand(
     if (!agentPanel) { return; }
     const text = messages.map((m) => m.text).filter(Boolean).join(' ');
     if (!text) { return; }
-    const apiKey = await context.secrets.get('groqApiKey');
-    if (!apiKey) { return; }
+    const voiceCreds = await resolveVoiceCredentials(context);
+    if (!voiceCreds) { return; }
     try {
-      const dataUri = await synthesizeSpeech(text, apiKey);
+      const dataUri = await synthesizeSpeech(text, voiceCreds.apiKey, voiceCreds.provider);
       agentPanel.webview.postMessage({ type: 'ttsAudio', dataUri });
     } catch (err) {
       console.error('[NoteVs Agent] TTS synthesis failed:', err);
@@ -479,7 +496,7 @@ export function registerAgentChatCommand(
       }
       if (msg.type === 'startRecording') {
         try {
-          voiceRecorder.start();
+          voiceRecorder.start(context.extensionUri.fsPath);
           agentPanel?.webview.postMessage({ type: 'recordingState', recording: true });
         } catch (err) {
           agentPanel?.webview.postMessage({
@@ -494,16 +511,16 @@ export function registerAgentChatCommand(
         agentPanel?.webview.postMessage({ type: 'recordingState', recording: false });
         const wav = voiceRecorder.stop();
         if (!wav) { return; }
-        const apiKey = await context.secrets.get('groqApiKey');
-        if (!apiKey) {
+        const voiceCreds = await resolveVoiceCredentials(context);
+        if (!voiceCreds) {
           agentPanel?.webview.postMessage({
             type: 'botMessages',
-            messages: [{ text: 'Voice needs a Groq API key — add one in NoteVs Settings → Agent, same key the agent already uses.' }],
+            messages: [{ text: 'Voice needs a Groq or OpenAI API key — add one in NoteVs Settings → Agent (Anthropic doesn’t offer speech APIs, so if that’s your chosen provider, add a Groq or OpenAI key there too, just for voice).' }],
           });
           return;
         }
         try {
-          const text = await transcribeAudio(wav, apiKey);
+          const text = await transcribeAudio(wav, voiceCreds.apiKey, voiceCreds.provider);
           if (text) {
             // Typed messages get their bubble added optimistically by the
             // webview's own send() before it posts sendMessage — voice has
