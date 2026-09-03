@@ -34,7 +34,36 @@ src/
   taskIntegrations.ts ← Todoist + Google Tasks OAuth + task creation (UI-driven, used by editor)
   integrations.ts  ← Notion + Obsidian export helpers (used by both editor and MCP server)
   agentPanel.ts    ← WebviewPanel for the NoteVs Agent chat (notevs.openAgentChat); talks to
-                      the local Rasa server (notevs.agentUrl) and to /health for status
+                      the local Rasa server (notevs.agentUrl) and to /health for status.
+                      primeSessionWhenReady() works around a real dev-build defect (confirmed
+                      by reading rasa/calm_v2/default_skills/default_session_start/skill.md —
+                      its only step is a generic utter_greet, marked rephrase: true, so an
+                      LLM asked to rephrase it in the context of the user's actual first
+                      message can produce something that reads like it's answering that
+                      message while it never reached a real skill or called a tool) by
+                      silently sending a throwaway 'hello' the moment any session starts
+                      (new chat, resumed chat, panel reopen) so the user's real first message
+                      is always turn 2+. As of 2026-09-02 this fully blocks the input (the
+                      same 'thinking' state a normal send uses) for the duration of that
+                      priming call instead of racing it against a bounded wait — the earlier
+                      version could still lose that race if the user typed fast enough.
+                      manageThinkingUI=false is passed from handleUserText's own bounded-wait
+                      fallback specifically so priming's completion mid-send can't prematurely
+                      re-enable the input while that real request is still in flight — don't
+                      remove that guard when touching this. A resumed past chat re-verifies
+                      unconditionally too, rather than trusting a stored senderId as "already
+                      primed" forever (Rasa's own server-side session for it can have expired
+                      independently of anything the client remembers) — showGreeting=false
+                      there so a surprise greeting bubble doesn't get spliced into restored
+                      history. The priming turn's own reply can come back empty on a 200 —
+                      confirmed live as an LLM provider rate limit killing that turn
+                      server-side (calm_v2.turn.failed) — without that meaning priming
+                      failed: Rasa's tracker treats the session-start flow as done once run,
+                      error or not, so the next real message still routes correctly either
+                      way. Falls back to a plain locally-authored greeting line in that case
+                      rather than retrying (a retry could hit the same rate limit) or showing
+                      nothing (confirmed live as the actual gap — the "always greet" fix
+                      technically working with nothing visible to show for it).
   agentPanelHtml.ts ← HTML/CSS/JS for the agent chat panel (status pill, thinking state,
                       confirmation cards)
   agentProcess.ts  ← Fully automates the local Rasa server: once an LLM provider's key

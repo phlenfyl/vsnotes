@@ -246,6 +246,12 @@ export function agentChatHtml(projectName: string): string {
     '});' +
   '}' +
   'function send(){' +
+    // sendBtn.disabled already blocks the click path (a disabled button
+    // doesn't fire click events), but the Enter-key handler below calls
+    // send() directly, bypassing that — this guard is what makes
+    // "thinking"/priming actually block sending rather than just visually
+    // look like it does.
+    'if(sendBtn.disabled) return;' +
     'const text = inputEl.value.trim();' +
     'if(!text) return;' +
     'addMsg(text, "user");' +

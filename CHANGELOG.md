@@ -2,6 +2,16 @@
 
 All notable changes to NoteVs will be documented here.
 
+## [0.20.2] - 2026-09-02
+
+### Fixed
+- **New chat sometimes showed no greeting at all** — the greeting step introduced in 0.20.1 could silently come back empty if the LLM provider rate-limited that one request (confirmed live), leaving the chat looking like nothing happened even though it had actually finished successfully and your next message would work fine. Now falls back to a plain "Hi! How can I help you today?" instead of showing nothing
+
+## [0.20.1] - 2026-09-02
+
+### Fixed
+- **Agent sometimes just echoed your first message back instead of answering it** — a brand-new (or resumed) chat's very first message could race against the agent's own startup-greeting step and get swallowed by it instead of reaching the real skill that would look up your notes. The input now stays disabled — with the same "thinking" indicator as a normal send — for the moment it takes the agent to greet you at the start of every chat, so your first real message is never in that race to begin with. Reopening/resuming a past chat is covered too, silently (no extra greeting bubble spliced into old history)
+
 ## [0.20.0] - 2026-09-02
 
 ### Added

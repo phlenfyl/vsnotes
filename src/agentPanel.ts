@@ -203,9 +203,20 @@ export function registerAgentChatCommand(
   // so handleUserText can await it (bounded — see there) instead of
   // racing a real user message against the priming request and
   // potentially eating the same swallowed-first-turn bug itself.
-  function primeSessionWhenReady(): Promise<void> {
+  // Disables the input for the actual duration of priming (via the same
+  // 'thinking' message the normal send flow uses) rather than just hoping
+  // it finishes before the user types — this is what makes priming a real
+  // guarantee instead of a race handleUserText's bounded wait only ever
+  // reduced the odds of, never eliminated. Only posted around a genuinely
+  // fresh priming run (guarded by the primingPromise dedup below), not on
+  // every call — a call that short-circuits because priming is already
+  // done, or already in flight from an earlier caller, must not re-toggle
+  // (or worse, re-clear) a 'thinking' state some *other* in-flight
+  // operation (e.g. a real send) may currently own.
+  function primeSessionWhenReady(showGreeting = true, manageThinkingUI = true): Promise<void> {
     if (sessionPrimed) { return Promise.resolve(); }
     if (primingPromise) { return primingPromise; }
+    if (manageThinkingUI) { agentPanel?.webview.postMessage({ type: 'thinking', value: true }); }
     primingPromise = (async () => {
       while (agentPanel && !sessionPrimed) {
         if (await checkRasaStatus()) {
@@ -219,9 +230,33 @@ export function registerAgentChatCommand(
             // the agent is actually alive before they've typed a word.
             // Shown once per actual rasa run/train cycle (sessionPrimed
             // resets on restart below), not once per panel open/close.
-            if (agentPanel && messages.length) {
-              agentPanel.webview.postMessage({ type: 'botMessages', messages });
-              recordBotMessages(messages);
+            // Suppressed for a resumed past chat (showGreeting=false):
+            // there, this priming call exists purely to re-verify the
+            // session is still alive server-side (Rasa's own session can
+            // have expired independently of our client-side memory of it
+            // — this used to be assumed fine from a stored senderId alone,
+            // which is exactly how a resumed chat could still hit the
+            // swallowed-first-turn bug), not to greet — a surprise "Hi, how
+            // can I help?" bubble spliced into restored history would just
+            // be confusing, whether or not the session had actually expired.
+            //
+            // messages can come back empty even on a 200 response — that's
+            // what a failed turn looks like from the REST channel's side
+            // (confirmed live: an LLM provider rate limit killed the
+            // priming turn itself, calm_v2.turn.failed in the Output
+            // channel, HTTP 200 with []). The session still ends up
+            // correctly primed either way (Rasa's tracker treats the
+            // session-start flow as done once it's been run, error or not
+            // — confirmed live too, the next real message routed straight
+            // to the real skill), so it would be wrong to retry/block
+            // longer here; the only actual gap is the user seeing nothing.
+            // A locally-authored fallback line closes that gap without
+            // depending on a second LLM round-trip that could just as
+            // easily hit the same rate limit again.
+            if (showGreeting && agentPanel) {
+              const greetingMessages = messages.length ? messages : [{ text: 'Hi! How can I help you today?' }];
+              agentPanel.webview.postMessage({ type: 'botMessages', messages: greetingMessages });
+              recordBotMessages(greetingMessages);
               persistTranscript();
             }
           } catch {
@@ -231,6 +266,7 @@ export function registerAgentChatCommand(
         if (!sessionPrimed) { await new Promise((resolve) => setTimeout(resolve, 3000)); }
       }
       primingPromise = null;
+      if (manageThinkingUI) { agentPanel?.webview.postMessage({ type: 'thinking', value: false }); }
     })();
     return primingPromise;
   }
@@ -278,11 +314,21 @@ export function registerAgentChatCommand(
   async function handleUserText(text: string, viaVoice = false) {
     if (!agentPanel) { return; }
     agentPanel.webview.postMessage({ type: 'thinking', value: true });
-    // Bounded wait, not indefinite: if the agent still isn't reachable
-    // after 8s (still installing, crashed, etc.) fall through and let the
-    // real send below fail/succeed on its own via the normal error path,
-    // rather than hanging the whole chat on a session that may never prime.
-    await Promise.race([primeSessionWhenReady(), new Promise((resolve) => setTimeout(resolve, 8000))]);
+    // manageThinkingUI=false: this function already owns the 'thinking'
+    // state for the whole operation (set above, cleared in the finally
+    // below) — if primeSessionWhenReady also toggled it, its own
+    // completion partway through this await would prematurely flip the
+    // send button back on while the real request below is still in
+    // flight. Bounded wait, not indefinite: if the agent still isn't
+    // reachable after 8s (still installing, crashed, etc.) fall through
+    // and let the real send below fail/succeed on its own via the normal
+    // error path, rather than hanging the whole chat on a session that
+    // may never prime. In practice this path is now a pure safety net —
+    // every place a chat session actually starts (new chat, resumed chat,
+    // panel open) already awaits priming with the input disabled before
+    // the user can type at all, so hitting this mid-send race should be
+    // rare rather than the primary defense it used to be.
+    await Promise.race([primeSessionWhenReady(true, false), new Promise((resolve) => setTimeout(resolve, 8000))]);
     recordUserMessage(text);
     try {
       const messages = await sendToRasa(senderId, text);
@@ -400,8 +446,18 @@ export function registerAgentChatCommand(
     transcript = result.entries;
     currentHistoryFile = file;
     if (result.senderId) {
+      // Not assumed already-primed just because it was primed at some
+      // point in the past: Rasa's own server-side session for this
+      // senderId can have expired independently of anything this client
+      // remembers (a restart, retrain, or its own session_expiration
+      // timeout) — treating a stale assumption as ground truth here was
+      // exactly how a resumed chat could still hit the swallowed-first-turn
+      // bug. Re-verify every time; showGreeting=false since a surprise
+      // "Hi, how can I help?" bubble spliced into restored history would
+      // just be confusing, whether or not the session had actually expired.
       senderId = result.senderId;
-      sessionPrimed = true;
+      sessionPrimed = false;
+      void primeSessionWhenReady(false);
     } else {
       senderId = randomUUID();
       sessionPrimed = false;
