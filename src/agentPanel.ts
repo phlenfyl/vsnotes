@@ -181,109 +181,33 @@ export function registerAgentChatCommand(
     }
   }
 
-  // Maestro (calm_v2) gap confirmed empirically on 2026-08-17: the first
-  // message of a brand-new session is entirely consumed by the automatic
-  // `default_session_start__main` turn — it produces the canned greeting
-  // and never routes the message's actual text to a skill at all. Message
-  // #2+ in the same session routes correctly. Workaround: silently send a
-  // one-off throwaway message the moment the agent comes online, before
-  // the user has typed anything, so their real first message is already
-  // turn 2 by the time it's sent. sessionPrimed resets on failure so a
-  // flaky first attempt (agent reports running slightly before it's
-  // actually accepting requests) retries on the next status poll instead
-  // of leaving the session cold for the rest of the panel's lifetime.
-  let sessionPrimed = false;
-  let primingPromise: Promise<void> | null = null;
-  // Self-scheduling rather than piggybacking on postStatus()'s poll
-  // cadence — postStatus only re-runs on specific events (webview ready,
-  // an agentProcessManager phase change, after a chat turn), not on a
-  // steady interval, so if Rasa becomes reachable in between those it
-  // could otherwise go unprimed for the rest of the panel's lifetime.
-  // Returns a shared in-flight promise rather than firing-and-forgetting,
-  // so handleUserText can await it (bounded — see there) instead of
-  // racing a real user message against the priming request and
-  // potentially eating the same swallowed-first-turn bug itself.
-  // Disables the input for the actual duration of priming (via the same
-  // 'thinking' message the normal send flow uses) rather than just hoping
-  // it finishes before the user types — this is what makes priming a real
-  // guarantee instead of a race handleUserText's bounded wait only ever
-  // reduced the odds of, never eliminated. Only posted around a genuinely
-  // fresh priming run (guarded by the primingPromise dedup below), not on
-  // every call — a call that short-circuits because priming is already
-  // done, or already in flight from an earlier caller, must not re-toggle
-  // (or worse, re-clear) a 'thinking' state some *other* in-flight
-  // operation (e.g. a real send) may currently own.
-  function primeSessionWhenReady(showGreeting = true, manageThinkingUI = true): Promise<void> {
-    if (sessionPrimed) { return Promise.resolve(); }
-    if (primingPromise) { return primingPromise; }
-    if (manageThinkingUI) { agentPanel?.webview.postMessage({ type: 'thinking', value: true }); }
-    primingPromise = (async () => {
-      while (agentPanel && !sessionPrimed) {
-        if (await checkRasaStatus()) {
-          try {
-            const messages = await sendToRasa(senderId, 'hello');
-            sessionPrimed = true;
-            // Surface the swallowed-turn's own greeting instead of just
-            // discarding it — it's a real reply from the agent (rephrased
-            // per its persona), so showing it as the first bubble the user
-            // sees is more honest than silently eating it, and confirms
-            // the agent is actually alive before they've typed a word.
-            // Shown once per actual rasa run/train cycle (sessionPrimed
-            // resets on restart below), not once per panel open/close.
-            // Suppressed for a resumed past chat (showGreeting=false):
-            // there, this priming call exists purely to re-verify the
-            // session is still alive server-side (Rasa's own session can
-            // have expired independently of our client-side memory of it
-            // — this used to be assumed fine from a stored senderId alone,
-            // which is exactly how a resumed chat could still hit the
-            // swallowed-first-turn bug), not to greet — a surprise "Hi, how
-            // can I help?" bubble spliced into restored history would just
-            // be confusing, whether or not the session had actually expired.
-            //
-            // messages can come back empty even on a 200 response — that's
-            // what a failed turn looks like from the REST channel's side
-            // (confirmed live: an LLM provider rate limit killed the
-            // priming turn itself, calm_v2.turn.failed in the Output
-            // channel, HTTP 200 with []). The session still ends up
-            // correctly primed either way (Rasa's tracker treats the
-            // session-start flow as done once it's been run, error or not
-            // — confirmed live too, the next real message routed straight
-            // to the real skill), so it would be wrong to retry/block
-            // longer here; the only actual gap is the user seeing nothing.
-            // A locally-authored fallback line closes that gap without
-            // depending on a second LLM round-trip that could just as
-            // easily hit the same rate limit again.
-            if (showGreeting && agentPanel) {
-              const greetingMessages = messages.length ? messages : [{ text: 'Hi! How can I help you today?' }];
-              agentPanel.webview.postMessage({ type: 'botMessages', messages: greetingMessages });
-              recordBotMessages(greetingMessages);
-              persistTranscript();
-            }
-          } catch {
-            // transient — fall through to the retry delay below
-          }
-        }
-        if (!sessionPrimed) { await new Promise((resolve) => setTimeout(resolve, 3000)); }
-      }
-      primingPromise = null;
-      if (manageThinkingUI) { agentPanel?.webview.postMessage({ type: 'thinking', value: false }); }
-    })();
-    return primingPromise;
+  // Superseded 2026-09-04: the swallowed-first-turn bug this used to work
+  // around (default_session_start consuming the user's real first message)
+  // is fixed at the source now — resources/rasa-agent-template/skills/
+  // default_session_start/skill.md overrides Rasa's bundled version with a
+  // noop step, confirmed live (rasa inspect --debug + a direct unprimed
+  // REST call) to let the very first real message reach the right skill
+  // in the same turn, no priming needed. What replaced this: a purely
+  // local, one-time "Hi! How can I help you today?" shown the first time
+  // this user ever opens the agent panel (see maybeShowFirstEverGreeting
+  // below) — same spirit as notevs.firstRunComplete for the main welcome
+  // screen, just for the agent chat specifically. That's a UX nicety, not
+  // a workaround: every session, first or not, now goes straight to real
+  // skill handling regardless of whether this greeting shows.
+  const AGENT_GREETED_KEY = 'notevs.agentGreeted';
+  async function maybeShowFirstEverGreeting(): Promise<void> {
+    if (!agentPanel) { return; }
+    if (context.globalState.get<boolean>(AGENT_GREETED_KEY, false)) { return; }
+    const greeting: RasaBotMessage[] = [{ text: 'Hi! How can I help you today?' }];
+    agentPanel.webview.postMessage({ type: 'botMessages', messages: greeting });
+    recordBotMessages(greeting);
+    persistTranscript();
+    await context.globalState.update(AGENT_GREETED_KEY, true);
   }
-
-  let lastPhase: string | undefined;
 
   async function postStatus() {
     if (!agentPanel) { return; }
     const pipeline = agentProcessManager.getStatus();
-    // 'starting' means agentProcess.ts is about to spawn a fresh `rasa
-    // run` (first launch, or restart after a retrain/crash) — its
-    // in-memory session tracker is gone, so the swallowed-first-turn bug
-    // will hit again on the next real message. Re-prime (and re-show the
-    // greeting) for the new run instead of assuming last run's priming
-    // still counts.
-    if (pipeline.phase === 'starting' && lastPhase !== 'starting') { sessionPrimed = false; }
-    lastPhase = pipeline.phase;
     // Only worth polling the actual HTTP endpoint once the process manager
     // believes it has a running process — otherwise we already know why
     // it's not up (still installing, missing credentials, crashed, etc.)
@@ -314,21 +238,6 @@ export function registerAgentChatCommand(
   async function handleUserText(text: string, viaVoice = false) {
     if (!agentPanel) { return; }
     agentPanel.webview.postMessage({ type: 'thinking', value: true });
-    // manageThinkingUI=false: this function already owns the 'thinking'
-    // state for the whole operation (set above, cleared in the finally
-    // below) — if primeSessionWhenReady also toggled it, its own
-    // completion partway through this await would prematurely flip the
-    // send button back on while the real request below is still in
-    // flight. Bounded wait, not indefinite: if the agent still isn't
-    // reachable after 8s (still installing, crashed, etc.) fall through
-    // and let the real send below fail/succeed on its own via the normal
-    // error path, rather than hanging the whole chat on a session that
-    // may never prime. In practice this path is now a pure safety net —
-    // every place a chat session actually starts (new chat, resumed chat,
-    // panel open) already awaits priming with the input disabled before
-    // the user can type at all, so hitting this mid-send race should be
-    // rare rather than the primary defense it used to be.
-    await Promise.race([primeSessionWhenReady(true, false), new Promise((resolve) => setTimeout(resolve, 8000))]);
     recordUserMessage(text);
     try {
       const messages = await sendToRasa(senderId, text);
@@ -445,24 +354,13 @@ export function registerAgentChatCommand(
     persistTranscript();
     transcript = result.entries;
     currentHistoryFile = file;
-    if (result.senderId) {
-      // Not assumed already-primed just because it was primed at some
-      // point in the past: Rasa's own server-side session for this
-      // senderId can have expired independently of anything this client
-      // remembers (a restart, retrain, or its own session_expiration
-      // timeout) — treating a stale assumption as ground truth here was
-      // exactly how a resumed chat could still hit the swallowed-first-turn
-      // bug. Re-verify every time; showGreeting=false since a surprise
-      // "Hi, how can I help?" bubble spliced into restored history would
-      // just be confusing, whether or not the session had actually expired.
-      senderId = result.senderId;
-      sessionPrimed = false;
-      void primeSessionWhenReady(false);
-    } else {
-      senderId = randomUUID();
-      sessionPrimed = false;
-      void primeSessionWhenReady();
-    }
+    // Reuses the saved senderId when we have one so the underlying Rasa
+    // tracker (server-side memory) picks up where it left off instead of
+    // starting a cold session under a fresh id; older history files saved
+    // before senderId was recorded fall back to a new session (transcript
+    // still resumes, the agent just won't remember it). No priming step
+    // needed either way anymore — see default_session_start's override.
+    senderId = result.senderId ?? randomUUID();
     agentPanel.webview.postMessage({ type: 'restoreTranscript', entries: transcript });
   }
 
@@ -472,15 +370,13 @@ export function registerAgentChatCommand(
     transcript = [];
     currentHistoryFile = undefined;
     senderId = randomUUID();
-    sessionPrimed = false;
     agentPanel.webview.postMessage({ type: 'clearChat' });
-    void primeSessionWhenReady();
   }
 
   // Fires regardless of whether the panel is currently open — postStatus()
   // itself no-ops if it isn't, so this is cheap to leave subscribed for the
   // extension's whole lifetime.
-  const statusSub = agentProcessManager.onStatusChange(() => { postStatus(); void primeSessionWhenReady(); });
+  const statusSub = agentProcessManager.onStatusChange(() => { postStatus(); });
 
   // Without this, the pill only refreshes on the discrete events above
   // (panel open, a process-manager phase change, or after a chat turn) —
@@ -525,7 +421,7 @@ export function registerAgentChatCommand(
     // resets. A closed/reopened panel just gets its live transcript
     // replayed back in below.
     agentPanel.onDidDispose(() => { agentPanel = undefined; voiceRecorder.stop(); }, null, context.subscriptions);
-    void primeSessionWhenReady();
+    void maybeShowFirstEverGreeting();
 
     agentPanel.webview.onDidReceiveMessage(async (msg: { type: string; text?: string; file?: string }) => {
       if (msg.type === 'ready') {

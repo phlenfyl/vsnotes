@@ -2,6 +2,12 @@
 
 All notable changes to NoteVs will be documented here.
 
+## [0.21.0] - 2026-09-04
+
+### Changed
+- **The agent no longer needs a "warm-up" message before it can help you** — every new or resumed chat used to silently send a throwaway message first so the agent's own startup-greeting step wouldn't swallow your real one (see 0.20.1/0.20.2). That workaround is gone: the agent's greeting step is now configured to get straight out of the way, so your very first message in any chat is answered for real immediately, no warm-up needed and nothing to wait for
+- **First-ever chat still gets a friendly hello** — the very first time you ever open the agent panel, it shows a one-time "Hi! How can I help you today?" before you type anything. Every chat after that — new or resumed — skips straight to answering
+
 ## [0.20.2] - 2026-09-02
 
 ### Fixed
