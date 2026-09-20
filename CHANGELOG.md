@@ -2,6 +2,11 @@
 
 All notable changes to NoteVs will be documented here.
 
+## [0.21.1] - 2026-09-20
+
+### Fixed
+- **Agent stopped responding for Groq users — "model not found"** — the pinned Groq model (`qwen/qwen3.6-27b`) was quietly discontinued upstream. Re-pinned to its successor (`qwen/qwen3.8-27b`), confirmed live against a real conversation
+
 ## [0.21.0] - 2026-09-04
 
 ### Changed

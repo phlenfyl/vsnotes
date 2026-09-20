@@ -57,7 +57,14 @@ interface LlmProviderInfo {
   extraConfigLines?: string; // additional raw YAML lines under llm:, each already indented
 }
 const LLM_PROVIDERS: Record<string, LlmProviderInfo> = {
-  groq: { secretKey: 'groqApiKey', apiKeyEnvVar: 'GROQ_API_KEY', model: 'qwen/qwen3.6-27b', extraConfigLines: '  reasoning_effort: none\n' },
+  // qwen/qwen3.6-27b (the original pick) stopped existing on Groq at some
+  // point — confirmed live 2026-09-20 via a real turn ("model_not_found")
+  // and a live GET /openai/v1/models call, which lists qwen/qwen3.8-27b
+  // (a version bump) in its place. Re-pinned; same family, same
+  // reasoning_effort switch applies. Groq's catalog moves fast enough
+  // that this will likely need re-checking again — see integrations.yml's
+  // own comment history for the full model-selection story.
+  groq: { secretKey: 'groqApiKey', apiKeyEnvVar: 'GROQ_API_KEY', model: 'qwen/qwen3.8-27b', extraConfigLines: '  reasoning_effort: none\n' },
   openai: { secretKey: 'openaiApiKey', apiKeyEnvVar: 'OPENAI_API_KEY', model: 'gpt-4o-mini' },
   anthropic: { secretKey: 'anthropicApiKey', apiKeyEnvVar: 'ANTHROPIC_API_KEY', model: 'claude-3-5-haiku-20241022' },
 };

@@ -52,9 +52,15 @@
 #      live. If this doesn't take effect, the <think>-stripping code in
 #      agentPanel.ts stays as a second line of defense, but it's known to
 #      be incomplete against this model's actual leak pattern.
+#
+# Update 2026-09-20: qwen/qwen3.6-27b no longer exists on this account —
+# confirmed live via a real turn ("model_not_found") and cross-checked
+# against a live `GET /openai/v1/models` call, which lists
+# qwen/qwen3.8-27b (a version bump) in its place. Re-pinned to that;
+# same family, same reasoning_effort switch applies.
 llm:
   provider: groq
-  model: qwen/qwen3.6-27b
+  model: qwen/qwen3.8-27b
   api_key_env: GROQ_API_KEY
   reasoning_effort: none
 
