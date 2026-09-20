@@ -3,9 +3,10 @@ import * as http from 'http';
 import * as crypto from 'crypto';
 import axios from 'axios';
 
-// ── Google OAuth credentials (Desktop app — client_secret is public for this flow) ──
-const GOOGLE_CLIENT_ID     = 'REDACTED_CLIENT_ID.apps.googleusercontent.com';
-const GOOGLE_CLIENT_SECRET = 'REDACTED_CLIENT_SECRET';
+// ── Google OAuth credentials (Desktop app flow) ──
+// Supplied at build/run time via NOTEVS_GOOGLE_CLIENT_ID / NOTEVS_GOOGLE_CLIENT_SECRET.
+const GOOGLE_CLIENT_ID     = process.env.NOTEVS_GOOGLE_CLIENT_ID ?? '';
+const GOOGLE_CLIENT_SECRET = process.env.NOTEVS_GOOGLE_CLIENT_SECRET ?? '';
 const GOOGLE_TOKEN_URL     = 'https://oauth2.googleapis.com/token';
 const GOOGLE_AUTH_URL      = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TASKS_SCOPE   = 'https://www.googleapis.com/auth/tasks';

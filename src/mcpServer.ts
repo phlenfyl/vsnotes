@@ -342,8 +342,8 @@ async function setNoteReminder(
     const expiry = expiryStr ? new Date(expiryStr).getTime() : 0;
     if (Date.now() >= expiry - 60_000) {
       // Refresh
-      const GOOGLE_CLIENT_ID     = 'REDACTED_CLIENT_ID.apps.googleusercontent.com';
-      const GOOGLE_CLIENT_SECRET = 'REDACTED_CLIENT_SECRET';
+      const GOOGLE_CLIENT_ID     = process.env.NOTEVS_GOOGLE_CLIENT_ID ?? '';
+      const GOOGLE_CLIENT_SECRET = process.env.NOTEVS_GOOGLE_CLIENT_SECRET ?? '';
       const { data: refreshData } = await axios.post(
         'https://oauth2.googleapis.com/token',
         new URLSearchParams({ client_id: GOOGLE_CLIENT_ID, client_secret: GOOGLE_CLIENT_SECRET, refresh_token: refreshToken, grant_type: 'refresh_token' }).toString(),
