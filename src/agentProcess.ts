@@ -66,7 +66,7 @@ const LLM_PROVIDERS: Record<string, LlmProviderInfo> = {
   // own comment history for the full model-selection story.
   groq: { secretKey: 'groqApiKey', apiKeyEnvVar: 'GROQ_API_KEY', model: 'qwen/qwen3.8-27b', extraConfigLines: '  reasoning_effort: none\n' },
   openai: { secretKey: 'openaiApiKey', apiKeyEnvVar: 'OPENAI_API_KEY', model: 'gpt-4o-mini' },
-  anthropic: { secretKey: 'anthropicApiKey', apiKeyEnvVar: 'ANTHROPIC_API_KEY', model: 'claude-3-5-haiku-20241022' },
+  anthropic: { secretKey: 'anthropicApiKey', apiKeyEnvVar: 'ANTHROPIC_API_KEY', model: 'claude-haiku-4-5-20251001' },
 };
 
 function getLlmProviderKey(): keyof typeof LLM_PROVIDERS {
